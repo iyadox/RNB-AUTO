@@ -113,18 +113,20 @@ export function SettingField({
   onChange,
   error,
   compact = false,
+  badge,
 }: {
   settingKey: SettingKey;
   value: unknown;
   onChange: (value: unknown) => void;
   error?: string;
   compact?: boolean;
+  badge?: React.ReactNode;
 }) {
   const def = SETTINGS[settingKey] as SettingDef;
   const warning = softLimitWarning(settingKey, value);
   if (def.input === "toggle") {
     return (
-      <SettingCard title={def.label} help={def.help} enabled={Boolean(value)} onToggle={onChange} error={error} />
+      <SettingCard title={def.label} help={def.help} enabled={Boolean(value)} onToggle={onChange} error={error} badge={badge} />
     );
   }
   let control: React.ReactNode = null;
@@ -154,7 +156,7 @@ export function SettingField({
   }
   const inline = !compact && (def.input === "money" || def.input === "fuel_price" || def.input === "percent" || def.input === "decimal" || def.input === "integer" || (def.input === "choice" && !(def.options.some((o) => o.help) || def.options.length > 3)));
   return (
-    <SettingCard title={def.label} help={def.help} error={error} warning={warning}>
+    <SettingCard title={def.label} help={def.help} error={error} warning={warning} badge={badge}>
       {inline ? <div className="flex flex-wrap items-center justify-end">{control}</div> : control}
     </SettingCard>
   );

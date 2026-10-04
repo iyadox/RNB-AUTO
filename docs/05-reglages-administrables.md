@@ -1,20 +1,20 @@
 # 05 — Réglages administrables
 
-> Document de cadrage, version 0.1 du 03/10/2026.
+> Version 1.0 du 04/10/2026. Le catalogue (§3) est tiré du registre des réglages et des données de départ réellement installées.
 >
-> ⚠️ Les valeurs de la colonne « Démo » sont **fictives**. Elles rendent le système compréhensible dès l'installation et ne sont **pas** des tarifs RNB AUTO. Seul le prix minimum de 45 € vient du cahier des charges, comme idée de départ.
+> Les valeurs de départ sont des **moyennes du marché francilien (octobre 2026)**, choisies pour donner des prix « normaux ». Ce ne sont pas des tarifs officiels de RNB AUTO : l'administrateur les relève ou les baisse dans « Mes tarifs ». Le prix minimum de 45 € vient du cahier des charges.
 
 ## 1. Comment on garantit que tout se règle sans code
 
-1. **Aucune valeur commerciale dans le code.** Le moteur ne contient que des mécanismes et ne peut pas calculer sans recevoir les réglages. Un contrôle automatique signale toute valeur chiffrée glissée dans le code du moteur.
-2. **Un registre unique des réglages.** Chaque réglage y est décrit une seule fois : nom français, aide, unité, bornes, niveau (simple ou avancé), valeur de démonstration. À partir de ce registre sont produits automatiquement :
+1. **Aucune valeur commerciale dans le code.** Le moteur ne contient que des mécanismes et ne peut pas calculer sans recevoir les réglages. Un test automatique (`no-hardcoded-values.test.ts`) échoue si un montant est écrit en dur dans le code du moteur.
+2. **Un registre unique des réglages.** Chaque réglage y est décrit une seule fois : nom français, aide, unité, bornes, niveau (simple ou avancé), valeur de départ. À partir de ce registre sont produits automatiquement :
    - le champ dans l'écran d'administration ;
    - la validation côté navigateur **et** côté serveur ;
    - le libellé dans l'historique des modifications.
 
    Un réglage absent du registre ne peut pas exister : impossible d'avoir une valeur utilisée par le moteur sans qu'elle soit modifiable.
 3. **Des règles en base plutôt que des conditions dans le code.** Ajouter un type de véhicule, une situation, une plage horaire, un jour férié ou un frais fixe revient à ajouter une ligne depuis l'admin.
-4. **Des valeurs de démonstration bien identifiées.** À l'installation, tout est rempli avec des valeurs « DÉMO ». Un bandeau le rappelle, et l'**estimation en ligne reste désactivée** tant que l'écran « Vos tarifs sont-ils prêts ? » n'est pas validé, section par section.
+4. **Des valeurs de départ réalistes.** À l'installation, tout est rempli avec des moyennes du marché : le site donne tout de suite des prix cohérents. L'accueil de l'administration liste ce qu'il reste à compléter (téléphone, mentions légales, position du dépôt…), et « Tester mes tarifs » permet de vérifier n'importe quel trajet avant d'ajuster.
 5. **Modifier sans risque.**
    - Confirmation avec aperçu d'impact sur les trajets de référence.
    - Alertes sur les valeurs inhabituelles.
@@ -25,21 +25,17 @@
 
 ### Définition d'un réglage dans le registre
 
+Extrait de `src/core/settings/registry.ts` :
+
 ```ts
-type SettingDefinition = {
-  key: string;            // 'pricing_policy.minimumPrice.amountCents' (interne, jamais affiché)
-  section: 'base' | 'schedule' | 'days' | 'vehicles' | 'situations' | 'fuel'
-         | 'internal_costs' | 'margin' | 'rounding' | 'estimate' | 'company' | 'truck' | 'zone';
-  label: string;          // « Prix minimum d'une intervention »
-  help?: string;          // « Le client ne paiera jamais moins que ce montant. »
-  input: 'toggle' | 'money' | 'percent' | 'money_or_percent' | 'money_per_km' | 'money_per_hour'
-       | 'liters_per_100km' | 'km' | 'minutes' | 'time' | 'time_range' | 'choice' | 'address' | 'text';
-  level: 'simple' | 'advanced';
-  hardLimits?: { min?: number; max?: number };   // valeur refusée en dehors
-  softLimits?: { min?: number; max?: number };   // confirmation demandée en dehors
-  example?: (value: unknown) => string;          // « Exemple : 20 km = 20,00 € »
-  demoValue: unknown;                            // valeur de démonstration, marquée DÉMO
-};
+"pricing.minimum.amountCents": num("money", {
+  section: "base",                      // écran et rubrique où le réglage apparaît
+  level: "simple",                      // simple : toujours visible ; avancé : en mode avancé
+  label: "Montant minimum",             // seul texte affiché (jamais la clé technique)
+  initialValue: 4500,                   // valeur de départ (centimes), écrite une seule fois en base
+  min: 0, max: 100_000,                 // bornes dures : valeur refusée en dehors
+  softMax: 30_000,                      // borne souple : confirmation demandée au-delà
+}),
 ```
 
 ## 2. Mode simple et mode avancé
@@ -59,165 +55,235 @@ Un sélecteur en haut de « Mes tarifs » : `[ Simple | Avancé ]`. Le mode simp
 
 ## 3. Catalogue des réglages
 
-### 3.1 Prix de base
+Chaque ligne correspond à un champ de l'administration (« Mes tarifs » ou « Paramètres »). Les règles de prix, véhicules et situations sont des lignes en base : on peut en **ajouter** depuis « Mes tarifs » (plage horaire, frais fixe, type de véhicule, situation) sans toucher au code.
 
-| Libellé affiché | Saisie | Mode | Démo |
+### Prix de base
+
+Forfaits, prix au kilomètre et prix minimum.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
 |---|---|---|---|
-| Prix minimum d'une intervention | interrupteur + € | simple | activé, 45,00 € (idée de départ) |
-| Prise en charge | interrupteur + € | simple | 30,00 € |
-| Déplacement jusqu'au client (dépanneuse vide) | interrupteur + €/km | simple | 1,00 €/km |
-| Trajet avec le véhicule chargé | interrupteur + €/km | simple | 2,00 €/km |
-| Retour au dépôt (dépanneuse vide) | interrupteur + €/km | simple | 0,50 €/km |
-| Kilomètres offerts, pour chaque trajet | km | avancé | 0 km |
-| Frais fixes (liste : nom + montant) | interrupteur + € | avancé | aucun |
+| Prix minimum d'une intervention | interrupteur | simple | Activé |
+| Montant minimum | € | simple | 45,00 € |
+| Kilomètres facturés | choix | avancé | Au dixième de km (12,3 km) |
 
-### 3.2 Horaires
+### Horaires et jours
 
-| Libellé affiché | Saisie | Mode | Démo |
+Nuit, dimanche, jours fériés et règles de cumul.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
 |---|---|---|---|
-| Nuit | interrupteur, de [hh:mm] à [hh:mm], € ou %, valeur | simple | activé, 22:00 → 06:00, +20 % |
-| Ajouter une plage horaire | nom, horaires, jours concernés, € ou %, valeur | simple | — |
-| Heure prise en compte | heure de la demande / heure d'arrivée estimée | avancé | heure de la demande |
+| Heure prise en compte pour les majorations | choix | avancé | L'heure de la demande |
+| Si c'est à la fois un jour majoré (dimanche…) et un jour férié | choix | avancé | Appliquer seulement la plus élevée |
+| Si deux plages horaires se chevauchent | choix | avancé | Appliquer seulement la plus élevée |
+| La nuit s'ajoute-t-elle au dimanche ou à un jour férié ? | choix | avancé | Non, appliquer seulement la plus élevée |
+| Jours fériés à ignorer | calendrier | avancé | Aucun |
+| Jours majorés ajoutés | liste de dates | avancé | Aucun |
 
-### 3.3 Jours
+### Carburant
 
-| Libellé affiché | Saisie | Mode | Démo |
+Consommation de la dépanneuse et prix du litre.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
 |---|---|---|---|
-| Lundi, mardi, mercredi, jeudi, vendredi, samedi | interrupteur, € ou %, valeur | simple | désactivés |
-| Dimanche | interrupteur, € ou %, valeur | simple | activé, +20 % |
-| Jours fériés | interrupteur, € ou %, valeur | simple | activé, +20 % |
-| Liste des jours fériés | calendrier : chaque férié activable, ajout de dates | avancé | fériés nationaux calculés automatiquement |
-| Dimanche et jour férié le même jour | la plus élevée / additionner | avancé | la plus élevée |
-| La nuit s'ajoute au dimanche ou au férié | oui / non, la plus élevée | avancé | oui |
+| Consommation de la dépanneuse à vide | nombre | simple | 13 L/100 km |
+| Consommation avec un véhicule chargé | nombre | simple | 16 L/100 km |
+| Prix du carburant | choix | simple | Manuel |
+| Prix du litre | €/L | simple | 2,350 €/L |
+| Carburant de la dépanneuse | choix | avancé | Gazole |
+| Stations prises en compte autour du dépôt | nombre entier | avancé | 10 km |
+| Revenir au prix manuel si le prix automatique a plus de | nombre entier | avancé | 72 heures |
+| Prix jugé aberrant en dessous de | €/L | avancé | 1,000 €/L |
+| Prix jugé aberrant au-dessus de | €/L | avancé | 3,500 €/L |
+| Impact du carburant sur le prix client | interrupteur | avancé | Désactivé |
+| Prix du carburant de référence | €/L | avancé | 2,350 €/L |
+| Part du carburant dans vos prix au kilomètre | % | avancé | 30 % |
+| Variation maximale | % | avancé | 10 % |
 
-### 3.4 Véhicules
+### Coûts internes
 
-Pour chaque catégorie : **affiché au client** (oui/non), **accepté** (oui / sur demande / non), **supplément** (aucun, €, %).
+Ce que coûte réellement une intervention. Jamais montré au client.
 
-| Catégorie | Démo |
-|---|---|
-| Petite citadine | acceptée, aucun supplément |
-| Berline | acceptée, aucun supplément |
-| Break | acceptée, aucun supplément |
-| SUV | acceptée, +10,00 € |
-| 4x4 | acceptée, +10,00 € |
-| Utilitaire | acceptée, +15,00 € |
-| Petit fourgon | acceptée, +20,00 € |
-| Grand fourgon | sur demande |
-| Autre | sur demande |
-
-Bouton « Ajouter une catégorie ».
-
-### 3.5 Situations et difficultés
-
-Pour chaque situation : **activée**, **proposée au client** (oui) ou **ajoutée seulement par RNB AUTO** (non), **supplément** (aucun, €, %).
-
-| Situation | Proposée au client | Démo |
-|---|---|---|
-| Véhicule roulant | oui | aucun supplément |
-| Véhicule non roulant | oui | +20,00 € |
-| Batterie | oui | aucun supplément |
-| Crevaison | oui | aucun supplément |
-| Panne mécanique | oui | aucun supplément |
-| Accident | oui | +20,00 € |
-| Roues bloquées | oui | +25,00 € |
-| Véhicule dans un parking | oui | +15,00 € |
-| Véhicule difficile à charger | non | +20,00 € |
-| Treuillage | non | +30,00 € |
-| Accès difficile | non | +15,00 € |
-| Véhicule particulièrement lourd | non | +20 % |
-| Autre | oui | aucun supplément |
-
-Bouton « Ajouter une situation ».
-
-### 3.6 Carburant
-
-| Libellé affiché | Saisie | Mode | Démo |
+| Libellé affiché | Saisie | Mode | Valeur de départ |
 |---|---|---|---|
-| Consommation de la dépanneuse à vide | L/100 km | simple | 14 |
-| Consommation avec un véhicule chargé | L/100 km | simple | 17 |
-| Prix du carburant | automatique / manuel | simple | manuel (automatique en Phase 9) |
-| Prix manuel du litre | €/L | simple | 1,80 € |
-| Dernière mise à jour, source, [Actualiser maintenant] | affichage + bouton | simple | — |
-| Carburant de la dépanneuse | choix | avancé | gazole |
-| Prix automatique basé sur | station habituelle / moyenne des stations autour du dépôt (rayon) | avancé | moyenne à 10 km |
-| Fréquence d'actualisation | choix | avancé | toutes les 6 heures |
-| Si le prix automatique a plus de… | jours, puis prix manuel | avancé | 3 jours |
-| Prix jugés aberrants | en dessous de… / au-dessus de… €/L | avancé | 1,00 € / 3,50 € |
-| Impact du carburant sur le prix client | interrupteur, prix de référence, part du carburant, plafond | avancé | désactivé ; 1,80 € ; 30 % ; ±10 % |
+| Temps de chargement et de déchargement | nombre entier | avancé | 20 min |
+| TVA récupérable sur le carburant | % | avancé | 100 % |
 
-### 3.7 Coûts internes *(avancé)*
+### Marge
 
-| Libellé affiché | Saisie | Démo |
+Marge minimale, marge visée et garde-fous.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Marge minimale par intervention (HT) | € | avancé | 15,00 € |
+| Marge visée | % | avancé | 30 % |
+| Si une estimation en ligne n'atteint pas la marge minimale | choix | avancé | Relever le prix automatiquement |
+
+### Arrondi
+
+Arrondir le prix affiché au client.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Arrondir le prix client | interrupteur | avancé | Activé |
+| Précision | choix | avancé | Aux 5 € (85 €, 90 €) |
+| Sens | choix | avancé | Au plus proche |
+| Arrondir aussi après un ajustement manuel | interrupteur | avancé | Activé |
+
+### TVA
+
+Taux de TVA et prix saisis TTC ou HT.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Votre entreprise facture la TVA | interrupteur | avancé | Activé |
+| Taux de TVA | % | avancé | 20 % |
+| Les montants saisis dans « Mes tarifs » sont | choix | avancé | TTC (ce que paie le client) |
+
+### Estimation en ligne
+
+Ce que voit le client sur le site.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Estimation en ligne | interrupteur | simple | Activé |
+| Montrer au client le nom des suppléments (sans montant) | interrupteur | avancé | Activé |
+| Durée de validité d'une estimation | nombre entier | avancé | 30 min |
+
+### Zone d'intervention *(Paramètres)*
+
+Distances maximales et autoroutes.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Distance maximale jusqu'au client | nombre entier | simple | 80 km |
+| Distance maximale de transport | nombre entier | simple | 150 km |
+| Demander au client s'il est sur une autoroute | interrupteur | simple | Activé |
+| Message affiché au client sur l'autoroute | texte | simple | Sur l'autoroute et les voies rapides, seul le dépanneur agréé pour ce secteur peut inte… |
+
+### Adresse de départ *(Paramètres)*
+
+Le dépôt d'où part et où revient la dépanneuse.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Adresse de départ (dépôt) | adresse + carte | simple | 145 rue de Paris, 93000 Bobigny |
+
+### Calcul des trajets *(Paramètres)*
+
+Façon de calculer les itinéraires.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Type d'itinéraire | choix | avancé | Le plus rapide |
+
+### Entreprise *(Paramètres)*
+
+Nom, téléphone, WhatsApp, email, disponibilité.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Nom affiché | texte | simple | RNB AUTO |
+| Téléphone | téléphone | simple | À COMPLÉTER |
+| Numéro WhatsApp | téléphone | simple | (vide) |
+| Email de contact | email | simple | À COMPLÉTER |
+| Disponibilité affichée sur le site | texte | simple | À COMPLÉTER |
+| Zone desservie (phrase courte) | texte | simple | Bobigny, la Seine-Saint-Denis, Paris et l'Île-de-France |
+
+### Site internet *(Paramètres)*
+
+Message temporaire et affichages.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Afficher un message temporaire en haut du site | interrupteur | simple | Désactivé |
+| Message temporaire | texte | simple | (vide) |
+| Montrer un exemple de prix sur la page d'accueil | interrupteur | simple | Activé |
+
+### Mentions légales *(Paramètres)*
+
+Informations obligatoires affichées sur le site.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Raison sociale | texte | simple | À COMPLÉTER |
+| Forme juridique | texte | simple | À COMPLÉTER |
+| Numéro SIRET | texte | simple | À COMPLÉTER |
+| Numéro de TVA intracommunautaire | texte | simple | (vide) |
+| Adresse du siège | texte | simple | 145 rue de Paris, 93000 Bobigny |
+| Directeur ou directrice de la publication | texte | simple | À COMPLÉTER |
+| Hébergeur du site | texte | simple | À COMPLÉTER |
+| Assurance professionnelle (facultatif) | texte | simple | (vide) |
+
+### Notifications *(Paramètres)*
+
+Qui est prévenu des nouvelles demandes.
+
+| Libellé affiché | Saisie | Mode | Valeur de départ |
+|---|---|---|---|
+| Email qui reçoit les nouvelles demandes | email | simple | (vide) |
+
+### Règles de prix (Mes tarifs)
+
+| Règle | Catégorie | Calcul de départ | Active |
+|---|---|---|---|
+| Forfait remorquage | forfait | 75,00 € | oui |
+| Forfait dépannage sur place | forfait | 55,00 € | oui |
+| Déplacement jusqu'au client | prix au km | 1,00 €/km | oui |
+| Trajet avec le véhicule chargé | prix au km | 2,20 €/km | oui |
+| Retour au dépôt | prix au km | 0,50 €/km | oui |
+| Nuit | plage horaire | 25 % de la prestation complète | oui |
+| Lundi | jour | 0 % de la prestation complète | non |
+| Mardi | jour | 0 % de la prestation complète | non |
+| Mercredi | jour | 0 % de la prestation complète | non |
+| Jeudi | jour | 0 % de la prestation complète | non |
+| Vendredi | jour | 0 % de la prestation complète | non |
+| Samedi | jour | 0 % de la prestation complète | non |
+| Dimanche | jour | 25 % de la prestation complète | oui |
+| Jours fériés | jour férié | 25 % de la prestation complète | oui |
+| Carburant | coût interne | selon consommation et prix du litre | oui |
+| Usure et entretien | coût interne | 0,12 €/km | oui |
+| Amortissement de la dépanneuse | coût interne | 0,20 €/km | oui |
+| Assurance et frais généraux | coût interne | 10,00 € | oui |
+| Temps de travail | coût interne | 25,00 €/h | oui |
+
+### Véhicules
+
+| Catégorie | Acceptée | Supplément de départ |
 |---|---|---|
-| Usure et entretien estimés (pneus, freins, vidanges…) | €/km | 0,15 €/km |
-| Détailler l'usure (pneus, freins, vidanges, entretien) | €/km par poste ; remplace la valeur globale | désactivé |
-| Amortissement de la dépanneuse | €/km | 0,10 €/km |
-| Assurance et frais généraux | € par intervention | 5,00 € |
-| Coût d'une heure de travail | €/h | 25,00 €/h |
-| Temps de chargement et déchargement | minutes | 30 min |
-| Autres frais (liste : nom + €/km ou € par intervention) | | aucun |
-| TVA récupérable sur le carburant | % | 100 % (à confirmer avec le comptable) |
+| Petite citadine | oui | aucun |
+| Berline | oui | aucun |
+| Break | oui | aucun |
+| SUV | oui | + 15,00 € |
+| 4x4 | oui | + 20,00 € |
+| Utilitaire | oui | + 25,00 € |
+| Petit fourgon | oui | + 30,00 € |
+| Grand fourgon | sur demande | + 50,00 € |
+| Autre | sur demande | aucun |
 
-### 3.8 Marge *(avancé)*
+### Situations
 
-| Libellé affiché | Saisie | Démo |
+| Situation | Proposée au client | Supplément de départ |
 |---|---|---|
-| Marge minimale par intervention | € HT | 5,00 € |
-| Marge visée | % | 30 % |
-| Si une estimation en ligne n'atteint pas la marge minimale | relever le prix / m'alerter seulement / ne pas afficher de prix | relever le prix (proposition) |
+| Batterie | oui | aucun |
+| Crevaison | oui | aucun |
+| Panne mécanique | oui | aucun |
+| Accident | oui | + 25,00 € |
+| Roues bloquées | oui | + 30,00 € |
+| Autre problème | oui | aucun |
+| Véhicule roulant | oui | aucun |
+| Véhicule non roulant | oui | + 15,00 € |
+| Véhicule dans un parking | oui | + 20,00 € |
+| Véhicule difficile à charger | non (ajoutée par RNB AUTO) | + 20,00 € |
+| Treuillage | non (ajoutée par RNB AUTO) | + 40,00 € |
+| Accès difficile | non (ajoutée par RNB AUTO) | + 20,00 € |
+| Véhicule particulièrement lourd | non (ajoutée par RNB AUTO) | + 20 % du prix de base |
 
-### 3.9 Arrondi *(avancé)*
+### Ajouts depuis l'administration
 
-| Libellé affiché | Saisie | Démo |
-|---|---|---|
-| Arrondir le prix client | interrupteur | activé |
-| Précision | à l'euro / aux 5 € / aux 10 € | aux 5 € |
-| Sens | au plus proche / toujours au-dessus | toujours au-dessus |
-| Arrondir aussi après un ajustement manuel | interrupteur | activé |
-
-### 3.10 Estimation en ligne *(avancé)*
-
-| Libellé affiché | Saisie | Démo |
-|---|---|---|
-| Estimation en ligne activée | interrupteur | désactivée tant que les tarifs ne sont pas validés |
-| Durée de validité d'une estimation | minutes | 30 min |
-| Afficher au client l'heure d'arrivée estimée | interrupteur | désactivé (décision à prendre) |
-| Marge de sécurité sur l'heure d'arrivée | minutes | 10 min |
-| Afficher au client le nom des suppléments (sans montant) | interrupteur | activé (décision à prendre) |
-
-### 3.11 Entreprise, dépanneuse et zone (Paramètres)
-
-| Libellé affiché | Saisie | Valeur initiale |
-|---|---|---|
-| Nom affiché | texte | RNB AUTO |
-| Téléphone | téléphone | À COMPLÉTER |
-| Numéro WhatsApp | téléphone | À COMPLÉTER |
-| Email | email | À COMPLÉTER |
-| Adresse de départ (dépôt) | adresse + carte de confirmation | 145 rue de Paris, 93000 Bobigny |
-| Disponibilité | 24h/24 7j/7, ou horaires par jour | À COMPLÉTER |
-| TVA : entreprise soumise à la TVA, taux, prix saisis TTC ou HT | choix, % | À COMPLÉTER ; 20 % ; TTC |
-| Ma dépanneuse : type, PTAC, charge utile, hauteur | choix, kg, cm | À COMPLÉTER |
-| Distance maximale jusqu'au client pour une estimation automatique | km | 50 km (démo) |
-| Distance maximale de transport pour une estimation automatique | km | 150 km (démo) |
-| Zones où RNB AUTO n'intervient pas directement | liste : nom, activée, message au client | « Autoroutes et voies rapides », texte à valider |
-
-### 3.12 Itinéraires *(avancé, Paramètres → Services externes)*
-
-| Libellé affiché | Saisie | Valeur initiale |
-|---|---|---|
-| Service de calcul principal / de secours | choix | Géoplateforme IGN / OpenRouteService |
-| Type d'itinéraire | le plus rapide / le plus court | le plus rapide |
-| Éviter les péages | interrupteur | activé (démo) |
-| Précision des kilomètres facturés | au dixième / au km supérieur | au dixième |
-
-### 3.13 Règles personnalisées *(avancé, Phase 10)*
-
-Assistant en trois questions :
-
-1. **Nom** : « Supplément véhicule très bas »
-2. **Quand ?** Choix dans une liste : une option est cochée, un type de véhicule, un jour, une heure, une distance, une commune de prise en charge…
-3. **Action** : `+` ou `−`, `€` ou `%`, valeur ; affichée au client ou non.
+- **Plages horaires** (ex. « Soirée 19 h – 22 h, + 10 % »), **frais fixes**, **types de véhicule**, **situations** : bouton « Ajouter » dans la rubrique correspondante.
+- **Jours fériés** : fériés nationaux calculés automatiquement ; chacun peut être ignoré, et des dates peuvent être ajoutées.
+- **Règles personnalisées libres** (assistant « Nom → Quand ? → Action ») : prévues en Phase 10.
 
 ## 4. Vocabulaire
 
@@ -281,20 +347,7 @@ Assistant en trois questions :
 └──────────────────────────────────────────────┘
 ```
 
-```
-┌──────────────────────────────────────────────┐
-│  Vos tarifs sont-ils prêts ?                 │
-│   [x] Prix de base               vérifié     │
-│   [x] Horaires et jours          vérifié     │
-│   [ ] Véhicules                  à vérifier  │
-│   [ ] Situations                 à vérifier  │
-│   [ ] Carburant                  à vérifier  │
-│   [ ] Adresse de départ          à vérifier  │
-│                                              │
-│  L'estimation en ligne s'activera quand      │
-│  tout sera vérifié.                          │
-└──────────────────────────────────────────────┘
-```
+L'écran « Vos tarifs sont-ils prêts ? » prévu au cadrage n'a pas été retenu : les valeurs de départ étant réalistes, l'estimation en ligne est active dès l'installation. L'accueil de l'administration affiche à la place la liste « Pour démarrer ».
 
 ## 6. Garde-fous de saisie
 

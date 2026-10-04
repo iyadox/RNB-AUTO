@@ -1,6 +1,6 @@
 # 01 — Vision, pages et parcours
 
-> Document de cadrage, version 0.1 du 03/10/2026. À valider.
+> Document de cadrage du 03/10/2026, mis à jour le 04/10/2026. Ce qui est déjà réalisé est indiqué dans [06 — Feuille de route](06-feuille-de-route.md).
 
 ## 1. Résumé du projet
 

@@ -6,7 +6,7 @@
  * Chaque enregistrement montre d'abord les changements et leur effet sur les trajets types.
  */
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { HOLIDAY_LABELS, type Holiday } from "@/core/calendar/holidays";
 import { formatDate, formatDateTime, formatEuros, formatEurosShort, formatFuelPrice, formatPercentBp } from "@/core/format";
 import { roundToStep } from "@/core/money";
@@ -49,10 +49,42 @@ type Props = {
 let tempIndex = 0;
 const newTempId = () => `tmp-${Date.now().toString(36)}-${++tempIndex}`;
 
+type EditorMode = "simple" | "advanced";
+const MODE_KEY = "rnb-tarifs-mode";
+const modeListeners = new Set<() => void>();
+let memoryMode: EditorMode | null = null;
+
+/** Préférence « simple / avancé » gardée dans le navigateur (repli en mémoire si le stockage est bloqué). */
+function readMode(): EditorMode {
+  if (memoryMode) return memoryMode;
+  try {
+    return window.localStorage.getItem(MODE_KEY) === "advanced" ? "advanced" : "simple";
+  } catch {
+    return "simple";
+  }
+}
+
+function writeMode(next: EditorMode) {
+  memoryMode = next;
+  try {
+    window.localStorage.setItem(MODE_KEY, next);
+  } catch {
+    // stockage indisponible : la préférence reste valable pour cette visite
+  }
+  for (const listener of modeListeners) listener();
+}
+
+function subscribeMode(listener: () => void) {
+  modeListeners.add(listener);
+  return () => {
+    modeListeners.delete(listener);
+  };
+}
+
 export function PricingEditor({ initialDraft, versionNumber, fuel, holidays }: Props) {
   const router = useRouter();
   const [draft, setDraft] = useState<PricingDraft>(initialDraft);
-  const [mode, setMode] = useState<"simple" | "advanced">("simple");
+  const mode = useSyncExternalStore(subscribeMode, readMode, () => "simple" as const);
   const [tab, setTab] = useState<TabId>("base");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<(PreviewResult & { ok: true }) | null>(null);
@@ -62,23 +94,10 @@ export function PricingEditor({ initialDraft, versionNumber, fuel, holidays }: P
   const [toast, setToast] = useState<{ message: string; tone: "good" | "danger"; undoVersionId?: string | null } | null>(null);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("rnb-tarifs-mode");
-      if (saved === "advanced" || saved === "simple") setMode(saved);
-    } catch {
-      // ignoré
-    }
-  }, []);
 
-  const changeMode = (next: "simple" | "advanced") => {
-    setMode(next);
+  const changeMode = (next: EditorMode) => {
+    writeMode(next);
     if (next === "simple" && TABS.find((t) => t.id === tab)?.advanced) setTab("base");
-    try {
-      window.localStorage.setItem("rnb-tarifs-mode", next);
-    } catch {
-      // ignoré
-    }
   };
 
   const dirtyCount = useMemo(() => {
@@ -147,7 +166,6 @@ export function PricingEditor({ initialDraft, versionNumber, fuel, holidays }: P
 
   const rulesOf = (...categories: RuleCategory[]) =>
     draft.rules.filter((rule) => categories.includes(rule.category) && !(rule as { archived?: boolean }).archived);
-  const ruleByCode = (code: string) => draft.rules.find((rule) => rule.code === code);
 
   const updateVehicle = (key: string, patch: Partial<VehicleDraft>) =>
     setDraft((d) => ({ ...d, vehicles: d.vehicles.map((v) => ((v.code || v.tempId) === key ? { ...v, ...patch } : v)) }));

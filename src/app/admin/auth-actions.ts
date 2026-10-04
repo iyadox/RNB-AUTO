@@ -10,7 +10,7 @@ import { createSession, destroySession } from "@/server/auth/session";
 import { setupRequiresToken } from "@/server/auth/setup";
 import { getDb } from "@/server/db/client";
 import { users } from "@/server/db/schema";
-import { hashIdentifier, rateLimit, rateLimitByIp } from "@/server/security/rate-limit";
+import { hashIdentifier, rateLimit, rateLimitByIp, resetRateLimit } from "@/server/security/rate-limit";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> } | undefined;
 
@@ -27,8 +27,9 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Identifiants invalides." };
   const { email, password } = parsed.data;
 
+  const emailKey = `connexion-email:${hashIdentifier(email)}`;
   const byIp = await rateLimitByIp("connexion", 20, 900);
-  const byEmail = await rateLimit(`connexion-email:${hashIdentifier(email)}`, 8, 900);
+  const byEmail = await rateLimit(emailKey, 8, 900);
   if (!byIp.ok || !byEmail.ok) {
     return { error: "Trop de tentatives. Pour votre sécurité, réessayez dans 15 minutes." };
   }
@@ -39,6 +40,7 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
   if (!user || !valid || !user.active) return { error: "Email ou mot de passe incorrect." };
 
   await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
+  await resetRateLimit(emailKey);
   await createSession(user.id);
   redirect("/admin");
 }

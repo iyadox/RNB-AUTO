@@ -17,7 +17,9 @@ import { TowTruck } from "@/components/brand/tow-truck";
 import { SITUATION_ICONS, VehicleIcon } from "@/components/brand/vehicle-icon";
 import { cn } from "@/components/ui/cn";
 import { Icon, WhatsAppIcon } from "@/components/ui/icon";
+import { PHOTO_LIMITS } from "@/core/photos";
 import { AddressInput, useGeolocation } from "./address-input";
+import { PhotoUploader } from "./photo-uploader";
 
 type Step = "pickup" | "highway" | "dropoff" | "vehicle" | "problem" | "estimate" | "contact" | "done";
 
@@ -39,6 +41,8 @@ type FlowState = {
   comment: string;
   consent: boolean;
   reference: string | null;
+  /** Jeton temporaire pour ajouter des photos après l'envoi. */
+  photoToken: string | null;
   startedAt: number;
 };
 
@@ -64,6 +68,7 @@ function initialState(startOnHighway: boolean): FlowState {
     comment: "",
     consent: false,
     reference: null,
+    photoToken: null,
     startedAt: Date.now(),
   };
 }
@@ -95,6 +100,8 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
       if (saved) {
         const parsed = JSON.parse(saved) as FlowState;
         if (parsed && parsed.step && !(startOnHighway && parsed.step === "pickup")) {
+          // Le stockage du navigateur n'existe qu'après l'affichage initial : reprise faite ici, une seule fois.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setState({ ...initialState(startOnHighway), ...parsed, startedAt: parsed.startedAt ?? Date.now() });
         }
       }
@@ -207,7 +214,7 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
         elapsedMs: Math.min(86_400_000, Date.now() - state.startedAt),
       });
       if (result.status === "created") {
-        update({ reference: result.reference, step: "done" });
+        update({ reference: result.reference, photoToken: result.photoToken, step: "done" });
         window.history.replaceState({ ...(window.history.state ?? {}), rnbStep: "done" }, "");
         topRef.current?.scrollIntoView({ behavior: "smooth" });
       } else if (result.status === "price_changed") {
@@ -351,7 +358,15 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
         ) : null}
 
         {state.step === "done" ? (
-          <DoneStep reference={state.reference} phone={phone} whatsappLink={whatsappLink} contactPhone={state.contact.phone} highway={state.onHighway === "yes"} onRestart={restart} />
+          <DoneStep
+              reference={state.reference}
+              photoToken={state.photoToken}
+              phone={phone}
+              whatsappLink={whatsappLink}
+              contactPhone={state.contact.phone}
+              highway={state.onHighway === "yes"}
+              onRestart={restart}
+            />
         ) : null}
       </div>
 
@@ -788,28 +803,24 @@ function ProblemStep({
 // ─── Étape 5 : estimation ────────────────────────────────────────────────────
 
 function useCountUp(target: number | null, duration = 900): number | null {
-  const [value, setValue] = useState<number | null>(target);
+  // Valeur affichée pour la cible en cours ; mise à jour image par image (jamais pendant le rendu).
+  const [frame, setFrame] = useState<{ target: number | null; value: number }>({ target: null, value: 0 });
   useEffect(() => {
-    if (target === null) {
-      setValue(null);
-      return;
-    }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setValue(target);
-      return;
-    }
+    if (target === null) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const start = performance.now();
-    let frame = 0;
+    let handle = 0;
     const tick = (now: number) => {
-      const progress = Math.min(1, (now - start) / duration);
+      const progress = reduced ? 1 : Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - progress, 4);
-      setValue(Math.round(target * eased));
-      if (progress < 1) frame = requestAnimationFrame(tick);
+      setFrame({ target, value: Math.round(target * eased) });
+      if (progress < 1) handle = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    handle = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(handle);
   }, [target, duration]);
-  return value;
+  if (target === null) return null;
+  return frame.target === target ? frame.value : 0;
 }
 
 function EstimateStep({
@@ -1152,6 +1163,7 @@ function ContactStep({
 
 function DoneStep({
   reference,
+  photoToken,
   phone,
   whatsappLink,
   contactPhone,
@@ -1159,6 +1171,7 @@ function DoneStep({
   onRestart,
 }: {
   reference: string | null;
+  photoToken: string | null;
   phone: PhoneLink | null;
   whatsappLink: string | null;
   contactPhone: string;
@@ -1179,11 +1192,18 @@ function DoneStep({
       <p className="mx-auto mt-4 max-w-md text-xl text-chalk">
         Nous vous rappelons dans quelques minutes{contactPhone ? <> au {formatPhone(contactPhone)}</> : null} pour confirmer le prix.
       </p>
-      <div className="mx-auto mt-10 grid max-w-md gap-3">
+      {photoToken ? (
+        <div className="mx-auto mt-10 max-w-md rounded-3xl bg-asphalt-850 p-5 text-left">
+          <p className="font-extrabold">Des photos du véhicule ? (facultatif)</p>
+          <p className="mb-4 mt-1 text-sm text-asphalt-300">Elles nous aident à venir avec le bon matériel. Elles restent privées.</p>
+          <PhotoUploader token={photoToken} max={PHOTO_LIMITS.perIntervention} />
+        </div>
+      ) : null}
+      <div className="mx-auto mt-6 grid max-w-md gap-3">
         {whatsappLink ? (
           <a href={whatsappLink} className="flex h-16 items-center justify-center gap-3 rounded-2xl bg-whatsapp text-lg font-extrabold text-asphalt-950">
             <WhatsAppIcon size={22} />
-            Envoyer des photos sur WhatsApp
+            {photoToken ? "Nous écrire sur WhatsApp" : "Envoyer des photos sur WhatsApp"}
           </a>
         ) : null}
         {phone ? (

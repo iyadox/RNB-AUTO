@@ -4,7 +4,7 @@
  * Les adresses IP ne sont jamais stockées en clair (empreinte tronquée).
  */
 import { createHash } from "node:crypto";
-import { lt, sql } from "drizzle-orm";
+import { eq, lt, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getDb } from "@/server/db/client";
 import { rateLimits } from "@/server/db/schema";
@@ -57,4 +57,14 @@ export async function rateLimit(key: string, limit: number, windowSeconds: numbe
 /** Raccourci : limite par adresse IP pour une action donnée. */
 export async function rateLimitByIp(action: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
   return rateLimit(`${action}:${hashIdentifier(await clientIp())}`, limit, windowSeconds);
+}
+
+/** Remet un compteur à zéro (ex. connexion réussie : seules les erreurs répétées bloquent). */
+export async function resetRateLimit(key: string): Promise<void> {
+  try {
+    const db = await getDb();
+    await db.delete(rateLimits).where(eq(rateLimits.key, key));
+  } catch {
+    // Sans conséquence : le compteur expirera de lui-même.
+  }
 }

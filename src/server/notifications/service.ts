@@ -8,7 +8,7 @@ import { formatEurosShort } from "@/core/format";
 import { siteUrl } from "@/core/site-url";
 import { getDb } from "@/server/db/client";
 import { notifications } from "@/server/db/schema";
-import { loadSettingsValues } from "@/server/settings/repository";
+import { loadSettingsValues, type DbLike } from "@/server/settings/repository";
 
 export interface Notifier {
   readonly channel: string;
@@ -101,5 +101,34 @@ export async function notifyNewRequest(intervention: {
       .update(notifications)
       .set({ status: "failed", attempts: 1, lastError: error instanceof Error ? error.message : "erreur" })
       .where(eq(notifications.id, row.id));
+  }
+}
+
+/** État de l'envoi d'emails, pour la page « Services externes ». */
+export function emailConfigured(): boolean {
+  return emailNotifier() !== null;
+}
+
+/** Envoie un email d'essai au destinataire des nouvelles demandes. */
+export async function sendTestEmail(db: DbLike): Promise<{ ok: boolean; message: string }> {
+  const values = await loadSettingsValues(db);
+  const recipient = values["notifications.email"] || values["company.email"];
+  if (!recipient) return { ok: false, message: "Indiquez d'abord un email (Paramètres → Notifications ou Entreprise)." };
+  const notifier = emailNotifier();
+  if (!notifier) {
+    return {
+      ok: false,
+      message: "Aucun service d'email n'est configuré. Ajoutez les variables RESEND_API_KEY et EMAIL_FROM chez votre hébergeur (voir le guide d'installation).",
+    };
+  }
+  try {
+    await notifier.send({
+      to: recipient,
+      subject: "Essai — notifications RNB AUTO",
+      text: `Cet email confirme que les nouvelles demandes du site seront bien envoyées à ${recipient}.\n\n${siteUrl()}/admin`,
+    });
+    return { ok: true, message: `Email d'essai envoyé à ${recipient}.` };
+  } catch (error) {
+    return { ok: false, message: `Envoi refusé par le service d'email (${error instanceof Error ? error.message : "erreur"}).` };
   }
 }

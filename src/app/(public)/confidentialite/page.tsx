@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHero, Prose, Section, ToComplete } from "@/components/public/page-blocks";
 import { getPublicSiteInfo } from "@/server/site/public-info";
+import { PHOTO_LIMITS } from "@/core/photos";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
@@ -33,7 +34,11 @@ export default async function PrivacyPage() {
               lue une seule fois par votre navigateur, avec votre accord.
             </li>
             <li>Les informations sur le véhicule et la panne : type, marque, modèle, immatriculation si vous la donnez.</li>
-            <li>Les messages et photos que vous choisissez de nous envoyer (par exemple sur WhatsApp).</li>
+            <li>
+              Les photos du véhicule que vous choisissez d&apos;ajouter après votre demande. Votre téléphone les réduit avant
+              l&apos;envoi et leurs informations cachées (dont la position GPS) sont retirées. Elles ne sont jamais publiques.
+            </li>
+            <li>Les messages et photos que vous choisissez de nous envoyer sur WhatsApp.</li>
             <li>
               Des données techniques limitées (adresse IP, date et heure) utilisées pour protéger le site contre les abus.
             </li>
@@ -57,6 +62,7 @@ export default async function PrivacyPage() {
           <h2>Combien de temps ?</h2>
           <ul>
             <li>Estimations non suivies d&apos;une demande : supprimées au bout de 30 jours.</li>
+            <li>Photos du véhicule : supprimées {PHOTO_LIMITS.retentionMonths} mois après la fin de l&apos;intervention.</li>
             <li>Demandes et interventions : 3 ans après le dernier contact.</li>
             <li>Documents comptables : 10 ans, comme l&apos;exige la loi.</li>
           </ul>

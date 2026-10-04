@@ -63,7 +63,7 @@ export async function openDatabase(options: { autoSetup: boolean }): Promise<DbH
   }
   const dataDir = pglitePath(url);
   const { mkdirSync } = await import("node:fs");
-  mkdirSync(path.dirname(path.resolve(dataDir)), { recursive: true });
+  mkdirSync(path.dirname(path.resolve(/*turbopackIgnore: true*/ dataDir)), { recursive: true });
   const { PGlite, types } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
   // Le JSON est renvoyé brut et décodé une seule fois par Drizzle, comme avec PostgreSQL.

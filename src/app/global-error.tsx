@@ -19,6 +19,8 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
             >
               Réessayer
             </button>
+            {/* Lien classique : après une erreur globale, on recharge entièrement la page. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a href="/" style={{ color: "#f5f3ee", border: "1px solid #444", borderRadius: 16, padding: "16px 24px", fontWeight: 700, textDecoration: "none" }}>
               Accueil
             </a>

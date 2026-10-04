@@ -30,7 +30,7 @@ const MORE_FAQ = [
   },
   {
     q: "Puis-je envoyer des photos ?",
-    a: "Oui : après votre demande, un bouton vous permet de nous écrire sur WhatsApp avec votre numéro de demande. Les photos nous aident à venir avec le bon matériel.",
+    a: "Oui : juste après votre demande, vous pouvez ajouter des photos depuis votre téléphone, ou nous les envoyer sur WhatsApp. Elles nous aident à venir avec le bon matériel et restent privées.",
   },
   {
     q: "Le prix peut-il changer sur place ?",

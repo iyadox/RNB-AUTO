@@ -5,6 +5,7 @@
  */
 import {
   boolean,
+  customType,
   doublePrecision,
   index,
   integer,
@@ -21,6 +22,13 @@ import type { QuoteContext, QuoteRequestInput, ReferenceScenario } from "@/core/
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull();
+
+/** Données binaires (photos). Buffer à l'écriture : accepté par les deux pilotes. */
+const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({
+  dataType: () => "bytea",
+  toDriver: (value) => Buffer.from(value),
+  fromDriver: (value) => new Uint8Array(value),
+});
 
 // ─── Utilisateurs et sécurité ────────────────────────────────────────────────
 
@@ -213,6 +221,8 @@ export const interventions = pgTable(
     currentQuoteId: uuid("current_quote_id"),
     /** Prix montré au client au moment de sa demande (null : demande sans prix). */
     estimatedPriceCents: integer("estimated_price_cents"),
+    /** Prix actuel pour l'administration : dernier calcul + ajustements (null : pas encore de prix). */
+    currentPriceCents: integer("current_price_cents"),
     confirmedPriceCents: integer("confirmed_price_cents"),
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     confirmedBy: uuid("confirmed_by").references(() => users.id, { onDelete: "set null" }),
@@ -227,11 +237,15 @@ export const interventions = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancelReason: text("cancel_reason"),
+    /** Envoi de photos par le client : seule l'empreinte du jeton est gardée, avec sa date limite. */
+    photoTokenHash: text("photo_token_hash"),
+    photoTokenExpiresAt: timestamp("photo_token_expires_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     index("interventions_status_idx").on(t.status),
+    index("interventions_photo_token_idx").on(t.photoTokenHash),
     index("interventions_created_idx").on(t.createdAt),
     index("interventions_phone_idx").on(t.contactPhone),
   ],
@@ -278,6 +292,26 @@ export const interventionAdjustments = pgTable("intervention_adjustments", {
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: createdAt(),
 });
+
+/** Photos d'une intervention (envoyées par le client ou ajoutées par RNB AUTO). Stockage privé. */
+export const interventionPhotos = pgTable(
+  "intervention_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    interventionId: uuid("intervention_id")
+      .notNull()
+      .references(() => interventions.id, { onDelete: "cascade" }),
+    mime: text("mime").notNull(),
+    data: bytea("data").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    /** « client » ou « admin ». */
+    uploadedBy: text("uploaded_by").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("intervention_photos_intervention_idx").on(t.interventionId)],
+);
 
 /** Journal d'une intervention : statuts, appels, prix, notes. */
 export const interventionEvents = pgTable(

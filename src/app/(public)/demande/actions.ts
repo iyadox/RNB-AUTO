@@ -13,6 +13,7 @@ import type { QuoteRequestInput } from "@/core/quotes/types";
 import { getDb } from "@/server/db/client";
 import { createInterventionFromQuote } from "@/server/interventions/service";
 import { notifyNewRequest } from "@/server/notifications/service";
+import { issuePhotoToken } from "@/server/photos/service";
 import { createEstimate, getQuote } from "@/server/quotes/service";
 import { rateLimitByIp } from "@/server/security/rate-limit";
 import { getPublicCatalog } from "@/server/site/catalog";
@@ -34,7 +35,7 @@ export async function estimateAction(raw: unknown): Promise<EstimateActionResult
 }
 
 export type SubmitActionResult =
-  | { status: "created"; reference: string; phone: string }
+  | { status: "created"; reference: string; phone: string; photoToken: string | null }
   | { status: "price_changed"; estimate: ClientEstimate }
   | { status: "error"; error: string; fieldErrors?: Record<string, string> };
 
@@ -76,8 +77,8 @@ export async function submitRequestAction(raw: unknown): Promise<SubmitActionRes
   }
 
   const phone = phoneToE164(data.contact.phone) ?? data.contact.phone;
-  const intervention = await db.transaction(async (tx) =>
-    createInterventionFromQuote(tx, quote, {
+  const { intervention, photoToken } = await db.transaction(async (tx) => {
+    const created = await createInterventionFromQuote(tx, quote, {
       source: "web",
       contact: { name: data.contact.name, phone, email: data.contact.email || null },
       vehicle: {
@@ -87,8 +88,10 @@ export async function submitRequestAction(raw: unknown): Promise<SubmitActionRes
       },
       comment: data.comment || null,
       actor: { userId: null, label: "Client (site)" },
-    }),
-  );
+    });
+    // Jeton temporaire pour ajouter des photos juste après (facultatif).
+    return { intervention: created, photoToken: await issuePhotoToken(tx, created.id) };
+  });
 
   const catalog = await getPublicCatalog();
   const input = quote.input as QuoteRequestInput;
@@ -115,5 +118,5 @@ export async function submitRequestAction(raw: unknown): Promise<SubmitActionRes
     }
   });
 
-  return { status: "created", reference: intervention.reference, phone: z.string().parse(intervention.contactPhone) };
+  return { status: "created", reference: intervention.reference, phone: z.string().parse(intervention.contactPhone), photoToken };
 }

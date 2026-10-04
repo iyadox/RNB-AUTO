@@ -18,6 +18,8 @@ const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
+  // Carte de vérification de la position du dépôt (administration).
+  "frame-src https://www.openstreetmap.org",
   ...(isDev ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 

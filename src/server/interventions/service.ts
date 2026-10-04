@@ -79,7 +79,6 @@ export async function createInterventionFromQuote(
   const phone = phoneToE164(params.contact.phone) ?? params.contact.phone;
   const customerId = await findOrCreateCustomer(db, { ...params.contact, phone });
   const reference = await nextReference(db);
-  const dropoff = input.dropoff;
   const [created] = await db
     .insert(interventions)
     .values({
@@ -90,27 +89,14 @@ export async function createInterventionFromQuote(
       contactName: params.contact.name,
       contactPhone: phone,
       contactEmail: params.contact.email,
-      pickupAddress: input.pickup.label,
-      pickupLat: input.pickup.lat,
-      pickupLng: input.pickup.lng,
-      pickupPostcode: input.pickup.postcode,
-      pickupCity: input.pickup.city,
-      pickupAfterRegulatedRoad: input.pickup.afterRegulatedRoad,
-      handoverNote: input.pickup.handoverNote,
-      dropoffKind: dropoff.kind,
-      dropoffAddress: dropoff.kind === "address" ? dropoff.place.label : null,
-      dropoffLat: dropoff.kind === "address" ? dropoff.place.lat : null,
-      dropoffLng: dropoff.kind === "address" ? dropoff.place.lng : null,
-      dropoffPostcode: dropoff.kind === "address" ? dropoff.place.postcode : null,
-      dropoffCity: dropoff.kind === "address" ? dropoff.place.city : null,
-      vehicleCategory: input.vehicleCategory,
+      ...fieldsFromInput(input),
       vehicleBrand: params.vehicle.brand,
       vehicleModel: params.vehicle.model,
       vehiclePlate: params.vehicle.plate,
-      situations: input.situations,
       clientComment: params.comment,
       currentQuoteId: quote.id,
       estimatedPriceCents: quote.clientPriceTtcCents,
+      currentPriceCents: quote.priceTtcCents,
       acceptedAt: params.status === "accepted" ? new Date() : null,
     })
     .returning();
@@ -203,6 +189,15 @@ export async function getInterventionDetail(db: DbLike, id: string) {
 
 export class InterventionError extends Error {}
 
+/** Prix actuel (dernier calcul + ajustements), gardé sur la demande pour les listes. */
+export async function refreshCurrentPrice(db: DbLike, id: string): Promise<number | null> {
+  const detail = await getInterventionDetail(db, id);
+  if (!detail) return null;
+  const price = detail.adjustments.length > 0 && detail.adjusted ? detail.adjusted.priceTtcCents : (detail.current?.priceTtcCents ?? null);
+  await db.update(interventions).set({ currentPriceCents: price }).where(eq(interventions.id, id));
+  return price;
+}
+
 export async function changeStatus(
   db: DbLike,
   id: string,
@@ -258,6 +253,7 @@ export async function confirmPrice(db: DbLike, id: string, actor: Actor): Promis
 export async function addAdjustment(db: DbLike, id: string, adjustment: ManualAdjustment, actor: Actor) {
   await db.insert(interventionAdjustments).values({ interventionId: id, ...adjustment, createdBy: actor.userId });
   await db.update(interventions).set({ confirmedPriceCents: null, confirmedAt: null, updatedAt: new Date() }).where(eq(interventions.id, id));
+  await refreshCurrentPrice(db, id);
   await addEvent(db, id, actor, { type: "adjustment", message: adjustment.reason, data: { ...adjustment } });
 }
 
@@ -268,6 +264,7 @@ export async function removeAdjustment(db: DbLike, interventionId: string, adjus
     .returning();
   if (removed) {
     await db.update(interventions).set({ confirmedPriceCents: null, confirmedAt: null, updatedAt: new Date() }).where(eq(interventions.id, interventionId));
+    await refreshCurrentPrice(db, interventionId);
     await addEvent(db, interventionId, actor, { type: "adjustment", message: `Ajustement retiré : ${removed.reason}` });
   }
 }
@@ -277,15 +274,48 @@ export async function setInternalNotes(db: DbLike, id: string, notes: string, ac
   await addEvent(db, id, actor, { type: "note", message: "Notes internes mises à jour." });
 }
 
-/** Rattache une nouvelle révision d'estimation (recalcul, changement de situation). */
+/** Champs de la demande qui découlent des choix d'une estimation (lieux, véhicule, situation). */
+function fieldsFromInput(input: QuoteRequestInput) {
+  const dropoff = input.dropoff;
+  return {
+    pickupAddress: input.pickup.label,
+    pickupLat: input.pickup.lat,
+    pickupLng: input.pickup.lng,
+    pickupPostcode: input.pickup.postcode,
+    pickupCity: input.pickup.city,
+    pickupAfterRegulatedRoad: input.pickup.afterRegulatedRoad,
+    handoverNote: input.pickup.handoverNote,
+    dropoffKind: dropoff.kind,
+    dropoffAddress: dropoff.kind === "address" ? dropoff.place.label : null,
+    dropoffLat: dropoff.kind === "address" ? dropoff.place.lat : null,
+    dropoffLng: dropoff.kind === "address" ? dropoff.place.lng : null,
+    dropoffPostcode: dropoff.kind === "address" ? dropoff.place.postcode : null,
+    dropoffCity: dropoff.kind === "address" ? dropoff.place.city : null,
+    vehicleCategory: input.vehicleCategory,
+    situations: input.situations,
+  };
+}
+
+/**
+ * Rattache une nouvelle révision d'estimation (recalcul). L'ancienne reste conservée telle quelle ;
+ * la demande reprend les choix du nouveau calcul et son prix doit être reconfirmé.
+ */
 export async function attachQuoteRevision(db: DbLike, interventionId: string, quoteId: string, actor: Actor, message: string) {
+  const quote = (await db.select().from(quotes).where(eq(quotes.id, quoteId)).limit(1))[0];
+  if (!quote) throw new InterventionError("Calcul introuvable.");
+  const revision = await nextRevisionNumber(db, interventionId);
   await db.update(quotes).set({ status: "superseded" }).where(and(eq(quotes.interventionId, interventionId), eq(quotes.status, "used")));
-  await db.update(quotes).set({ interventionId, status: "used" }).where(eq(quotes.id, quoteId));
+  await db.update(quotes).set({ interventionId, status: "used", revision }).where(eq(quotes.id, quoteId));
   await db
     .update(interventions)
-    .set({ currentQuoteId: quoteId, confirmedPriceCents: null, confirmedAt: null, updatedAt: new Date() })
+    .set({ ...fieldsFromInput(quote.input as QuoteRequestInput), currentQuoteId: quoteId, confirmedPriceCents: null, confirmedAt: null, updatedAt: new Date() })
     .where(eq(interventions.id, interventionId));
-  await addEvent(db, interventionId, actor, { type: "recalculated", message });
+  await refreshCurrentPrice(db, interventionId);
+  await addEvent(db, interventionId, actor, {
+    type: "recalculated",
+    message,
+    data: { revision, priceTtcCents: quote.priceTtcCents },
+  });
 }
 
 export async function nextRevisionNumber(db: DbLike, interventionId: string): Promise<number> {

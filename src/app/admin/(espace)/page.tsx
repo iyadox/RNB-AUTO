@@ -49,14 +49,14 @@ export default async function AdminHome() {
   const inProgress = (counts.accepted ?? 0) + (counts.en_route ?? 0) + (counts.arrived ?? 0) + (counts.loaded ?? 0) + (counts.in_transit ?? 0);
 
   const todo: { label: string; href: string; icon: IconName }[] = [];
-  if (!values["company.phone"]) todo.push({ label: "Indiquer le numéro de téléphone affiché sur le site", href: "/admin/parametres/company", icon: "phone" });
-  if (!values["company.whatsapp"] && !values["company.phone"]) todo.push({ label: "Indiquer le numéro WhatsApp", href: "/admin/parametres/company", icon: "phone" });
-  if (!values["company.email"]) todo.push({ label: "Indiquer l'email de contact", href: "/admin/parametres/company", icon: "mail" });
+  if (!values["company.phone"]) todo.push({ label: "Indiquer le numéro de téléphone affiché sur le site", href: "/admin/parametres/entreprise", icon: "phone" });
+  if (!values["company.whatsapp"] && !values["company.phone"]) todo.push({ label: "Indiquer le numéro WhatsApp", href: "/admin/parametres/entreprise", icon: "phone" });
+  if (!values["company.email"]) todo.push({ label: "Indiquer l'email de contact", href: "/admin/parametres/entreprise", icon: "mail" });
   if (!values["company.depot"].confirmed) todo.push({ label: "Vérifier la position du dépôt sur la carte", href: "/admin/parametres/depot", icon: "pin" });
   if (!values["legal.siret"] || !values["legal.companyName"] || !values["legal.host"]) {
-    todo.push({ label: "Compléter les mentions légales (SIRET, hébergeur…)", href: "/admin/parametres/legal", icon: "shield" });
+    todo.push({ label: "Compléter les mentions légales (SIRET, hébergeur…)", href: "/admin/parametres/mentions-legales", icon: "shield" });
   }
-  if (!values["company.availability"]) todo.push({ label: "Indiquer votre disponibilité (ex. 24h/24 · 7j/7)", href: "/admin/parametres/company", icon: "clock" });
+  if (!values["company.availability"]) todo.push({ label: "Indiquer votre disponibilité (ex. 24h/24 · 7j/7)", href: "/admin/parametres/entreprise", icon: "clock" });
 
   return (
     <>
@@ -141,8 +141,8 @@ export default async function AdminHome() {
                 <span className="shrink-0 text-lg font-extrabold tabular">
                   {item.confirmedPriceCents !== null
                     ? formatEurosShort(item.confirmedPriceCents)
-                    : item.estimatedPriceCents !== null
-                      ? formatEurosShort(item.estimatedPriceCents)
+                    : item.currentPriceCents !== null
+                      ? formatEurosShort(item.currentPriceCents)
                       : "—"}
                 </span>
                 <Icon name="chevronRight" size={18} className="text-asphalt-400" />

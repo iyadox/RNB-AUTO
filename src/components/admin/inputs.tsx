@@ -123,7 +123,12 @@ export function MoneyInput({
 }) {
   const [text, setText] = useState(centsToInput(cents));
   const [invalid, setInvalid] = useState(false);
-  useEffect(() => setText(centsToInput(cents)), [cents]);
+  // Valeur reçue de l'extérieur (bouton « Annuler »…) : on réaffiche. Pendant la frappe, on ne touche à rien.
+  const [synced, setSynced] = useState(cents);
+  if (cents !== synced) {
+    setSynced(cents);
+    setText(centsToInput(cents));
+  }
   return (
     <UnitInput
       text={text}
@@ -131,7 +136,10 @@ export function MoneyInput({
         setText(value);
         const parsed = parseEurosToCents(value);
         setInvalid(parsed === null || parsed < 0);
-        if (parsed !== null && parsed >= 0) onChange(parsed);
+        if (parsed !== null && parsed >= 0) {
+          setSynced(parsed);
+          onChange(parsed);
+        }
       }}
       onCommit={() => {
         const parsed = parseEurosToCents(text);
@@ -154,7 +162,11 @@ export function PercentInput({ bp, onChange, ariaLabel, disabled }: { bp: number
   const format = (value: number) => String(value / 100).replace(".", ",");
   const [text, setText] = useState(format(bp));
   const [invalid, setInvalid] = useState(false);
-  useEffect(() => setText(format(bp)), [bp]);
+  const [synced, setSynced] = useState(bp);
+  if (bp !== synced) {
+    setSynced(bp);
+    setText(format(bp));
+  }
   return (
     <UnitInput
       text={text}
@@ -162,7 +174,11 @@ export function PercentInput({ bp, onChange, ariaLabel, disabled }: { bp: number
         setText(value);
         const parsed = parseFrenchNumber(value, 2);
         setInvalid(parsed === null || parsed < 0);
-        if (parsed !== null && parsed >= 0) onChange(Math.round(parsed * 100));
+        if (parsed !== null && parsed >= 0) {
+          const next = Math.round(parsed * 100);
+          setSynced(next);
+          onChange(next);
+        }
       }}
       onCommit={() => {
         const parsed = parseFrenchNumber(text, 2);
@@ -199,7 +215,11 @@ export function NumberInput({
   const format = (v: number) => String(v).replace(".", ",");
   const [text, setText] = useState(format(value));
   const [invalid, setInvalid] = useState(false);
-  useEffect(() => setText(format(value)), [value]);
+  const [synced, setSynced] = useState(value);
+  if (value !== synced) {
+    setSynced(value);
+    setText(format(value));
+  }
   return (
     <UnitInput
       text={text}
@@ -208,7 +228,10 @@ export function NumberInput({
         const parsed = parseFrenchNumber(next, decimals);
         const ok = parsed !== null && parsed >= 0 && (decimals > 0 || Number.isInteger(parsed));
         setInvalid(!ok);
-        if (ok && parsed !== null) onChange(parsed);
+        if (ok && parsed !== null) {
+          setSynced(parsed);
+          onChange(parsed);
+        }
       }}
       onCommit={() => {
         const parsed = parseFrenchNumber(text, decimals);

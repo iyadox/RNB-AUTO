@@ -38,20 +38,25 @@ export function AddressInput({
   const abortRef = useRef<AbortController | null>(null);
   const skipNextFetch = useRef(false);
 
-  useEffect(() => {
-    setText(value?.label ?? "");
-  }, [value?.label]);
+  // Adresse fixée de l'extérieur (position du téléphone, reprise d'une saisie) : on l'affiche.
+  // Quand la personne modifie le texte, l'adresse choisie est oubliée mais son texte reste.
+  const valueLabel = value?.label ?? null;
+  const [syncedLabel, setSyncedLabel] = useState(valueLabel);
+  if (valueLabel !== syncedLabel) {
+    setSyncedLabel(valueLabel);
+    if (valueLabel !== null) setText(valueLabel);
+  }
+
+  const query = text.trim();
+  const searchable = query.length >= 3 && !(value && value.label === text && value.lat !== null);
+  const visible = searchable ? suggestions : [];
 
   useEffect(() => {
     if (skipNextFetch.current) {
       skipNextFetch.current = false;
       return;
     }
-    const query = text.trim();
-    if (query.length < 3 || (value && value.label === text && value.lat !== null)) {
-      setSuggestions([]);
-      return;
-    }
+    if (!searchable) return;
     const timer = window.setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -75,7 +80,7 @@ export function AddressInput({
       }
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [text, near, value]);
+  }, [query, near, searchable]);
 
   const choose = (suggestion: Suggestion) => {
     skipNextFetch.current = true;
@@ -116,7 +121,7 @@ export function AddressInput({
           autoComplete="street-address"
           enterKeyHint="search"
           role="combobox"
-          aria-expanded={open && suggestions.length > 0}
+          aria-expanded={open && visible.length > 0}
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
@@ -127,22 +132,22 @@ export function AddressInput({
             setText(event.target.value);
             if (value && value.label !== event.target.value) onChange(null);
           }}
-          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          onFocus={() => visible.length > 0 && setOpen(true)}
           onBlur={() => window.setTimeout(() => {
             setOpen(false);
             commitTyped();
           }, 150)}
           onKeyDown={(event) => {
-            if (!open || suggestions.length === 0) return;
+            if (!open || visible.length === 0) return;
             if (event.key === "ArrowDown") {
               event.preventDefault();
-              setActive((index) => Math.min(suggestions.length - 1, index + 1));
+              setActive((index) => Math.min(visible.length - 1, index + 1));
             } else if (event.key === "ArrowUp") {
               event.preventDefault();
               setActive((index) => Math.max(0, index - 1));
             } else if (event.key === "Enter" && active >= 0) {
               event.preventDefault();
-              const suggestion = suggestions[active];
+              const suggestion = visible[active];
               if (suggestion) choose(suggestion);
             } else if (event.key === "Escape") {
               setOpen(false);
@@ -170,7 +175,7 @@ export function AddressInput({
           </button>
         ) : null}
       </div>
-      {open && suggestions.length > 0 ? (
+      {open && visible.length > 0 ? (
         <ul
           id={listId}
           role="listbox"
@@ -179,7 +184,7 @@ export function AddressInput({
             dark ? "border-white/10 bg-asphalt-850" : "border-asphalt-200 bg-white",
           )}
         >
-          {suggestions.map((suggestion, index) => (
+          {visible.map((suggestion, index) => (
             <li
               key={`${suggestion.label}-${index}`}
               id={`${listId}-${index}`}

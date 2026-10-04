@@ -1,6 +1,23 @@
 # 06 — Feuille de route
 
-> Document de cadrage, version 0.1 du 03/10/2026.
+> Document de cadrage du 03/10/2026, mis à jour le 04/10/2026 avec l'état d'avancement.
+
+## État au 04/10/2026
+
+| Phase | État | Détail |
+|---|---|---|
+| 1 — Fondations | ✅ fait | application Next.js, base PostgreSQL (PGlite en local), registre des réglages, connexion sécurisée, journal, identité visuelle, vérifications automatiques sur GitHub |
+| 2 — Site public | ✅ fait | toutes les pages, motion design, barre d'action mobile, référencement |
+| 3 — Itinéraires | ✅ fait | IGN + secours (Photon, OSRM, OpenRouteService), cache, coupe-circuit, mode simulation hors ligne |
+| 4 — Moteur tarifaire | ✅ fait | chaîne d'étapes, coûts internes, marge, arrondi, minimum, TVA, photographies ; estimation dans le parcours client |
+| 5 — Administration des tarifs | ✅ fait | « Mes tarifs » simple / avancé, aperçu d'impact, historique, retour en arrière |
+| 6 — Simulateur | ✅ fait | « Tester mes tarifs » (détail complet, essai sans enregistrer, trajets types) et « Nouvelle demande » pendant un appel |
+| 7 — Demandes d'intervention | 🟡 en grande partie | fait : photos, branche autoroute, fiche complète (statuts, ajustements, révisions, journal, notes), email à chaque demande. Reste : notifications instantanées sur téléphone (Web Push, SMS) |
+| 8 — Tableau de bord et historique | 🟡 en partie | fait : accueil du jour, liste filtrable, recherche. Reste : statistiques par période, export, fiches clients |
+| 9 — Carburant automatique | 🟡 en grande partie | fait : source officielle, médiane autour du dépôt, contrôles de vraisemblance, replis, « Actualiser maintenant », actualisation quotidienne. Reste : choix d'une station habituelle |
+| 10 — Améliorations | à prioriser | voir la liste ci-dessous |
+
+Les valeurs de départ des tarifs sont des **moyennes du marché francilien** (et non des valeurs « DÉMO ») : le site peut être mis en ligne dès que les informations de l'entreprise sont renseignées (voir [08 — Installation](08-installation-et-deploiement.md)).
 
 ## Ordre proposé
 
@@ -19,15 +36,15 @@ L'ordre proposé dans le cahier des charges est conservé, avec quatre ajustemen
 
 Livrables :
 
-- dépôt organisé (`apps/`, `packages/`), outils de qualité, vérifications automatiques à chaque modification ;
+- dépôt organisé (`src/core`, `src/server`, `src/app`), outils de qualité, vérifications automatiques à chaque modification ;
 - base de données : tables du cœur (réglages, règles, versions de tarifs, journal, utilisateurs, interventions, estimations) et migrations ;
-- registre des réglages et données de démonstration marquées « DÉMO » ;
+- registre des réglages et données de départ (moyennes du marché francilien) ;
 - connexion admin sécurisée et squelette de l'admin (menu, pages vides) ;
 - identité visuelle : palette, typographies, composants de base (bouton d'action, tuile, interrupteur, champs €, % et heure, carte de réglage) ;
 - maquettes mobiles des écrans clés (accueil, parcours de demande, « Mes tarifs », fiche intervention), à valider ;
 - environnement de préproduction.
 
-Terminé quand : on se connecte à l'admin en préproduction, les réglages de démonstration sont en base et les maquettes sont validées.
+Terminé quand : on se connecte à l'admin, les réglages de départ sont en base et les écrans clés sont validés.
 
 ### Phase 2 — Site public
 

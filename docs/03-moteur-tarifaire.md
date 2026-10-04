@@ -1,8 +1,8 @@
 # 03 — Moteur tarifaire
 
-> Document de cadrage, version 0.1 du 03/10/2026.
+> Version 1.0 du 04/10/2026 : mécanique appliquée dans `src/core/pricing` (ordre des étapes : `pipeline.ts`), couverte par les tests.
 >
-> ⚠️ **Toutes les valeurs chiffrées de ce document sont fictives.** Elles servent à illustrer la mécanique. Ce ne sont pas des tarifs RNB AUTO.
+> ⚠️ **Toutes les valeurs chiffrées de ce document sont fictives.** Elles servent à illustrer la mécanique. Les valeurs installées au départ sont dans [05 — Réglages administrables](05-reglages-administrables.md).
 
 ## 1. Principes
 
@@ -419,7 +419,9 @@ Le serveur ne renvoie au navigateur du client que la partie `client`.
 
 ## 17. Exemples chiffrés (valeurs fictives)
 
-Réglages de démonstration utilisés :
+> Ces exemples illustrent le mécanisme avec des valeurs fictives, choisies pour être faciles à suivre. Les valeurs réellement installées au départ (moyennes du marché francilien) sont listées dans [05 — Réglages administrables](05-reglages-administrables.md), §3 ; « Tester mes tarifs » donne le détail exact pour n'importe quel trajet.
+
+Réglages fictifs utilisés :
 
 | Réglage | Valeur fictive |
 |---|---|

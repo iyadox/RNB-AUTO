@@ -74,7 +74,7 @@ async function resolveDepot(db: DbLike, version: ConfigVersion): Promise<{ point
 
 async function resolvePlace(place: Place, near: GeoPoint | null): Promise<Place | null> {
   if (place.lat !== null && place.lng !== null) return place;
-  const found = await geocodeBest(place.label, near);
+  const found = await geocodeBest(place.label, near).catch(() => null);
   if (!found) return null;
   return { ...place, label: found.label, lat: found.lat, lng: found.lng, postcode: found.postcode, city: found.city };
 }
@@ -120,7 +120,9 @@ export async function createEstimate(rawInput: QuoteRequestInput, options: Estim
       serviceReason = "depot_unknown";
       return;
     }
-    const pickup = await resolvePlace(input.pickup, depot.point);
+    // Kilomètres saisis à la main (administration) : l'adresse n'a pas besoin d'être localisée.
+    const forced = input.overrides?.legs;
+    const pickup = (await resolvePlace(input.pickup, depot.point)) ?? (forced ? input.pickup : null);
     if (!pickup) {
       serviceReason = "address_unresolved";
       return;
@@ -132,18 +134,17 @@ export async function createEstimate(rawInput: QuoteRequestInput, options: Estim
       return;
     }
     if (input.dropoff.kind === "address") {
-      const dropoff = await resolvePlace(input.dropoff.place, depot.point);
+      const dropoff = (await resolvePlace(input.dropoff.place, depot.point)) ?? (forced ? input.dropoff.place : null);
       if (!dropoff) {
         serviceReason = "address_unresolved";
         return;
       }
       input = { ...input, dropoff: { kind: "address", place: dropoff } };
-      dropoffPoint = { lat: dropoff.lat as number, lng: dropoff.lng as number };
+      dropoffPoint = dropoff.lat !== null && dropoff.lng !== null ? { lat: dropoff.lat, lng: dropoff.lng } : null;
     }
 
     // Trajets : forcés (simulateur) ou calculés par le service d'itinéraires.
     let legs: QuoteContext["legs"];
-    const forced = input.overrides?.legs;
     if (forced) {
       const manual = (leg: { km: number; minutes: number }): ResolvedLeg => ({ ...leg, provider: "saisie manuelle", fromCache: false });
       legs = { emptyOut: manual(forced.emptyOut), loaded: forced.loaded ? manual(forced.loaded) : null, emptyBack: manual(forced.emptyBack) };

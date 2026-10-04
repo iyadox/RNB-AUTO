@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   applicationName: "RNB AUTO",
   formatDetection: { telephone: false, address: false, email: false },
   openGraph: { type: "website", locale: "fr_FR", siteName: "RNB AUTO" },
-  icons: { icon: "/icon.svg", apple: "/apple-icon.png" },
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {

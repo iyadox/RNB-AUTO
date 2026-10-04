@@ -1,3 +1,4 @@
+"use client";
 /**
  * Les trois trajets de la dépanneuse (docs/09, A.1 et B.8) : « le calcul ». Dépôt → vous
  * (① aller), vous → destination (② transport, en jaune : c'est votre véhicule), destination →
@@ -9,6 +10,7 @@
  *   calcul dans /demande), `static`. Sans JavaScript et en `off` : tracés complets, dépanneuse
  *   rentrée au dépôt.
  * - Le schéma est décoratif (`aria-hidden`) ; la légende en dessous est du vrai texte.
+ * Composant client : son balisage n'est pas répété dans la charge RSC de la page (G.2).
  */
 import { useId, type ReactElement } from "react";
 import { cn } from "@/components/ui/cn";

@@ -1,3 +1,4 @@
+"use client";
 /**
  * Tracés des trajets (docs/09, P10), fragment SVG conforme au contrat du runtime :
  * - racine `<g data-route data-route-mode>` (+ `data-route-start` / `data-route-end` en `scrub`) ;
@@ -12,6 +13,9 @@
  * Le véhicule change d'allure selon le tronçon en cours (`data-route-current`) : vide à l'aller
  * et au retour, chargé pendant le transport, dépanneur agréé gris sur un tronçon `agree`.
  * `off` et sans JavaScript : tracés complets, véhicule à l'arrivée.
+ * Une seule dépanneuse (`TruckTopGlyph dynamic`) : son allure suit des variables CSS, au lieu de
+ * trois variantes de glyphe (budget de nœuds, G.2). Composant client : son balisage n'est pas
+ * répété dans la charge RSC de la page.
  */
 import type { ReactElement } from "react";
 import { cn } from "@/components/ui/cn";
@@ -130,15 +134,7 @@ export function RoutePaths({
       {truck === "top" ? (
         <g data-route-truck="" transform={poseTransform(end.x, end.y, end.angle)} className={cn(styles.routeTruck, finalLook)}>
           <g transform={truckScale === 1 ? undefined : `scale(${truckScale})`} className={styles.routeTruckBody}>
-            <g className={styles.truckEmpty}>
-              <TruckTopGlyph headlights />
-            </g>
-            <g className={styles.truckLoaded}>
-              <TruckTopGlyph headlights loaded />
-            </g>
-            <g className={styles.truckAgree}>
-              <TruckTopGlyph headlights loaded tone="neutral" />
-            </g>
+            <TruckTopGlyph headlights dynamic />
           </g>
         </g>
       ) : null}

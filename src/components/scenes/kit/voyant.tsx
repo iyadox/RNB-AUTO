@@ -95,21 +95,24 @@ type VoyantProps = {
   label: string;
   tone?: "amber" | "red";
   lit?: boolean;
-  /** Côté de la cellule, en px (56 par défaut). */
+  /**
+   * Côté de la cellule, en px. Sans cette prop : 56 px, réglables par une classe de la page
+   * (`--voyant-size`, sans `!important`), y compris selon la taille de l'écran.
+   */
   size?: number;
   /** Libellé sous la cellule (par défaut). `false` : voyant décoratif, la page donne le texte. */
   showLabel?: boolean;
   className?: string;
 };
 
-export function Voyant({ glyph, label, tone = "amber", lit = true, size = 56, showLabel = true, className }: VoyantProps): ReactElement {
+export function Voyant({ glyph, label, tone = "amber", lit = true, size, showLabel = true, className }: VoyantProps): ReactElement {
   const shape = GLYPHS[glyph];
   return (
     <span
       className={cn(styles.voyant, tone === "red" && styles.voyantRed, className)}
       data-lit={lit ? "" : undefined}
       aria-hidden={showLabel ? undefined : true}
-      style={{ "--voyant-size": `${size}px` } as CSSProperties}
+      style={size === undefined ? undefined : ({ "--voyant-size": `${size}px` } as CSSProperties)}
     >
       <span className={styles.voyantCell}>
         <span className={styles.voyantGlow} data-light={lit ? "" : undefined} />

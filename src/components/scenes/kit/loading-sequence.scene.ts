@@ -173,10 +173,19 @@ function init(root: HTMLElement, ctx: SceneContext): () => void {
   const kit = ctx.kit;
   if (root.dataset.mode === "scrub" && kit && ctx.desktop && ctx.level === "full") {
     let ready = false;
+    const customStart = root.dataset.scrubStart;
+    // Fin par défaut : 60 % de la hauteur de l'écran APRÈS le départ réellement retenu. « +=60% »
+    // se compterait depuis le départ non borné : une scène déjà dans l'écran au chargement
+    // (ouverture) finirait de charger en 150 px. Le départ par défaut, « clamp(top 85%) », est
+    // recalculé ici à chaque rafraîchissement (position absolue de défilement).
+    const defaultEnd = () => {
+      const top = root.getBoundingClientRect().top + window.scrollY;
+      return Math.max(0, top - window.innerHeight * 0.85) + window.innerHeight * 0.6;
+    };
     const trigger = kit.ScrollTrigger.create({
       trigger: root,
-      start: root.dataset.scrubStart || "clamp(top 85%)",
-      end: root.dataset.scrubEnd || "+=60%",
+      start: customStart || "clamp(top 85%)",
+      end: root.dataset.scrubEnd || (customStart ? "+=60%" : defaultEnd),
       onUpdate: (self) => {
         if (ready) apply(self.progress);
       },

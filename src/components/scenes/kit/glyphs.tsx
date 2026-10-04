@@ -1,3 +1,4 @@
+"use client";
 /**
  * Glyphes en vue de dessus (docs/09, B.7 « la compréhension ») : dépanneuse avec cône de
  * phares, voiture, épingle « Vous », drapeau de destination, dépôt. Chaque glyphe est un
@@ -8,8 +9,13 @@
  * Échelle pensée pour un plan de 600 unités de côté (dépanneuse ≈ 46 unités de long).
  * Décor uniquement : le `<svg>` parent porte `aria-hidden`. Identifiants internes uniques
  * (useId). L'épingle et le drapeau ont leur point d'ancrage (la pointe, le pied) en (0, 0).
+ * Boucles (feux de détresse, onde du dépôt) : sans JavaScript, seulement dans un ancêtre
+ * `[data-loops-nojs]` (C.3). Composants clients : leur balisage n'est pas répété dans la charge
+ * RSC de la page (G.2).
  */
 import { useId, type ReactElement } from "react";
+import { cn } from "@/components/ui/cn";
+import styles from "./kit.module.css";
 
 const useSvgId = (name: string) => `${name}-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
@@ -20,70 +26,110 @@ type TruckTopGlyphProps = {
   loaded?: boolean;
   /** `neutral` : dépanneur agréé de l'autoroute (gris, sans couleur RNB AUTO ni gyrophare allumé). */
   tone?: "rnb" | "neutral";
+  /**
+   * Allure pilotée par CSS (une seule dépanneuse au lieu de trois variantes, `RoutePaths`) :
+   * voiture chargée et teinte neutre suivent les variables `--ttg-loaded`, `--ttg-rnb`,
+   * `--ttg-agree`, `--ttg-bed`, `--ttg-cab`, `--ttg-bar` posées par un ancêtre. `loaded` et
+   * `tone` sont alors ignorés.
+   */
+  dynamic?: boolean;
 };
 
-export function TruckTopGlyph({ headlights = false, loaded = false, tone = "rnb" }: TruckTopGlyphProps): ReactElement {
+export function TruckTopGlyph({ headlights = false, loaded = false, tone = "rnb", dynamic = false }: TruckTopGlyphProps): ReactElement {
   const id = useSvgId("ttg");
-  const rnb = tone === "rnb";
+  const rnb = dynamic || tone === "rnb";
+  const neutral = dynamic || tone === "neutral";
+  const showCar = dynamic || loaded;
   return (
     <g>
       <defs>
-        <linearGradient id={`${id}-beam`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#e3ecff" stopOpacity="0.62" />
-          <stop offset="0.45" stopColor="#e3ecff" stopOpacity="0.18" />
-          <stop offset="1" stopColor="#e3ecff" stopOpacity="0" />
-        </linearGradient>
-        <radialGradient id={`${id}-beacon`}>
-          <stop offset="0" stopColor="#ff9a3d" stopOpacity="0.85" />
-          <stop offset="0.5" stopColor="#ff7a1a" stopOpacity="0.25" />
-          <stop offset="1" stopColor="#ff7a1a" stopOpacity="0" />
-        </radialGradient>
+        {headlights ? (
+          <linearGradient id={`${id}-beam`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#e3ecff" stopOpacity="0.62" />
+            <stop offset="0.45" stopColor="#e3ecff" stopOpacity="0.18" />
+            <stop offset="1" stopColor="#e3ecff" stopOpacity="0" />
+          </linearGradient>
+        ) : null}
+        {rnb ? (
+          <radialGradient id={`${id}-beacon`}>
+            <stop offset="0" stopColor="#ff9a3d" stopOpacity="0.85" />
+            <stop offset="0.5" stopColor="#ff7a1a" stopOpacity="0.25" />
+            <stop offset="1" stopColor="#ff7a1a" stopOpacity="0" />
+          </radialGradient>
+        ) : null}
       </defs>
       {headlights ? (
-        <g>
+        <>
           <path d="M22 -6.2 L84 -26 Q92 0 84 26 L22 6.2 Z" fill={`url(#${id}-beam)`} />
           <path d="M22 -4 L60 -10 Q63 0 60 10 L22 4 Z" fill={`url(#${id}-beam)`} opacity="0.7" />
-        </g>
+        </>
       ) : null}
       {/* Ombre portée */}
       <rect x="-21.5" y="-6.5" width="46" height="17" rx="3" fill="#000" opacity="0.45" />
       {/* Plateau */}
-      <rect x="-23" y="-8" width="33.5" height="16" rx="1.6" fill={rnb ? "#2f363e" : "#3a4048"} />
+      <rect
+        x="-23"
+        y="-8"
+        width="33.5"
+        height="16"
+        rx="1.6"
+        fill={rnb && !dynamic ? "#2f363e" : "#3a4048"}
+        className={dynamic ? styles.ttgBed : undefined}
+      />
       <path d="M-21 -4.2H9M-21 0H9M-21 4.2H9" stroke="#4b5560" strokeWidth="0.6" />
       {rnb ? (
-        <>
-          <rect x="-23" y="-8.4" width="33.5" height="1.9" rx="0.6" fill="#ffc400" />
-          <rect x="-23" y="6.5" width="33.5" height="1.9" rx="0.6" fill="#ffc400" />
-          <path d="M-23 -6.5h2.6l-2.6 3zM-23 -1.5l2.6-3v3l-2.6 3zM-23 3.5l2.6-3v3l-2.6 3z" fill="#ffc400" />
-        </>
-      ) : (
-        <>
-          <rect x="-23" y="-8.4" width="33.5" height="1.4" rx="0.6" fill="#6f7b88" />
-          <rect x="-23" y="7" width="33.5" height="1.4" rx="0.6" fill="#6f7b88" />
-        </>
-      )}
-      {loaded ? (
-        <g>
-          <rect x="-20.5" y="-6" width="26" height="12" rx="3.6" fill="#4f6d8c" />
-          <rect x="-14" y="-4.7" width="12.5" height="9.4" rx="2" fill="#273a4f" />
-          <path d="M-1.6 -4.6 L2 -5.2 Q3.2 0 2 5.2 L-1.6 4.6 Z" fill="#101a25" />
-          <path d="M-18.6 -4.4h3.8M-18.6 4.4h3.8" stroke="#ff4b3a" strokeWidth="1" strokeLinecap="round" />
-          <path d="M-13 -3.4h10" stroke="#ffffff" strokeOpacity="0.22" strokeWidth="0.8" />
+        // Bandes et chevrons jaunes RNB AUTO
+        <path
+          className={dynamic ? styles.ttgRnb : undefined}
+          d="M-22.4 -8.4h32.3a.6.6 0 0 1 .6.6v.7a.6.6 0 0 1-.6.6h-32.3a.6.6 0 0 1-.6-.6v-.7a.6.6 0 0 1 .6-.6zM-22.4 6.5h32.3a.6.6 0 0 1 .6.6v.7a.6.6 0 0 1-.6.6h-32.3a.6.6 0 0 1-.6-.6v-.7a.6.6 0 0 1 .6-.6zM-23 -6.5h2.6l-2.6 3zM-23 -1.5l2.6-3v3l-2.6 3zM-23 3.5l2.6-3v3l-2.6 3z"
+          fill="#ffc400"
+        />
+      ) : null}
+      {neutral ? (
+        <path
+          className={dynamic ? styles.ttgAgree : undefined}
+          d="M-22.4 -8.4h32.3a.6.6 0 0 1 0 1.4h-32.3a.6.6 0 0 1 0-1.4zM-22.4 7h32.3a.6.6 0 0 1 0 1.4h-32.3a.6.6 0 0 1 0-1.4z"
+          fill="#6f7b88"
+        />
+      ) : null}
+      {showCar ? (
+        // Voiture chargée : la voiture du client (`CarTopGlyph`, mêmes teintes), réduite au plateau,
+        // avec le liseré de sodium de `CarSide` pour se détacher du plateau sombre.
+        <g className={dynamic ? styles.ttgLoaded : undefined} transform="translate(-7.5 0) scale(0.963 0.952)">
+          <rect x="-13.5" y="-6.3" width="27" height="12.6" rx="4.2" fill="#3b4652" stroke="#ffd27a" strokeOpacity="0.45" strokeWidth="0.6" />
+          <rect x="-6.8" y="-5" width="11" height="10" rx="2.2" fill="#222a33" />
+          <path d="M4.4 -4.8L8 -5.3Q9.3 0 8 5.3L4.4 4.8ZM-6.8 -4.6L-9.4 -4.2Q-10.2 0 -9.4 4.2L-6.8 4.6Z" fill="#0f151c" />
+          <path d="M-5 -3.6h8" stroke="#fff" strokeOpacity="0.18" strokeWidth="0.8" />
+          <path d="M-12.4 -4.4h2.6M-12.4 4.4h2.6" stroke="#ff4b3a" strokeWidth="1" strokeLinecap="round" />
         </g>
       ) : null}
       {/* Tête de plateau et treuil */}
       <rect x="9.6" y="-7.4" width="2.6" height="14.8" rx="0.6" fill="#1b2026" />
       {/* Cabine */}
-      <rect x="12" y="-8.2" width="11.4" height="16.4" rx="3.2" fill={rnb ? "#ecebe6" : "#8a939d"} />
+      <rect
+        x="12"
+        y="-8.2"
+        width="11.4"
+        height="16.4"
+        rx="3.2"
+        fill={rnb && !dynamic ? "#ecebe6" : "#8a939d"}
+        className={dynamic ? styles.ttgCab : undefined}
+      />
       <path d="M18.8 -6.8 Q21.6 0 18.8 6.8 L21.1 6.3 Q23 0 21.1 -6.3 Z" fill="#1b2a3a" />
-      <rect x="16.6" y="-9.8" width="2.2" height="1.6" rx="0.5" fill="#1b2026" />
-      <rect x="16.6" y="8.2" width="2.2" height="1.6" rx="0.5" fill="#1b2026" />
+      <path d="M16.6 -9.8h2.2v1.6h-2.2zM16.6 8.2h2.2v1.6h-2.2z" fill="#1b2026" />
       {/* Rampe de gyrophare */}
-      {rnb ? <circle cx="14.3" cy="0" r="9" fill={`url(#${id}-beacon)`} /> : null}
-      <rect x="13.2" y="-5.6" width="2.3" height="11.2" rx="1" fill={rnb ? "#ff8a2a" : "#5d6773"} />
+      {rnb ? <circle cx="14.3" cy="0" r="9" fill={`url(#${id}-beacon)`} className={dynamic ? styles.ttgRnb : undefined} /> : null}
+      <rect
+        x="13.2"
+        y="-5.6"
+        width="2.3"
+        height="11.2"
+        rx="1"
+        fill={rnb && !dynamic ? "#ff8a2a" : "#5d6773"}
+        className={dynamic ? styles.ttgBar : undefined}
+      />
       {/* Feux avant */}
-      <rect x="22.4" y="-6.6" width="1.3" height="2.8" rx="0.5" fill="#e3ecff" />
-      <rect x="22.4" y="3.8" width="1.3" height="2.8" rx="0.5" fill="#e3ecff" />
+      <path d="M22.9 -6.6h.3a.5.5 0 0 1 .5.5v1.8a.5.5 0 0 1-.5.5h-.3a.5.5 0 0 1-.5-.5v-1.8a.5.5 0 0 1 .5-.5zM22.9 3.8h.3a.5.5 0 0 1 .5.5v1.8a.5.5 0 0 1-.5.5h-.3a.5.5 0 0 1-.5-.5v-1.8a.5.5 0 0 1 .5-.5z" fill="#e3ecff" />
     </g>
   );
 }
@@ -121,7 +167,7 @@ export function CarTopGlyph({ hazards = false }: CarTopGlyphProps): ReactElement
       <rect x="2.6" y="-7.6" width="2" height="1.4" rx="0.5" fill="#262d36" />
       <rect x="2.6" y="6.2" width="2" height="1.4" rx="0.5" fill="#262d36" />
       {hazards ? (
-        <g className="hazard">
+        <g className={cn("hazard", styles.loop)}>
           {corners.map(([cx, cy]) => (
             <circle key={`g${cx}${cy}`} cx={cx} cy={cy} r="6.5" fill={`url(#${id}-amber)`} />
           ))}
@@ -157,7 +203,7 @@ export function PinGlyph({ label, hazards = false }: PinGlyphProps): ReactElemen
       </defs>
       <ellipse cx="0" cy="0" rx="16" ry="5.5" fill={`url(#${id}-halo)`} />
       {hazards ? (
-        <ellipse className="hazard" cx="0" cy="0" rx="10" ry="3.6" fill="none" stroke="#ff9a3d" strokeWidth="1.4" />
+        <ellipse className={cn("hazard", styles.loop)} cx="0" cy="0" rx="10" ry="3.6" fill="none" stroke="#ff9a3d" strokeWidth="1.4" />
       ) : null}
       <ellipse cx="0" cy="0.5" rx="4.5" ry="1.6" fill="#000" opacity="0.55" />
       <path
@@ -230,7 +276,7 @@ export function DepotGlyph({ pulse = false }: DepotGlyphProps): ReactElement {
           fill="none"
           stroke="#ff7a1a"
           strokeWidth="1.6"
-          className="animate-pulse-ring"
+          className={cn("animate-pulse-ring", styles.loop)}
           style={{ transformBox: "fill-box", transformOrigin: "center" }}
         />
       ) : null}

@@ -21,7 +21,11 @@ type LoadingSequenceProps = {
   /** Identifiant unique dans la page (préfixe des identifiants SVG de la dépanneuse). */
   id: string;
   mode?: "scrub" | "once";
-  /** Bornes ScrollTrigger du mode `scrub` (défaut : « clamp(top 85%) » → « +=60% »). */
+  /**
+   * Bornes ScrollTrigger du mode `scrub`. Défaut : de « clamp(top 85%) » à 60 % de la hauteur de
+   * l'écran plus loin, comptés depuis ce départ borné (une ouverture déjà visible au chargement
+   * se charge donc sur 60 % d'écran de défilement). Avec un `scrubStart` sans `scrubEnd` : « +=60% ».
+   */
   scrubStart?: string;
   scrubEnd?: string;
   className?: string;

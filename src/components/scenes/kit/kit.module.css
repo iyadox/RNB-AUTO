@@ -9,43 +9,109 @@
 .route {
   pointer-events: none;
 }
-.truckEmpty,
-.truckLoaded,
-.truckAgree {
-  display: none;
+/* Une seule dépanneuse (`TruckTopGlyph dynamic`) : son allure suit ces variables.
+   Sans JavaScript : l'allure du dernier tronçon (classe posée au rendu). */
+.truckIsEmpty {
+  --ttg-loaded: none;
+  --ttg-rnb: inline;
+  --ttg-agree: none;
+  --ttg-bed: #2f363e;
+  --ttg-cab: #ecebe6;
+  --ttg-bar: #ff8a2a;
 }
-/* Sans JavaScript : l'allure du dernier tronçon. */
-.truckIsEmpty .truckEmpty,
-.truckIsLoaded .truckLoaded,
-.truckIsAgree .truckAgree {
-  display: inline;
+.truckIsLoaded {
+  --ttg-loaded: inline;
+  --ttg-rnb: inline;
+  --ttg-agree: none;
+  --ttg-bed: #2f363e;
+  --ttg-cab: #ecebe6;
+  --ttg-bar: #ff8a2a;
+}
+.truckIsAgree {
+  --ttg-loaded: inline;
+  --ttg-rnb: none;
+  --ttg-agree: inline;
+  --ttg-bed: #3a4048;
+  --ttg-cab: #8a939d;
+  --ttg-bar: #5d6773;
 }
 /* Pendant l'animation, le tronçon en cours décide (règles plus précises). */
-.route[data-route-current] .routeTruck .truckEmpty,
-.route[data-route-current] .routeTruck .truckLoaded,
-.route[data-route-current] .routeTruck .truckAgree {
-  display: none;
+.route[data-route-current="aller"] .routeTruck,
+.route[data-route-current="retour"] .routeTruck {
+  --ttg-loaded: none;
+  --ttg-rnb: inline;
+  --ttg-agree: none;
+  --ttg-bed: #2f363e;
+  --ttg-cab: #ecebe6;
+  --ttg-bar: #ff8a2a;
 }
-.route[data-route-current="aller"] .routeTruck .truckEmpty,
-.route[data-route-current="retour"] .routeTruck .truckEmpty,
-.route[data-route-current="transport"] .routeTruck .truckLoaded,
-.route[data-route-current="agree"] .routeTruck .truckAgree {
-  display: inline;
+.route[data-route-current="transport"] .routeTruck {
+  --ttg-loaded: inline;
+  --ttg-rnb: inline;
+  --ttg-agree: none;
+  --ttg-bed: #2f363e;
+  --ttg-cab: #ecebe6;
+  --ttg-bar: #ff8a2a;
+}
+.route[data-route-current="agree"] .routeTruck {
+  --ttg-loaded: inline;
+  --ttg-rnb: none;
+  --ttg-agree: inline;
+  --ttg-bed: #3a4048;
+  --ttg-cab: #8a939d;
+  --ttg-bar: #5d6773;
+}
+.ttgLoaded {
+  display: var(--ttg-loaded, inline);
+}
+.ttgRnb {
+  display: var(--ttg-rnb, inline);
+}
+.ttgAgree {
+  display: var(--ttg-agree, none);
+}
+.ttgBed {
+  fill: var(--ttg-bed, #2f363e);
+}
+.ttgCab {
+  fill: var(--ttg-cab, #ecebe6);
+}
+.ttgBar {
+  fill: var(--ttg-bar, #ff8a2a);
+}
+
+/* ═══ Véhicules de profil (TowTruck, CarSide) et boucles du kit ════════════════════════════ */
+
+/* Jaune RNB AUTO de la dépanneuse : jeton de couleur, lu par `currentColor` (le plan technique
+   ne pose pas cette classe). Dans la couche `components` : une classe de l'appelant gagne. */
+@layer components {
+  .towTruck {
+    color: var(--color-signal-500);
+  }
+}
+
+/* Sans JavaScript, seules les boucles de l'ouverture tournent (C.3) : les boucles du kit
+   (feux de détresse, gyrophare, roues, onde du dépôt, balayage du plan) attendent
+   `html.motion-ready`, sauf dans un ancêtre `[data-loops-nojs]` (posé par l'ouverture). */
+:global(html:not(.motion-ready)) .loop:not(:global([data-loops-nojs]) .loop) {
+  animation: none;
 }
 
 /* ═══ Voyants (Voyant, VoyantGroup) ═══════════════════════════════════════════════════════ */
 
+/* `--voyant-size` dans la couche `components` : une classe de la page la remplace (sans
+   `!important`) ; la prop `size` la fixe en style en ligne. */
 @layer components {
   .voyant {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+    --voyant-size: 56px;
   }
 }
 .voyant {
   --voyant-color: var(--color-beacon-400);
-  --voyant-size: 56px;
 }
 .voyantRed {
   --voyant-color: var(--color-brake);
@@ -209,6 +275,40 @@
 .infoText {
   color: var(--color-asphalt-300);
 }
+/* Disposition en ligne : numéro et pictogramme à gauche, titre et texte à droite. */
+@layer components {
+  .infoInline {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.1rem 1.25rem 1.1rem 1.1rem;
+  }
+  @media (max-width: 639px) {
+    .infoInline {
+      align-items: flex-start;
+      padding: 1rem 1rem 1rem 0.9rem;
+    }
+  }
+}
+.infoBody {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.infoInline .infoHead {
+  flex: none;
+}
+.infoInline .infoNumber {
+  font-size: clamp(2rem, 1.7rem + 1.2vw, 2.75rem);
+}
+@media (max-width: 639px) {
+  .infoInline .infoHead {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
 .infoBeacon {
   --plaque-accent: var(--color-beacon-400);
   box-shadow:
@@ -296,14 +396,22 @@
   background: linear-gradient(180deg, var(--color-reflect), color-mix(in srgb, var(--color-paper), black 4%));
   box-shadow: inset 0 0 0 1.5px rgb(5 7 13 / 0.85), inset 0 0 0 3px var(--color-reflect);
 }
+/* La colonne de texte est un conteneur : l'inscription se règle sur sa largeur réelle. */
 .signText {
   display: flex;
+  flex: 1 1 0%;
   min-width: 0;
   flex-direction: column;
   gap: 0.3rem;
+  container-type: inline-size;
 }
+/* `--sign-fit` : largeur (em) du plus long mot insécable, estimée au rendu. Le mot tient
+   toujours dans la colonne : jamais sous la flèche, de 320 à 1 440 px. Plancher de 12 px :
+   si un parent donne au panneau une largeur « au contenu » (colonne de texte de largeur nulle
+   à cause de la requête de conteneur), l'inscription reste lisible au lieu de disparaître. */
 .signTitle {
-  font-size: var(--text-sign);
+  --sign-size: var(--text-sign);
+  font-size: max(0.75rem, min(var(--sign-size), calc(100cqi / var(--sign-fit, 1))));
   line-height: 1.05;
   letter-spacing: 0.02em;
   text-wrap: balance;
@@ -328,6 +436,23 @@
 .signArrow svg {
   width: 100%;
   height: 100%;
+}
+/* Panneau compact : intitulé long (inscription plus petite, pictogramme et flèche réduits). */
+.signCompact {
+  gap: 0.75rem;
+  min-height: 4.25rem;
+}
+.signCompact .signTitle {
+  --sign-size: clamp(1.0625rem, 0.95rem + 0.5vw, 1.375rem);
+  line-height: 1.1;
+}
+.signCompact .signPicto {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+.signCompact .signArrow {
+  width: 2.25rem;
+  height: 2.25rem;
 }
 .signArrowFirst .signArrow {
   order: -1;
@@ -452,6 +577,11 @@
   padding-bottom: 0.75rem;
   border-bottom: 1.5px dashed rgb(22 24 27 / 0.28);
 }
+/* Toujours sur une ligne : la taille suit la largeur du ticket (≈ 21 em de texte + le logo). */
+.ticketHeadText {
+  white-space: nowrap;
+  font-size: min(var(--text-plate), calc((100cqi - 2.3rem) / 21));
+}
 .ticketLogo {
   width: 1.6rem;
   height: 1.6rem;
@@ -516,6 +646,87 @@
 }
 .ticketExtra {
   padding-top: 1rem;
+}
+/* Téléphone : lignes et pied au corps du texte courant (17 px), le pied porte « exemple ». */
+@media (max-width: 639px) {
+  .ticketLines,
+  .ticketFoot {
+    font-size: var(--text-body);
+  }
+}
+/* Lignes repliées (`linesSummary`) : un `<details>`, qui s'ouvre sans JavaScript. */
+.ticketFold summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.ticketFold summary::-webkit-details-marker {
+  display: none;
+}
+@media (min-width: 640px) {
+  .ticketFold summary {
+    font-size: var(--text-small);
+  }
+}
+.ticketFold summary:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+.ticketFoldIcon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  transition: rotate var(--dur-ui) var(--ease-out-expo);
+}
+.ticketFold[open] .ticketFoldIcon {
+  rotate: 180deg;
+}
+.ticketFold .ticketLines {
+  padding-top: 0.25rem;
+}
+/* Ticket compact : lignes sur deux colonnes, marges et prix réduits. */
+.ticketCompact .ticket {
+  padding-block: calc(var(--perf) + 0.85rem) calc(var(--perf) + 1rem);
+}
+.ticketCompact .ticketHead {
+  padding-bottom: 0.6rem;
+}
+.ticketCompact .ticketPrice {
+  padding: 0.6rem 0 0.65rem;
+}
+.ticketCompact .ticketAmount {
+  font-size: clamp(2.75rem, 21cqi, 5.25rem);
+}
+.ticketCompact .ticketLines {
+  gap: 0.3rem 0.9rem;
+  padding: 0.65rem 0;
+  line-height: 1.3;
+}
+.ticketCompact .ticketCheck {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+.ticketCompact .ticketFoot {
+  padding-top: 0.65rem;
+}
+/* Compact, mais jamais sous 17 px sur téléphone (A7) : une colonne resserrée ; la taille réduite
+   et les deux colonnes ne valent qu'au-delà (à 17 px, deux colonnes de 130 px coupaient chaque
+   ligne en trois sans rien gagner en hauteur). */
+@media (min-width: 640px) {
+  .ticketCompact .ticketLines {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ticketCompact .ticketLines,
+  .ticketCompact .ticketFoot {
+    font-size: var(--text-small);
+  }
 }
 /* Tampon encreur : décoratif, frappé à la fin de l'impression (P12). */
 .stamp {
@@ -657,6 +868,18 @@ li[data-leg="retour"] .legSwatch {
     font-size: 14px;
     stroke-width: 3.6px;
   }
+  /* Noms près d'un bord, calculés au rendu à cette taille : de l'autre côté du point, ou masqués. */
+  .cityLabelFlipEnd {
+    text-anchor: end;
+    translate: var(--label-shift, 0) 0;
+  }
+  .cityLabelFlipStart {
+    text-anchor: start;
+    translate: var(--label-shift, 0) 0;
+  }
+  .cityLabelHideNarrow {
+    display: none;
+  }
 }
 @container (min-width: 521px) and (max-width: 760px) {
   .planRegion .cityLabel {
@@ -706,8 +929,12 @@ li[data-leg="retour"] .legSwatch {
 .city {
   transition: opacity 450ms var(--ease-out-expo) calc(var(--i, 0) * var(--stagger-group));
 }
-:global(html.motion-ready[data-motion]:not([data-motion="off"])) .plan:not([data-inview]) .city {
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .plan:not([data-inview], .planStatic) .city {
   opacity: 0;
+}
+/* Plan fixe (`static`) : aucune apparition. */
+.planStatic .city {
+  transition: none;
 }
 :global(html[data-motion="off"]) .sweepBeam {
   display: none;

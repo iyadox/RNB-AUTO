@@ -10,6 +10,13 @@
  *   « exemple » est répétée en clair dans le pied (`footnote`), fourni par l'appelant.
  * - `print` : le ticket sort ligne par ligne (`data-print`, P12) à l'entrée dans l'écran ou au
  *   montage ; le tampon frappe à la fin. Sans JavaScript et en `off` : ticket complet.
+ * - En-tête « RNB AUTO · ESTIMATION » toujours sur une ligne (taille réglée sur la largeur du
+ *   ticket). Lignes et pied en 17 px sur téléphone (texte courant), 15 px au-delà.
+ * - `compact` : ticket plus court (marges et prix réduits ; lignes sur deux colonnes à partir de
+ *   640 px, une colonne resserrée en 17 px sur téléphone), par exemple pour que l'action suivante
+ *   reste dans le premier écran sur téléphone (/demande, avec `linesSummary`).
+ * - `linesSummary` : les lignes sont repliées sous ce libellé (fourni par l'appelant), dans un
+ *   `<details>` qui s'ouvre au toucher, même sans JavaScript.
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Odometer } from "@/components/motion/odometer";
@@ -30,10 +37,21 @@ type EstimateTicketProps = {
   /** Affiché à la place du prix quand il n'y en a pas. */
   emptyText?: string;
   children?: ReactNode;
+  /** Ticket plus court : lignes sur deux colonnes, marges et prix réduits. */
+  compact?: boolean;
+  /** Libellé sous lequel les lignes sont repliées (`<details>`) ; sans lui, elles sont visibles. */
+  linesSummary?: string;
   className?: string;
 };
 
 const STAMP_TEXT = { exemple: "Exemple", recue: "Reçue" } as const;
+
+/**
+ * Typographie française des lignes (libellés du moteur, texte inchangé) : espace insécable avant
+ * « : ; ! ? » et entre un nombre et son unité (« 6 km », « 10 € ») : jamais une unité seule à la ligne.
+ */
+const frenchSpaces = (text: string) =>
+  text.replace(/ ([:;!?])/g, "\u00a0$1").replace(/(\d) (km|m|min|h|€|%)(?=$|[\s.,;:)])/g, "$1\u00a0$2");
 
 function Losange() {
   return (
@@ -56,13 +74,30 @@ export function EstimateTicket({
   odometer = "view",
   emptyText = "Votre prix en moins d'une minute",
   children,
+  compact = false,
+  linesSummary,
   className,
 }: EstimateTicketProps): ReactElement {
   const hasPrice = priceCents !== null;
-  const printLines = Math.min(12, 3 + lines.length + (footnote ? 1 : 0) + (children ? 1 : 0));
+  const shownLines = linesSummary ? 1 : lines.length;
+  const printLines = Math.min(12, 3 + shownLines + (footnote ? 1 : 0) + (children ? 1 : 0));
+
+  const list = (
+    <ul className={styles.ticketLines}>
+      {lines.map((line, index) => (
+        <li key={`${index}-${line}`}>
+          <svg viewBox="0 0 16 16" aria-hidden="true" className={styles.ticketCheck}>
+            <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M5 8.2 7.1 10.3 11.2 6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>{frenchSpaces(line)}</span>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
-    <div className={cn(styles.ticketWrap, className)}>
+    <div className={cn(styles.ticketWrap, compact && styles.ticketCompact, className)}>
       <div
         className={styles.ticket}
         data-print={print === "none" ? undefined : print}
@@ -70,7 +105,7 @@ export function EstimateTicket({
       >
         <div className={styles.ticketHead}>
           <Losange />
-          <span className="font-plate text-plate">RNB AUTO · Estimation</span>
+          <span className={cn(styles.ticketHeadText, "font-plate text-plate")}>RNB AUTO · Estimation</span>
         </div>
 
         <div className={styles.ticketPrice}>
@@ -96,17 +131,19 @@ export function EstimateTicket({
         </div>
 
         {lines.length > 0 ? (
-          <ul className={styles.ticketLines}>
-            {lines.map((line, index) => (
-              <li key={`${index}-${line}`}>
-                <svg viewBox="0 0 16 16" aria-hidden="true" className={styles.ticketCheck}>
-                  <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" strokeWidth="1.3" />
-                  <path d="M5 8.2 7.1 10.3 11.2 6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          linesSummary ? (
+            <details className={styles.ticketFold}>
+              <summary>
+                <span>{linesSummary}</span>
+                <svg viewBox="0 0 16 16" aria-hidden="true" className={styles.ticketFoldIcon}>
+                  <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
+              </summary>
+              {list}
+            </details>
+          ) : (
+            list
+          )
         ) : null}
 
         {footnote ? <div className={styles.ticketFoot}>{footnote}</div> : null}

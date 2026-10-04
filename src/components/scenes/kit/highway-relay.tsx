@@ -1,3 +1,4 @@
+"use client";
 /**
  * Le relais d'autoroute (docs/09, E.6 et F.4), vue de dessus schématique :
  * 1. sur l'autoroute, le dépanneur agréé (silhouette GRISE, neutre, étiquetée) prend en charge
@@ -11,8 +12,12 @@
  * - `orientation` : `horizontal`, `vertical` (autoroute en haut, sortie, rue en bas) ou `auto`
  *   (vertical sous 768 px). Légendes en vrai texte (`captions`).
  * - Sans JavaScript et en `off` : schéma complet fixe.
+ * - En `auto`, le serveur rend les deux schémas (le CSS choisit, même sans JavaScript) ; après
+ *   l'hydratation, seul celui qui correspond à l'écran reste dans la page (budget de nœuds, G.2).
+ *   Il change d'orientation si l'écran passe le seuil de 768 px.
+ * Composant client : son balisage n'est pas répété dans la charge RSC de la page.
  */
-import { useId, type ReactElement } from "react";
+import { useId, useSyncExternalStore, type ReactElement } from "react";
 import { cn } from "@/components/ui/cn";
 import { CarTopGlyph, FlagGlyph, TruckTopGlyph } from "./glyphs";
 import styles from "./kit.module.css";
@@ -43,7 +48,8 @@ type Layout = {
   blocks: string;
   car: { x: number; y: number };
   agreeParked: { x: number; y: number; angle: number };
-  label: { x: number; y: number; anchor: "start" | "middle" | "end" };
+  /** Étiquette « DÉPANNEUR AGRÉÉ » (sur deux lignes si `stacked`, pour dégager le panneau). */
+  label: { x: number; y: number; anchor: "start" | "middle" | "end"; stacked?: boolean };
   sign: { x: number; y: number };
   flag: { x: number; y: number };
   legs: RouteLeg[];
@@ -84,7 +90,7 @@ const VERTICAL: Layout = {
   blocks: "M196 330h44v40h-44zM196 392h36v52h-36zM196 466h38v44h-38zM330 350h30v44h-30zM316 420h44v56h-44zM304 498h56v40h-56z",
   car: { x: 62, y: 126 },
   agreeParked: { x: 318, y: 232, angle: 88 },
-  label: { x: 302, y: 236, anchor: "end" },
+  label: { x: 302, y: 240, anchor: "end", stacked: true },
   sign: { x: 214, y: 180 },
   flag: { x: 264, y: 566 },
   legs: [
@@ -197,7 +203,16 @@ function RelaySvg({ layout, draw, prefix, className }: { layout: Layout; draw: N
           paintOrder="stroke"
           style={{ letterSpacing: "0.12em" }}
         >
-          DÉPANNEUR AGRÉÉ
+          {layout.label.stacked ? (
+            <>
+              DÉPANNEUR
+              <tspan x={layout.label.x} dy="13">
+                AGRÉÉ
+              </tspan>
+            </>
+          ) : (
+            "DÉPANNEUR AGRÉÉ"
+          )}
         </text>
       </g>
 
@@ -220,10 +235,24 @@ function RelaySvg({ layout, draw, prefix, className }: { layout: Layout; draw: N
   );
 }
 
+const WIDE_QUERY = "(min-width: 768px)";
+type Shown = "both" | "horizontal" | "vertical";
+
+const subscribeWide = (onChange: () => void) => {
+  const query = window.matchMedia(WIDE_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const wideSnapshot = (): Shown => (window.matchMedia(WIDE_QUERY).matches ? "horizontal" : "vertical");
+/** Rendu serveur et hydratation : les deux schémas (le CSS choisit). */
+const serverSnapshot = (): Shown => "both";
+
 export function HighwayRelay({ draw = "view", captions = true, orientation = "auto", className }: HighwayRelayProps): ReactElement {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const horizontal = orientation !== "vertical";
-  const vertical = orientation !== "horizontal";
+  const shown = useSyncExternalStore(subscribeWide, wideSnapshot, serverSnapshot);
+  const auto = orientation === "auto";
+  const horizontal = orientation === "horizontal" || (auto && shown !== "vertical");
+  const vertical = orientation === "vertical" || (auto && shown !== "horizontal");
   return (
     // `data-pause-offscreen` : les warnings de la voiture en panne clignotent (P14).
     <figure data-pause-offscreen="" className={cn(styles.relay, orientation === "auto" && styles.relayAuto, className)}>

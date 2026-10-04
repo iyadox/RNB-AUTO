@@ -20,7 +20,15 @@ export default defineConfig({
     timezoneId: "Europe/Paris",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "mobile", use: { ...devices["Pixel 7"], browserName: "chromium" } }],
+  projects: [
+    { name: "mobile", use: { ...devices["Pixel 7"], browserName: "chromium" } },
+    // Recette de la refonte immersive (docs/09, H.5) : les mêmes contrôles sur ordinateur.
+    {
+      name: "desktop",
+      testMatch: /(urgence|immersion)\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], browserName: "chromium", viewport: { width: 1440, height: 900 } },
+    },
+  ],
   webServer: {
     command: `npx next dev -p ${PORT}`,
     url: `http://localhost:${PORT}/robots.txt`,

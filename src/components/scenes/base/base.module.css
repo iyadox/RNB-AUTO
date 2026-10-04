@@ -14,6 +14,8 @@
   }
   .depot {
     display: block;
+    /* Jaune de l'enseigne et des bornes (`currentColor`). */
+    color: var(--color-signal-500);
   }
 }
 .skyline {
@@ -158,9 +160,70 @@
   transform-origin: 50% 0;
   transform: scaleY(2.5);
   opacity: 0.25;
+  --lamp-on: 0.25;
   background: linear-gradient(to bottom, var(--color-sodium), rgb(255 210 122 / 0.35) 40%, transparent);
   -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 2px, transparent 2px 4px);
   mask-image: repeating-linear-gradient(to bottom, #000 0 2px, transparent 2px 4px);
+}
+
+/* Allumage (`ignite`) : éteintes avant l'entrée dans l'écran, puis deux scintillements de sodium
+   (comme une lampe qui chauffe), une lampe après l'autre. Jamais en `off` ni sans JavaScript.
+   Cône, flaque et reflet s'effacent ; la tête reste en place (une lampe éteinte n'est pas une
+   lampe absente) : seules son ampoule et sa lueur s'assombrissent. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .ignite:not([data-inview]) [data-lamp]:not([data-lamp="head"]) {
+  opacity: 0;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .ignite:not([data-inview]) [data-lamp="head"] {
+  filter: brightness(0.3) saturate(0.4);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .ignite[data-inview] [data-lamp]:not([data-lamp="head"]) {
+  animation: lamp-ignite 900ms steps(1, end) calc(var(--lamp-i, 0) * 120ms) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .ignite[data-inview] [data-lamp="head"] {
+  animation: lamp-ignite-head 900ms steps(1, end) calc(var(--lamp-i, 0) * 120ms) both;
+}
+/* Paliers proportionnels à l'intensité finale de chaque partie (`--lamp-on`, le reflet est à 0,25). */
+@keyframes lamp-ignite {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: calc(var(--lamp-on, 1) * 0.7);
+  }
+  22% {
+    opacity: calc(var(--lamp-on, 1) * 0.1);
+  }
+  38% {
+    opacity: calc(var(--lamp-on, 1) * 0.85);
+  }
+  48% {
+    opacity: calc(var(--lamp-on, 1) * 0.3);
+  }
+  62%,
+  100% {
+    opacity: var(--lamp-on, 1);
+  }
+}
+@keyframes lamp-ignite-head {
+  0% {
+    filter: brightness(0.3) saturate(0.4);
+  }
+  12% {
+    filter: brightness(0.8) saturate(0.85);
+  }
+  22% {
+    filter: brightness(0.35) saturate(0.45);
+  }
+  38% {
+    filter: brightness(0.9) saturate(0.9);
+  }
+  48% {
+    filter: brightness(0.5) saturate(0.6);
+  }
+  62%,
+  100% {
+    filter: none;
+  }
 }
 
 /* ─── Dépôt (Depot) ───────────────────────────────────────────────────────────── */
@@ -183,10 +246,10 @@
   transform: none;
 }
 :global(html.motion-ready[data-motion]:not([data-motion="off"])) .animateClose[data-inview] .shutter {
-  animation: shutter-close 1s var(--ease-brake) var(--depot-delay, 0s) both;
+  animation: shutter-close var(--depot-duration, 1s) var(--ease-brake) var(--depot-delay, 0s) both;
 }
 :global(html.motion-ready[data-motion]:not([data-motion="off"])) .animateOpen[data-inview] .shutter {
-  animation: shutter-open 1s var(--ease-brake) var(--depot-delay, 0s) both;
+  animation: shutter-open var(--depot-duration, 1s) var(--ease-brake) var(--depot-delay, 0s) both;
 }
 @keyframes shutter-close {
   from {

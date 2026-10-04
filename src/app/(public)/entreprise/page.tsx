@@ -6,7 +6,6 @@ import { RoadLine } from "@/components/public/road-line";
 import { Blueprint } from "@/components/pages/entreprise/blueprint";
 import { Commitments } from "@/components/pages/entreprise/commitments";
 import { DepotOpening } from "@/components/pages/entreprise/depot-opening";
-import styles from "@/components/pages/entreprise/entreprise.module.css";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 
 export const metadata: Metadata = {
@@ -39,18 +38,20 @@ export default async function CompanyPage() {
         <OpeningShot
           eyebrow="L'entreprise"
           pictogram="shield"
+          titleFit
           title={
-            <span className={styles.heroTitle}>
+            <>
               RNB AUTO,{" "}
               <em data-beam="load" className="not-italic">
                 dépannage à Bobigny.
               </em>
-            </span>
+            </>
           }
           lead="Une entreprise de dépannage et de remorquage installée au cœur de la Seine-Saint-Denis, avec une conviction simple : quand on est en panne, on a besoin d'une réponse rapide et d'un prix clair."
           actions={
             <div className="flex flex-wrap items-center gap-3">
-              <PrimaryLink href="/demande">Demander un dépannage</PrimaryLink>
+              {/* Sous 360 px, le bouton se resserre pour tenir dans l'écran (320 px). */}
+              <PrimaryLink href="/demande" className="max-[359px]:px-5 max-[359px]:text-base">Demander un dépannage</PrimaryLink>
               <CallLink phone={info.phone} size="lg" className="max-sm:hidden" />
             </div>
           }
@@ -76,6 +77,7 @@ export default async function CompanyPage() {
           pk="02"
           label="Notre façon de travailler"
           sky="bleue"
+          className="overflow-x-clip"
           title={
             <>
               Ce sur quoi vous pouvez <em>compter</em>

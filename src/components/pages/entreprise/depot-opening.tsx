@@ -19,7 +19,7 @@ import styles from "./entreprise.module.css";
 
 export function DepotOpening(): ReactElement {
   return (
-    <div className={styles.openFrame} aria-hidden="true">
+    <div className={styles.openFrame} data-loops-nojs="" aria-hidden="true">
       <div className={styles.openStage} data-inview-once="" data-pause-offscreen="">
         <div className={styles.openCity} />
         <div className={styles.openSkyline} data-parallax="" style={{ "--depth": 0.25 } as CSSProperties}>

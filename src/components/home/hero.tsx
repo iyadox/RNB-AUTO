@@ -8,6 +8,7 @@ import type { PublicSiteInfo } from "@/server/site/public-info";
 import { ScenePause } from "@/components/motion/scene-pause";
 import { CallLink, PrimaryLink, WhatsAppLink } from "@/components/public/actions";
 import { Icon } from "@/components/ui/icon";
+import { MediaGate } from "./media-gate";
 import { NightRoad, SCENE_ID } from "./night-road";
 import styles from "./home.module.css";
 
@@ -39,7 +40,6 @@ function HeroBadge({ info }: { info: PublicSiteInfo }) {
 export function Hero({ info }: { info: PublicSiteInfo }) {
   return (
     <section id="ouverture" data-sky="minuit" className={styles.hero}>
-      <div className={styles.heroSkyGlow} aria-hidden="true" />
       <div className={styles.container}>
         <div data-hero-copy className={styles.heroCopy}>
           <div data-hero-fade>
@@ -51,8 +51,14 @@ export function Hero({ info }: { info: PublicSiteInfo }) {
               </em>
             </h1>
             <p className={styles.heroLead}>
-              <span className="hidden sm:inline">Remorquage et assistance à {info.serviceArea}. </span>
-              <span className="sm:hidden">Remorquage et assistance en Île-de-France. </span>
+              {/* Requêtes en rem, comme les classes Tailwind `sm:`/`md:` qu'elles doublent : avec une
+                  taille de police du navigateur agrandie, px et rem divergent (texte perdu). */}
+              <MediaGate query="(min-width: 40rem)">
+                <span className="hidden sm:inline">Remorquage et assistance à {info.serviceArea}. </span>
+              </MediaGate>
+              <MediaGate query="not all and (min-width: 40rem)">
+                <span className="sm:hidden">Remorquage et assistance en Île-de-France. </span>
+              </MediaGate>
               <strong>Votre prix estimé en moins d&apos;une minute</strong>, confirmé avant l&apos;intervention.
             </p>
           </div>
@@ -61,32 +67,39 @@ export function Hero({ info }: { info: PublicSiteInfo }) {
             <PrimaryLink href="/demande" size="lg" className="w-full sm:w-auto">
               Demander un dépannage
             </PrimaryLink>
-            <div className="hidden gap-3 md:flex">
-              <CallLink phone={info.phone} label="short" size="lg" />
-              <WhatsAppLink whatsapp={info.whatsapp} size="lg" />
-            </div>
+            <MediaGate query="(min-width: 48rem)">
+              <div className="hidden gap-3 md:flex">
+                <CallLink phone={info.phone} label="short" size="lg" />
+                <WhatsAppLink whatsapp={info.whatsapp} size="lg" />
+              </div>
+            </MediaGate>
           </div>
 
-          <ul data-hero-fade className={`${styles.heroReassure} text-small`}>
-            {REASSURANCE.map((item) => (
-              <li key={item}>
-                <Icon name="check" size={16} strokeWidth={3} aria-hidden="true" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          {/* Réassurance entre 640 et 1 023 px seulement (E.1) : retirée ailleurs après l'hydratation. */}
+          <MediaGate query="(min-width: 640px) and (max-width: 1023px)">
+            <ul data-hero-fade className={`${styles.heroReassure} text-small`}>
+              {REASSURANCE.map((item) => (
+                <li key={item}>
+                  <Icon name="check" size={16} strokeWidth={3} aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </MediaGate>
         </div>
       </div>
 
       <NightRoad>
         <ScenePause targetId={SCENE_ID} className={styles.heroPause} />
       </NightRoad>
-      <div className={styles.heroCue} aria-hidden="true">
-        <span className="font-plate text-plate">Défiler</span>
-        <span className={styles.heroCueRail}>
-          <span className="animate-scroll-cue" />
-        </span>
-      </div>
+      <MediaGate query="(min-width: 1024px)">
+        <div className={styles.heroCue} aria-hidden="true">
+          <span className="font-plate text-plate">Défiler</span>
+          <span className={styles.heroCueRail}>
+            <span className="animate-scroll-cue" />
+          </span>
+        </div>
+      </MediaGate>
     </section>
   );
 }

@@ -36,7 +36,7 @@ export function HighwayOpening({ lead }: { lead: string }): ReactElement {
             </span>
           </Link>
         </div>
-        <div className={styles.openingScene}>
+        <div className={styles.openingScene} data-loops-nojs="">
           <ShoulderScene />
         </div>
       </div>

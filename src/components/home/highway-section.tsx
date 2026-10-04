@@ -7,14 +7,12 @@
  * catadioptres) et le schéma du relais viennent ensuite. La dépanneuse RNB AUTO n'apparaît
  * qu'après le panneau bleu « SORTIE » (HighwayRelay) : jamais sur une voie d'autoroute.
  */
-import Link from "next/link";
 import { Plate } from "@/components/public/page-blocks";
 import { DirectionSign } from "@/components/scenes/kit/direction-sign";
 import { HighwayRelay } from "@/components/scenes/kit/highway-relay";
 import { InfoPlaque } from "@/components/scenes/kit/info-plaque";
 import { cn } from "@/components/ui/cn";
-import { Icon, type IconName } from "@/components/ui/icon";
-import type { PublicSiteInfo } from "@/server/site/public-info";
+import type { IconName } from "@/components/ui/icon";
 import styles from "./home-lower.module.css";
 
 const REFLEXES: { icon: IconName; text: string }[] = [
@@ -28,16 +26,13 @@ const REFLEXES: { icon: IconName; text: string }[] = [
 function Guardrail() {
   return (
     <div className={styles.guardrail} aria-hidden="true">
-      <span className={styles.guardrailBeam} />
       <span className={styles.guardrailPosts} />
-      <span className={styles.guardrailReflectors} />
       <span className={styles.guardrailSweep} />
     </div>
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function HighwaySection({ info }: { info: PublicSiteInfo }) {
+export function HighwaySection() {
   return (
     <section id="autoroute" data-sky="bleue" aria-labelledby="autoroute-titre" className={cn(styles.section, styles.highwaySection)}>
       <Guardrail />
@@ -60,29 +55,37 @@ export function HighwaySection({ info }: { info: PublicSiteInfo }) {
 
         {/* Les réflexes, fixés sur un mât comme des plaques de signalisation : jamais animés. */}
         <div className={styles.reflexMount}>
-          <span className={styles.reflexMast} aria-hidden="true" />
           <ol className={styles.reflexes}>
             {REFLEXES.map((reflex, index) => (
               <li key={reflex.text}>
-                <InfoPlaque number={index + 1} pictogram={reflex.icon} tone="beacon" title={reflex.text} titleAs="p" className={styles.reflex} />
+                <InfoPlaque
+                  number={index + 1}
+                  pictogram={reflex.icon}
+                  tone="beacon"
+                  layout="inline"
+                  title={reflex.text}
+                  titleAs="p"
+                  className={styles.reflex}
+                />
               </li>
             ))}
           </ol>
         </div>
       </div>
 
-      <div className={cn(styles.container, "mt-14 lg:mt-20")}>
+      <div className={cn(styles.container, "mt-10 lg:mt-20")}>
         <div className={styles.relayFrame}>
           <HighwayRelay draw="scrub" className={styles.relay} />
         </div>
         <div className={styles.highwayLinks}>
-          <Link href="/panne-autoroute" data-retro="" className={styles.infoLink}>
-            <span className={styles.infoLinkPicto} aria-hidden="true">
-              <Icon name="hazard" size={24} strokeWidth={2.2} />
-            </span>
-            <span className={styles.infoLinkText}>Que faire en cas de panne sur autoroute</span>
-            <Icon name="arrowRight" size={24} strokeWidth={2.4} className={styles.infoLinkArrow} />
-          </Link>
+          <DirectionSign
+            href="/panne-autoroute"
+            title="Que faire en cas de panne sur autoroute"
+            arrow="right"
+            pictogram="hazard"
+            tone="beacon"
+            size="compact"
+          />
           <DirectionSign
             href="/demande?autoroute=1"
             title="Demander le relais"

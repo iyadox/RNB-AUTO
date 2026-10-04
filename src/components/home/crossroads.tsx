@@ -61,16 +61,12 @@ export function Crossroads({ info }: { info: PublicSiteInfo }) {
   return (
     <section id="carrefour" data-sky="minuit" className={styles.crossroads}>
       <div className={styles.container}>
-        <div className={styles.crossHead}>
-          <div>
-            <div data-reveal>
-              <Plate pk="01">Votre situation</Plate>
-            </div>
-            <h2 data-split className={`${styles.sectionTitle} mt-4`}>
-              Où en êtes-vous{" "}?
-            </h2>
-          </div>
+        <div data-reveal>
+          <Plate pk="01">Votre situation</Plate>
         </div>
+        <h2 data-split className={`${styles.sectionTitle} mt-4`}>
+          Où en êtes-vous{" "}?
+        </h2>
 
         <div className={styles.junction} data-inview-once="">
           <div className={styles.junctionTruck} aria-hidden="true">
@@ -82,7 +78,6 @@ export function Crossroads({ info }: { info: PublicSiteInfo }) {
               </svg>
             </div>
           </div>
-          <span className={styles.junctionStuds} aria-hidden="true" />
           <ul className={styles.signs}>
             {SIGNS.map((sign, index) => (
               <li

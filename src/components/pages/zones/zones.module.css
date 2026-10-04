@@ -518,19 +518,16 @@
 :global(html[data-motion="off"]) .signSweep {
   display: none;
 }
-/* Arrivée dans l'écran (niveaux full et lite) : les lampadaires s'allument en grésillant, puis
-   le panneau s'éclaire. État de base = état final (sans JavaScript, en `off`). Les trois
-   premiers enfants d'un lampadaire du socle sont sa lumière (cône, flaque, reflet) ; le mât
-   reste visible. */
-:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign:not([data-inview]) .signLamps :global(.lamp) > span:nth-child(-n + 3),
+/* Arrivée dans l'écran (niveaux full et lite) : les lampadaires s'allument en grésillant, l'un
+   après l'autre (`--lamp-i`), puis le panneau s'éclaire. État de base = état final (sans
+   JavaScript, en `off`). Seules les parties lumineuses (`data-lamp` : cône, flaque, reflet)
+   s'allument ; le mât et la tête restent visibles. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign:not([data-inview]) .signLamps :is([data-lamp="cone"], [data-lamp="pool"], [data-lamp="reflection"]),
 :global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign:not([data-inview]) .signPlate {
   opacity: 0;
 }
-:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign[data-inview] .signLamps :global(.lamp) > span:nth-child(-n + 3) {
-  animation: lamp-on 1100ms linear both;
-}
-:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign[data-inview] .signLamps :global(.lamp:nth-child(2)) > span:nth-child(-n + 3) {
-  animation-delay: 220ms;
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign[data-inview] .signLamps :is([data-lamp="cone"], [data-lamp="pool"], [data-lamp="reflection"]) {
+  animation: lamp-on 1100ms linear calc(var(--lamp-i, 0) * 220ms) both;
 }
 :global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign[data-inview] .signPlate {
   animation: plate-on 900ms var(--ease-out-expo) 550ms both;
@@ -767,6 +764,17 @@
   @apply text-body;
   margin-top: 0.35rem;
   color: var(--color-asphalt-300);
+}
+/* Écran très étroit (320 px) : vignette plus petite, le plus long mot (« arrondissements ») tient
+   dans la colonne au lieu de toucher le bord de la plaque. */
+@media (max-width: 359px) {
+  .plaqueHead {
+    column-gap: 1rem;
+  }
+  .vignette {
+    width: 5.25rem;
+    height: 5.25rem;
+  }
 }
 .chips {
   display: flex;
@@ -1008,8 +1016,9 @@
     scale 400ms var(--ease-out-expo) 650ms;
 }
 
-/* Plan collant : par défaut, toute l'Île-de-France allumée, sans trajet. */
-.stagePlanFrame .zoneRoute {
+/* Plan collant : par défaut, toute l'Île-de-France allumée, sans trajet ni dépanneuse (la
+   dépanneuse est dans la partie haute du calque, hors de `.zoneRoute`). */
+.stagePlanFrame :is(.zoneRoute, .zoneTruck) {
   opacity: 0;
 }
 .stage[data-beat] .stagePlanFrame .zoneLayer {

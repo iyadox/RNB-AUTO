@@ -425,9 +425,13 @@
 .exitText {
   position: relative;
   z-index: 1;
+  container-type: inline-size;
 }
 .exitTitle {
   @apply font-display text-display;
+  /* « L'AUTOROUTE ? » (13 signes insécables) tient toujours dans sa colonne : sur ordinateur,
+     la colonne de texte est étroite et le mot débordait sur la scène (0,47 em par capitale). */
+  font-size: min(var(--text-display), calc(100cqi / 6.2));
   margin-top: 1rem;
   line-height: 0.96;
   text-wrap: balance;

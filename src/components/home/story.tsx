@@ -69,15 +69,13 @@ export function Story({ info }: { info: PublicSiteInfo }) {
           <ol className={styles.steps}>
             {steps(info.depot.city).map((step, index) => (
               <li key={step.title} data-stage-step="" className={styles.step}>
-                <div className="w-full">
-                  {index === 0 ? null : <MiniMap step={(index + 1) as 2 | 3 | 4} />}
-                  <div className={styles.stepBody}>
-                    <span className={styles.borne} aria-hidden="true">
-                      <span>{index + 1}</span>
-                    </span>
-                    <h3 className={styles.stepTitle}>{step.title}</h3>
-                    <p className={styles.stepText}>{nbsp(step.text)}</p>
-                  </div>
+                {index === 0 ? null : <MiniMap step={(index + 1) as 2 | 3 | 4} />}
+                <div className={styles.stepBody}>
+                  <span className={styles.borne} aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <h3 className={styles.stepTitle}>{step.title}</h3>
+                  <p className={styles.stepText}>{nbsp(step.text)}</p>
                 </div>
               </li>
             ))}

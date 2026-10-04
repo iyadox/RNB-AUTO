@@ -11,7 +11,9 @@
 @layer components {
   .section {
     position: relative;
-    padding-block: var(--spacing-section);
+    /* Rythme resserré : deux sections voisines ne laissent jamais un écran de ciel vide entre
+       elles (la page tient en environ 13 écrans, E.0). */
+    padding-block: calc(var(--spacing-section) * 0.8);
   }
   .container {
     margin-inline: auto;
@@ -90,7 +92,7 @@
 
 .priceGrid {
   display: grid;
-  gap: 3.5rem;
+  gap: 2.75rem;
 }
 @media (min-width: 1024px) {
   .priceGrid {
@@ -102,8 +104,8 @@
 
 .guarantees {
   display: grid;
-  gap: 0.625rem;
-  margin-top: 2rem;
+  gap: 0.5rem;
+  margin-top: 1.75rem;
   max-width: 34rem;
 }
 .guarantee {
@@ -111,8 +113,8 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  min-height: 4rem;
-  padding: 0.75rem 1rem 0.75rem 0.75rem;
+  min-height: 3.75rem;
+  padding: 0.625rem 1rem 0.625rem 0.625rem;
   border-radius: 6px;
   color: var(--color-chalk);
   font-weight: 650;
@@ -146,17 +148,19 @@
   gap: 1.25rem;
   justify-items: center;
 }
-/* Téléphone et tablette : le choix du moment d'abord (il pilote la fenêtre ET le ticket),
-   puis la fenêtre, puis le ticket qui sort devant le bas de la fenêtre. */
-@media (max-width: 1023px) {
+/* Téléphone, tablette et petit ordinateur : le choix du moment d'abord (il pilote la fenêtre
+   ET le ticket), puis la fenêtre, puis le ticket qui sort devant le bas de la fenêtre. Sous
+   1 280 px, la colonne est trop étroite pour le sélecteur ET le ticket côte à côte (« Le
+   dimanche » passait sous le ticket à 1 024 px). */
+@media (max-width: 1279px) {
   .stage .picker {
     order: -1;
   }
   .stage .ticketSlot {
-    margin-top: -3.25rem;
+    margin-top: -4rem;
   }
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .stage {
     grid-template-columns: minmax(0, 1fr) 24rem;
     grid-template-areas:
@@ -340,7 +344,7 @@
   background: var(--color-night-950);
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 12%, transparent);
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .pickerGroup {
     grid-template-columns: 1fr;
   }
@@ -368,7 +372,7 @@
     color var(--dur-ui) var(--ease-out-expo),
     background-color var(--dur-ui) var(--ease-out-expo);
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .pickerButton {
     justify-content: flex-start;
     padding-inline: 1rem;
@@ -445,7 +449,7 @@
 /* ═══ PK 04 · Autoroute (sécurité d'abord : texte et réflexes immobiles) ══════════════════ */
 
 .highwaySection {
-  padding-top: calc(var(--spacing-section) + 2.5rem);
+  padding-top: calc(var(--spacing-section) * 0.8 + 2.5rem);
 }
 /* Glissière de sécurité : lisse métallique sur poteaux, catadioptres ambre ; un faisceau de
    phares la balaie quand la section traverse l'écran (décor, CSS seul, jamais sur le texte). */
@@ -457,7 +461,9 @@
   overflow: hidden;
   pointer-events: none;
 }
-.guardrailBeam {
+/* Lisse (pseudo-élément, budget de nœuds). */
+.guardrail::before {
+  content: "";
   position: absolute;
   inset-inline: 0;
   top: 0.75rem;
@@ -479,7 +485,9 @@
   );
   z-index: -1;
 }
-.guardrailReflectors {
+/* Catadioptres sur la lisse (pseudo-élément). */
+.guardrail::after {
+  content: "";
   position: absolute;
   inset-inline: 0;
   top: 1.05rem;
@@ -555,7 +563,9 @@
   position: relative;
   padding-left: 1.25rem;
 }
-.reflexMast {
+/* Mât des plaques (pseudo-élément : budget de nœuds). */
+.reflexMount::before {
+  content: "";
   position: absolute;
   left: 0.25rem;
   top: -1rem;
@@ -567,7 +577,7 @@
 }
 .reflexes {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 .reflexes li {
   position: relative;
@@ -585,24 +595,8 @@
   background: var(--color-asphalt-600);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-reflect) 18%, transparent);
 }
-.reflex {
-  flex-direction: row;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.1rem 1.25rem 1.1rem 1.1rem;
-}
-/* Téléphone : numéro au-dessus du pictogramme, la phrase garde la largeur. */
-@media (max-width: 639px) {
-  .reflex {
-    align-items: flex-start;
-    padding: 1rem 1rem 1rem 0.9rem;
-  }
-  .reflex > div:first-of-type {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-}
-.reflex > p {
+/* Plaques en ligne (`InfoPlaque layout="inline"`) : la phrase garde une taille de lecture. */
+.reflex p {
   text-wrap: pretty;
   font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
   line-height: 1.3;
@@ -634,74 +628,25 @@
     gap: 1.25rem;
   }
 }
-/* Lien d'information sobre (plaque sombre, liseré orange) : l'action jaune reste le relais. */
-.infoLink {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  min-height: 4.5rem;
-  padding: 0.875rem 1.25rem 0.875rem 0.875rem;
-  border-radius: 6px;
-  color: var(--color-chalk);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-night-900) 94%, transparent),
-    color-mix(in srgb, var(--color-night-950) 96%, transparent)
-  );
-  box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 12%, transparent),
-    inset 4px 0 0 0 var(--color-beacon-500);
-  transition: translate var(--dur-ui) var(--ease-out-expo);
-}
-:global(html:not([data-motion="off"])) .infoLink:hover {
-  translate: 0 -2px;
-}
-.infoLinkPicto {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 6px;
-  color: var(--color-asphalt-950);
-  background: var(--color-beacon-500);
-}
-.infoLinkText {
-  @apply font-step;
-  flex: 1;
-  font-size: clamp(1.125rem, 1rem + 0.4vw, 1.3125rem);
-  line-height: 1.2;
-  text-wrap: balance;
-}
-.infoLinkArrow {
-  flex: none;
-  color: var(--color-beacon-400);
-  transition: translate var(--dur-ui) var(--ease-out-expo);
-}
-.infoLink:hover .infoLinkArrow {
-  translate: 6px 0;
-}
-
 /* ═══ PK 05 · Zone ═══════════════════════════════════════════════════════════════════════ */
 
 .zoneSection {
   overflow-x: clip;
-  padding-bottom: calc(var(--spacing-section) + clamp(2.5rem, 9vw, 7rem));
+  padding-bottom: calc(var(--spacing-section) * 0.8 + clamp(2.5rem, 9vw, 7rem));
 }
 .zoneGhost {
   /* Grand nom en contour, posé en bas de la section, entièrement lisible (et non plus coupé
-     derrière le disque du plan) : il occupe l'espace entre le plan et les questions. */
+     derrière le disque du plan) : il occupe l'espace entre le plan et les questions. Centré
+     sans `translate` (réservé à la parallaxe) : un débordement se répartit des deux côtés. */
   position: absolute;
-  left: 50%;
+  inset-inline: 0;
   bottom: calc(var(--spacing-section) * 0.18);
   z-index: -1;
-  translate: -50% 0;
+  display: flex;
+  justify-content: center;
   pointer-events: none;
   user-select: none;
-}
-.zoneGhost span {
   @apply font-display;
-  display: block;
   white-space: nowrap;
   font-size: clamp(3.75rem, 15.5vw, 11.5rem);
   line-height: 0.85;
@@ -715,8 +660,9 @@
     "head"
     "lead"
     "plan"
-    "rest";
-  gap: 2rem;
+    "chips"
+    "link";
+  gap: 1.5rem;
 }
 @media (min-width: 1024px) {
   .zoneGrid {
@@ -724,8 +670,9 @@
     grid-template-areas:
       "head head"
       "lead plan"
-      "rest plan";
-    grid-template-rows: auto auto 1fr;
+      "chips plan"
+      "link plan";
+    grid-template-rows: auto auto auto 1fr;
     column-gap: 4rem;
     row-gap: 2rem;
   }
@@ -757,13 +704,13 @@
   font-weight: 600;
   color: var(--color-asphalt-300);
 }
-.zoneRest {
-  grid-area: rest;
-  display: grid;
-  gap: 1.5rem;
-  align-content: start;
+.zoneLink {
+  grid-area: link;
+  justify-self: start;
+  align-self: start;
 }
 .departments {
+  grid-area: chips;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -801,27 +748,53 @@
 
 /* ═══ PK 06 · Questions (section calme : aucun décor animé) ════════════════════════════════ */
 
+/* La section se termine sur le bord de route : pas de grande marge basse (l'aube suit). */
+.faqSection {
+  padding-bottom: calc(var(--spacing-section) * 0.2);
+}
+/* Titre en tête (deux lignes sur ordinateur), « Toutes les questions » à sa droite, puis les
+   questions sur toute la largeur : aucune colonne étroite, aucun vide sous la liste. */
 .faqGrid {
   display: grid;
-  gap: 2.5rem;
+}
+.faqTitle {
+  margin-top: 1.25rem;
+  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.75rem);
+}
+.faqAll {
+  justify-self: start;
+  margin-top: 1.5rem;
+}
+.faqList {
+  align-self: start;
+  margin-top: 1.5rem;
 }
 @media (min-width: 1024px) {
   .faqGrid {
-    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
-    gap: 4rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 3rem;
+    align-items: end;
   }
-}
-.faqHead {
-  position: relative;
-}
-.faqTitle {
-  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.75rem);
+  .faqPlate,
+  .faqList {
+    grid-column: 1 / -1;
+  }
+  .faqAll {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
+  .faqList {
+    margin-top: 2.75rem;
+  }
+  .faqTitle em {
+    display: block;
+  }
 }
 /* Bord de route : balises en rang, ligne de rive, terre-plein sombre, borne PK 06. */
 .roadside {
   position: relative;
-  margin-top: 4rem;
-  height: 9.5rem;
+  margin-top: 2.5rem;
+  height: 8rem;
   pointer-events: none;
 }
 .roadside::after {
@@ -840,27 +813,21 @@
   width: 100%;
   height: 5rem;
 }
-.roadsideInner {
-  position: relative;
-  height: 100%;
-}
+/* La borne s'aligne sur la colonne de texte (conteneur de 80rem centré). */
 .milestone {
   position: absolute;
   bottom: 1.5rem;
-  left: 1rem;
+  left: calc(max(0px, (100% - 80rem) / 2) + 1rem);
   width: 5.25rem;
   height: auto;
 }
 @media (min-width: 1024px) {
   .roadside {
-    margin-top: 5rem;
-    height: 12rem;
+    margin-top: 3rem;
+    height: 11rem;
   }
   .milestone {
-    left: 2rem;
+    left: calc(max(0px, (100% - 80rem) / 2) + 2rem);
     width: 7rem;
   }
-}
-.faqList {
-  align-self: start;
 }

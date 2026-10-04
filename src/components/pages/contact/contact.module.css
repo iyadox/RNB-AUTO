@@ -33,6 +33,9 @@
 
 .opening {
   position: relative;
+  /* La borne peut dépasser vers le bas (sol), jamais sur le côté (pas de défilement horizontal
+     à 1 024 px). */
+  overflow-x: clip;
   padding-top: calc(var(--header-h, 4rem) + 1.5rem);
   padding-bottom: 3.5rem;
 }
@@ -390,6 +393,9 @@ a.keyWhatsapp:hover .keyGo {
 }
 .detailsGrid {
   display: grid;
+  /* Une colonne qui ne s'élargit jamais au-delà de l'écran (un marqueur insécable, une adresse
+     longue) : le contenu se plie dans la colonne. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 4rem;
 }
 @media (min-width: 1024px) {
@@ -500,11 +506,6 @@ a.keyWhatsapp:hover .keyGo {
   -webkit-mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent);
 }
-/* Plan statique (F.7) : aucune apparition ni balayage sur cette page. */
-.boardMap :global(*) {
-  transition: none !important;
-  animation: none !important;
-}
 .boardCaption {
   @apply font-plate text-plate;
   display: flex;
@@ -572,8 +573,14 @@ a.keyWhatsapp:hover .keyGo {
 }
 .mailRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.9rem;
+}
+/* Le texte garde au moins la largeur du marqueur « À COMPLÉTER : email » (insécable) : sur un
+   écran très étroit (320 px), il passe sous la pastille au lieu de déborder de la plaque. */
+.mailRow > div {
+  flex: 1 1 12.75rem;
 }
 .mailIcon {
   display: grid;

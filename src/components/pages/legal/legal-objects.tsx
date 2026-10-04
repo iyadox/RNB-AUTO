@@ -3,7 +3,6 @@
  * mot pour mot : ces composants ne font que les mettre en forme.
  *
  * - `LegalSection` : une section de l'article, avec sa borne (numéro décoratif) et son titre.
- * - `Chantier` : le marqueur « À COMPLÉTER » du socle (`ToComplete`, bordure de chantier).
  * - `TarePlate` : plaque rivetée « libellé / valeur » (éditeur du site).
  * - `SignList` : liste à pictogrammes de signalisation.
  * - `Durations` : panneau des durées de conservation, le chiffre à droite comme une distance.
@@ -14,7 +13,6 @@
  * lecteurs d'écran, copié avec le texte) ; à l'écran, la mise en page le remplace.
  */
 import type { ReactElement, ReactNode } from "react";
-import { ToComplete } from "@/components/public/page-blocks";
 import { Icon, type IconName } from "@/components/ui/icon";
 import styles from "./legal.module.css";
 
@@ -51,14 +49,6 @@ export function LegalSection({
       {children}
     </section>
   );
-}
-
-/**
- * « À COMPLÉTER » des pages légales : c'est désormais le `ToComplete` du socle, qui porte la
- * bordure de chantier à chevrons orange et noirs (F.9). Alias gardé pour les pages légales.
- */
-export function Chantier({ label }: { label?: string }): ReactElement {
-  return <ToComplete label={label} />;
 }
 
 export type TareRow = { key: string; label: string; value: ReactNode };

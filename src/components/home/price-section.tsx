@@ -42,7 +42,7 @@ export function PriceSection({ info, examples }: { info: PublicSiteInfo; example
           <h2 id="prix-titre" data-split="" className={cn(styles.title, "mt-5")}>
             Le prix avant <em>le départ.</em>
           </h2>
-          <p data-reveal="" className={cn(styles.lead, "mt-7")}>
+          <p data-reveal="" className={cn(styles.lead, "mt-6 lg:mt-7")}>
             Notre calculateur tient compte de votre position, de la destination, de votre véhicule, de la situation et de
             l&apos;horaire. Vous voyez une estimation claire, que nous confirmons avec vous avant d&apos;intervenir.
           </p>
@@ -63,7 +63,7 @@ export function PriceSection({ info, examples }: { info: PublicSiteInfo; example
               </li>
             ))}
           </ul>
-          <PrimaryLink href="/demande" className="mt-9 w-full sm:w-auto">
+          <PrimaryLink href="/demande" className="mt-8 w-full sm:w-auto lg:mt-9">
             Calculer mon prix
           </PrimaryLink>
         </div>

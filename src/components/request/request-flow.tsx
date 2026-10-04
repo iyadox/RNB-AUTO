@@ -12,7 +12,7 @@
  * changements d'étape glissés selon le sens (`data-dir`). Aucun GSAP ni Lenis sur cette page.
  */
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { whatsappHref, whatsappRequestMessage, type PhoneLink } from "@/core/contact";
 import { formatEurosShort, formatKm, formatPhone } from "@/core/format";
 import type { ClientEstimate } from "@/core/quotes/client-view";
@@ -63,6 +63,17 @@ type FlowState = {
 
 const STORAGE_KEY = "rnb-demande-v1";
 const PROGRESS: Step[] = ["pickup", "dropoff", "vehicle", "problem", "estimate", "contact"];
+/** Téléphone et tablette (sous 1 024 px) : ticket compact, lignes repliées (interface seulement). */
+const NARROW_QUERY = "(max-width: 1023px)";
+const subscribeNarrow = (onChange: () => void) => {
+  const query = window.matchMedia(NARROW_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const narrowSnapshot = () => window.matchMedia(NARROW_QUERY).matches;
+/** Mobile d'abord : l'étape Prix n'est jamais rendue côté serveur. */
+const narrowServerSnapshot = () => true;
+
 /** Ordre des écrans, pour le sens du glissement (interface seulement). */
 const SCREEN_ORDER: Step[] = ["pickup", "highway", "dropoff", "vehicle", "problem", "estimate", "contact", "done"];
 
@@ -291,6 +302,9 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
   if (price !== null) sheetRows.push({ kind: "price", label: "Prix", value: formatEurosShort(price), target: "estimate" });
   // Feuille de route : absente au lieu et à l'envoi ; aux coordonnées, le récapitulatif la remplace.
   const sheetVisible = !["pickup", "highway", "contact", "done"].includes(state.step);
+  // Étape Prix, prix reçu : sur téléphone, la feuille de route passe SOUS les actions, pour que
+  // « Demander le dépannage » reste dans le premier écran (390 × 844).
+  const priceShown = state.step === "estimate" && !pending && state.estimate !== null;
   const placeName = (place: Place | null) => (place ? (place.city ?? place.label) : null);
   const routeText = [
     placeName(state.pickup),
@@ -330,7 +344,7 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
             <StepRoad index={Math.min(progressIndex, PROGRESS.length - 1)} vehicle={state.vehicle} onBack={state.step !== "pickup" ? back : null} />
           ) : null}
 
-          {sheetVisible ? (
+          {sheetVisible && !priceShown ? (
             <RouteSheetBar summary={sheetSummary} rows={sheetRows} onEdit={(step) => goTo(step)} className="mt-5 lg:hidden" />
           ) : null}
 
@@ -408,6 +422,11 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
                 whatsappLink={whatsappLink}
                 ticketLines={ticketLines}
                 plan={plan("calc-route", false, "w-full")}
+                recap={
+                  sheetVisible ? (
+                    <RouteSheetBar summary={sheetSummary} rows={sheetRows} onEdit={(step) => goTo(step)} className="mt-8 lg:hidden" />
+                  ) : null
+                }
                 onRetry={requestEstimate}
                 onNext={() => goTo("contact")}
                 onEdit={(step) => goTo(step)}
@@ -515,7 +534,7 @@ function PrimaryButton({ children, disabled, onClick, type = "button" }: { child
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-signal-500 px-6 text-lg font-extrabold text-asphalt-950 shadow-[0_18px_44px_-16px_var(--color-signal-500)] transition-[background-color,translate] duration-(--dur-ui) hover:bg-signal-400 active:scale-[0.98] disabled:bg-asphalt-800 disabled:text-asphalt-300 disabled:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-reflect)_12%,transparent)]"
+      className="flex min-h-16 w-full items-center justify-center gap-3 rounded-2xl bg-signal-500 px-6 py-2 text-center text-lg font-extrabold leading-tight text-asphalt-950 shadow-[0_18px_44px_-16px_var(--color-signal-500)] transition-[background-color,translate] duration-(--dur-ui) hover:bg-signal-400 active:scale-[0.98] disabled:bg-asphalt-800 disabled:text-asphalt-300 disabled:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-reflect)_12%,transparent)]"
     >
       {children}
     </button>
@@ -1048,6 +1067,7 @@ function EstimateStep({
   whatsappLink,
   ticketLines,
   plan,
+  recap,
   onRetry,
   onNext,
   onEdit,
@@ -1058,11 +1078,14 @@ function EstimateStep({
   whatsappLink: string | null;
   ticketLines: string[];
   plan: ReactNode;
+  /** Feuille de route repliée, sous les actions (téléphone). */
+  recap: ReactNode;
   onRetry: () => void;
   onNext: () => void;
   onEdit: (step: Step) => void;
 }) {
   const estimate = state.estimate;
+  const narrow = useSyncExternalStore(subscribeNarrow, narrowSnapshot, narrowServerSnapshot);
 
   if (pending || !estimate) {
     return (
@@ -1083,9 +1106,12 @@ function EstimateStep({
       {estimate.priceTtcCents !== null ? (
         <>
           <StepTitle className="[&_h1]:text-[clamp(2.5rem,10.5vw,4.25rem)]" title="Votre estimation" accent="estimation" />
-          {/* Le vrai prix du serveur, imprimé au montage (450 ms), prix en haut ; texte immédiat. */}
-          {/* Ordinateur : les boutons à côté du ticket, dans le premier écran. */}
-          <div className="mt-7 lg:grid lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-end lg:gap-6">
+          {/* Le vrai prix du serveur, imprimé au montage (450 ms), prix en haut ; texte immédiat.
+              Téléphone : ticket compact, lignes repliées sous « Voir le détail » (elles s'ouvrent
+              au toucher), pour que « Demander le dépannage » soit dans le premier écran.
+              Ordinateur : les trois trajets du calcul et les boutons à côté du ticket, dans le
+              premier écran (ticket un peu plus étroit entre 1 024 et 1 279 px). */}
+          <div className="mt-5 sm:mt-7 lg:grid lg:grid-cols-[19rem_minmax(0,1fr)] lg:items-end lg:gap-6 xl:grid-cols-[21rem_minmax(0,1fr)]">
             <div className={styles.ticketSlot}>
               <div className={styles.printer} aria-hidden="true" />
               <EstimateTicket
@@ -1094,11 +1120,12 @@ function EstimateStep({
                 lines={ticketLines}
                 print="mount"
                 odometer="mount"
+                compact={narrow}
+                linesSummary={narrow ? "Voir le détail" : undefined}
                 footnote="TTC · confirmé par téléphone avant l'intervention"
               />
             </div>
-            <div className="mt-7 space-y-3 lg:mt-0">
-              {/* Ordinateur : les trois trajets du calcul, avec les vrais kilomètres. */}
+            <div className="mt-6 space-y-3 sm:mt-7 lg:mt-0">
               <ThreeLegs
                 className={cn(styles.panel, "mb-4 hidden px-4 pb-3 pt-2 lg:grid")}
                 mode={estimate.serviceKind === "on_site" ? "on_site" : "tow"}
@@ -1118,6 +1145,7 @@ function EstimateStep({
               </p>
             </div>
           </div>
+          {recap}
         </>
       ) : (
         <>
@@ -1145,6 +1173,7 @@ function EstimateStep({
               ) : null}
             </div>
           </div>
+          {recap}
         </>
       )}
     </div>

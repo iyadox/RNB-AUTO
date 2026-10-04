@@ -5,7 +5,8 @@
  * leurs reflets, route mouillée et ses tirets, dépanneuse qui entre phares allumés (gyrophare,
  * reflets au sol), et la voiture du client arrêtée sur l'accotement, feux de détresse allumés.
  *
- * - Sans JavaScript : tout tourne en CSS (sans freinage).
+ * - Sans JavaScript : tout tourne en CSS (sans freinage) ; `data-loops-nojs` laisse tourner les
+ *   boucles du kit (feux de détresse, gyrophare, roues), qui ailleurs attendent le JavaScript.
  * - Scène « hero-brake » (défilement) : les boucles ralentissent jusqu'à l'arrêt, la dépanneuse
  *   avance et s'arrête juste derrière la voiture, le nez plonge, les feux stop s'allument. Il ne
  *   reste que les feux de détresse et le gyrophare, qui se répondent.
@@ -27,10 +28,10 @@ export function NightRoad({ children }: { children?: ReactNode }) {
         id={SCENE_ID}
         data-scene="hero-brake"
         data-pause-offscreen=""
+        data-loops-nojs=""
         className={styles.sceneDecor}
         aria-hidden="true"
       >
-        <div className={styles.cityGlow} />
         <Skyline layer="far" loop="slow" className={styles.skyFar} />
         <Skyline layer="near" loop="fast" className={styles.skyNear} />
         {/* Les lampadaires se tiennent au bord de la route (30 % du bas de la scène). */}
@@ -38,7 +39,6 @@ export function NightRoad({ children }: { children?: ReactNode }) {
         <div className={styles.road}>
           <div className={`${styles.roadDash} animate-road-x`} />
           <div className={`${styles.roadDashReflect} animate-road-x`} />
-          <div className={styles.roadEdge} />
         </div>
 
         <div data-truck-rig className={styles.truckRig}>

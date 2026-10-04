@@ -30,7 +30,7 @@ const CHARGE_SEGMENTS = 5;
 
 export function OpeningScene(): ReactElement {
   return (
-    <div className={styles.openFrame} aria-hidden="true">
+    <div className={styles.openFrame} data-loops-nojs="" aria-hidden="true">
       <div className={styles.openStage} data-inview-once="" data-pause-offscreen="">
         <div className={styles.openWorldBox}>
           {/* Lueur de la ville, puis l'horizon (parallaxe douce) */}

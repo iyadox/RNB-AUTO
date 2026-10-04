@@ -56,7 +56,8 @@ export default async function RemorquagePage() {
           lead="Votre véhicule est chargé sur notre dépanneuse plateau et emmené au garage de votre choix, chez vous ou à toute autre adresse. Le prix tient compte du trajet réel."
           actions={
             <div className="flex flex-wrap items-center gap-3">
-              <PrimaryLink href="/demande">Estimer mon remorquage</PrimaryLink>
+              {/* Sous 360 px, le bouton se resserre pour tenir dans l'écran (320 px). */}
+              <PrimaryLink href="/demande" className="max-[359px]:px-5 max-[359px]:text-base">Estimer mon remorquage</PrimaryLink>
               <CallLink phone={info.phone} size="lg" className="max-sm:hidden" />
             </div>
           }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Prose } from "@/components/public/page-blocks";
-import { Chantier, Durations, LegalSection, SignList } from "@/components/pages/legal/legal-objects";
+import { Prose, ToComplete } from "@/components/public/page-blocks";
+import { Durations, LegalSection, SignList } from "@/components/pages/legal/legal-objects";
 import { LegalShell, type TocEntry } from "@/components/pages/legal/legal-shell";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 import { PHOTO_LIMITS } from "@/core/photos";
@@ -28,7 +28,7 @@ const TOC: readonly TocEntry[] = [
  */
 export default async function PrivacyPage() {
   const info = await getPublicSiteInfo();
-  const contact = info.email ? <a href={`mailto:${info.email}`}>{info.email}</a> : <Chantier label="email de contact" />;
+  const contact = info.email ? <a href={`mailto:${info.email}`}>{info.email}</a> : <ToComplete label="email de contact" />;
   return (
     <LegalShell
       eyebrow="Vos données"

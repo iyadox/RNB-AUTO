@@ -1,6 +1,6 @@
 /**
  * /contact, PK 01 (docs/09, F.7) : l'adresse du dépôt sur un plan de quartier éclairé
- * (`PlanIdf variant="depot"`, statique, « Plan schématique »), avec le lien existant « Voir sur
+ * (`PlanIdf variant="depot" static`, « Plan schématique »), avec le lien existant « Voir sur
  * la carte » ; puis l'email sur une plaque vissée (« À COMPLÉTER » s'il manque), « Pour les
  * demandes non urgentes. ». Deux sections côte à côte sur ordinateur, chacune avec son titre et
  * son heure (`data-sky`). Aucune animation d'entrée.
@@ -37,7 +37,7 @@ export function ContactDetails({ info }: { info: Pick<PublicSiteInfo, "depot" | 
               <span className={styles.boardLamp} />
               <div className={styles.boardFace}>
                 <div className={styles.boardMap}>
-                  <PlanIdf depot={info.depot} variant="depot" labels="major" />
+                  <PlanIdf depot={info.depot} variant="depot" labels="major" static />
                 </div>
                 <p className={styles.boardCaption}>
                   <span>Plan schématique</span>

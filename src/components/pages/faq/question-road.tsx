@@ -108,7 +108,7 @@ const BLOCKS = blocks();
 
 export function QuestionRoad({ depotCity }: { depotCity: string | null }): ReactElement {
   return (
-    <div className={styles.qr} data-scene="question-road" data-pause-offscreen aria-hidden="true">
+    <div className={styles.qr} data-scene="question-road" data-pause-offscreen data-loops-nojs="" aria-hidden="true">
       <svg className={styles.qrSvg} viewBox="0 0 720 560" preserveAspectRatio="xMidYMid meet">
         <defs>
           <radialGradient id="qr-pool">

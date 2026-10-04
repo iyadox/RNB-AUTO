@@ -21,6 +21,8 @@ import { ZoneRings } from "./zone-rings";
 import styles from "./zones.module.css";
 
 const pad = (n: number) => String(n).padStart(2, "0");
+/** Rang du secteur (1 à 4) dans la scène collante. */
+const orderOf = (zone: string) => AREAS.findIndex((area) => area.zone === zone) + 1;
 
 export function AreasStage({ depot }: { depot: PublicSiteInfo["depot"] }): ReactElement {
   const geometry = zoneGeometry(depot);
@@ -73,14 +75,30 @@ export function AreasStage({ depot }: { depot: PublicSiteInfo["depot"] }): React
 
       <div data-stage-visual="" className={styles.stageVisual} aria-hidden="true">
         <div className={styles.stagePlanFrame}>
-          <PlanIdf depot={depot} labels="major">
-            {geometry.shapes.map((shape) => (
+          {/* Surfaces, ondes et trajets SOUS les noms des communes et le losange du dépôt
+              (`underlay`) ; points allumés et dépanneuse au-dessus. */}
+          <PlanIdf
+            depot={depot}
+            labels="major"
+            underlay={geometry.shapes.map((shape) => (
               <ZoneLayer
                 key={shape.zone}
+                part="under"
                 shape={shape}
                 depot={geometry.depot}
                 idPrefix="zones-stage"
-                order={AREAS.findIndex((area) => area.zone === shape.zone) + 1}
+                order={orderOf(shape.zone)}
+              />
+            ))}
+          >
+            {geometry.shapes.map((shape) => (
+              <ZoneLayer
+                key={shape.zone}
+                part="over"
+                shape={shape}
+                depot={geometry.depot}
+                idPrefix="zones-stage"
+                order={orderOf(shape.zone)}
               />
             ))}
           </PlanIdf>

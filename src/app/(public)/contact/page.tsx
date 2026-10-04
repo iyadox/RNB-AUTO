@@ -37,7 +37,8 @@ export default async function ContactPage() {
         <section id="ouverture" data-sky="minuit" className={styles.opening}>
           <div className={`${styles.container} ${styles.openingGrid}`}>
             <div>
-              <Plate pk="00" pictogram="phone">
+              {/* Pictogramme au trait : le puits d'appel jaune et le bouton de l'en-tête sont déjà là (B.1). */}
+              <Plate pk="00" pictogram="phone" pictogramStyle="outline">
                 Contact
               </Plate>
               <h1 className={styles.title}>

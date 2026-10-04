@@ -42,7 +42,7 @@ export default async function HomePage() {
         <Crossroads info={info} />
         <Story info={info} />
         <PriceSection info={info} examples={examples} />
-        <HighwaySection info={info} />
+        <HighwaySection />
         <ZoneSection info={info} />
         <FaqPreview />
         <div id="on-arrive">

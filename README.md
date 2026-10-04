@@ -102,5 +102,6 @@ docs/                     documents du projet
 | 06 | [Feuille de route](docs/06-feuille-de-route.md) | phases, ce qui est fait, la suite |
 | 07 | [Questions ouvertes](docs/07-questions-ouvertes.md) | informations à fournir et décisions appliquées par défaut |
 | 08 | [Installation et mise en ligne](docs/08-installation-et-deploiement.md) | essai local, Vercel + Neon, Docker, variables, dépannage |
+| 09 | [Refonte immersive](docs/09-refonte-immersive.md) | « Pleins phares » : concept, langage visuel, motion, storyboards des pages, garde-fous, recette et journal des écarts |
 
 Les règles à respecter pour toute contribution sont dans [CLAUDE.md](CLAUDE.md).

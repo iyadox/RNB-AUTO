@@ -306,6 +306,8 @@
   display: flex;
   align-items: flex-end;
   gap: 1.1rem;
+  /* Repère de largeur du titre (le plus long mot insécable, « L'INTERVENTION », doit tenir). */
+  container-type: inline-size;
 }
 /* Panneau carré du thème : pictogramme sur fond de nuit, liseré rétroréfléchissant. */
 .themeSign {
@@ -331,9 +333,25 @@
 }
 .themeTitle {
   @apply font-display text-display;
+  min-width: 0;
   line-height: 0.96;
   text-wrap: balance;
   color: var(--color-chalk);
+}
+/* Écran très étroit (320 px) : panneau plus petit et titre borné par la place qui reste à côté
+   du panneau (14 capitales pour « L'INTERVENTION », environ 0,44 em chacune) : le mot n'est
+   plus coupé par le bord de l'écran. */
+@media (max-width: 359px) {
+  .themeHead {
+    gap: 0.75rem;
+  }
+  .themeSign {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .themeTitle {
+    font-size: min(var(--text-display), calc((100cqi - 3.5rem) / 6.4));
+  }
 }
 .themeBody {
   position: relative;

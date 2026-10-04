@@ -16,6 +16,7 @@ export function ZoneLayer({
   idPrefix,
   order,
   truck = true,
+  part = "all",
 }: {
   shape: ZoneShape;
   depot: Point | null;
@@ -23,9 +24,28 @@ export function ZoneLayer({
   /** Rang du temps de la scène collante (1 à 4) qui allume ce calque. */
   order?: number;
   truck?: boolean;
+  /**
+   * `under` : surface, bord, onde, halos des communes et trajet, à passer en `underlay` du plan
+   * (sous les noms des communes et le losange du dépôt). `over` : points des communes allumées et
+   * dépanneuse, au-dessus de tout (`children` du plan). `all` : tout (vignettes).
+   */
+  part?: "all" | "under" | "over";
 }): ReactElement {
   const maskId = `${idPrefix}-${shape.zone}-mask`;
   const haloId = `${idPrefix}-${shape.zone}-halo`;
+  const under = part !== "over";
+  const over = part !== "under";
+
+  if (!under) {
+    // Partie haute seule : mêmes `data-zone` / `data-order`, la scène collante l'allume avec sa zone.
+    return (
+      <g className={styles.zoneLayer} data-zone={shape.zone} data-order={order}>
+        <ZoneCities shape={shape} halo={false} />
+        {truck && shape.route ? <ZoneTruck end={shape.route.end} /> : null}
+      </g>
+    );
+  }
+
   return (
     <g className={styles.zoneLayer} data-zone={shape.zone} data-order={order}>
       <defs>
@@ -56,14 +76,7 @@ export function ZoneLayer({
       {/* Onde du gyrophare du dépôt quand la zone s'allume (scène collante seulement). */}
       {depot ? <circle className={styles.zonePing} cx={f(depot.x)} cy={f(depot.y)} r="60" /> : null}
 
-      <g className={styles.zoneCities}>
-        {shape.cities.map((city, index) => (
-          <g key={city.name} style={{ "--i": index } as CSSProperties} className={styles.zoneCity}>
-            <circle cx={f(city.p.x)} cy={f(city.p.y)} r="11" className={styles.zoneCityHalo} />
-            <circle cx={f(city.p.x)} cy={f(city.p.y)} r="4.2" className={styles.zoneCityDot} />
-          </g>
-        ))}
-      </g>
+      <ZoneCities shape={shape} halo dot={over} />
 
       {shape.route ? (
         <g className={styles.zoneRoute}>
@@ -77,15 +90,34 @@ export function ZoneLayer({
             strokeDasharray="5 7"
             strokeLinecap="round"
           />
-          {truck ? (
-            <g transform={poseTransform(shape.route.end.x, shape.route.end.y, shape.route.end.angle)}>
-              <g className={styles.zoneTruck}>
-                <TruckTopGlyph headlights />
-              </g>
-            </g>
-          ) : null}
+          {truck && over ? <ZoneTruck end={shape.route.end} /> : null}
         </g>
       ) : null}
+    </g>
+  );
+}
+
+/** Communes de la zone qui s'éclairent : halo au sodium (sous les noms) et point jaune. */
+function ZoneCities({ shape, halo, dot = true }: { shape: ZoneShape; halo: boolean; dot?: boolean }): ReactElement {
+  return (
+    <g className={styles.zoneCities}>
+      {shape.cities.map((city, index) => (
+        <g key={city.name} style={{ "--i": index } as CSSProperties} className={styles.zoneCity}>
+          {halo ? <circle cx={f(city.p.x)} cy={f(city.p.y)} r="11" className={styles.zoneCityHalo} /> : null}
+          {dot ? <circle cx={f(city.p.x)} cy={f(city.p.y)} r="4.2" className={styles.zoneCityDot} /> : null}
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** Dépanneuse vue de dessus, posée à l'arrivée du trajet. */
+function ZoneTruck({ end }: { end: { x: number; y: number; angle: number } }): ReactElement {
+  return (
+    <g transform={poseTransform(end.x, end.y, end.angle)}>
+      <g className={styles.zoneTruck}>
+        <TruckTopGlyph headlights />
+      </g>
     </g>
   );
 }

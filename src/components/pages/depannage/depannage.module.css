@@ -72,13 +72,8 @@
     linear-gradient(to bottom, transparent, #000 22%, #000 84%, transparent);
   mask-composite: intersect;
 }
-/* La case de scène de l'ouverture (socle) coupe ce qui dépasse sous 1 024 px : on lui laisse
-   la marge des bords pour que la scène aille vraiment jusqu'aux bords de l'écran. */
-@media (max-width: 1023px) {
-  :global(*):has(> .openFrame) {
-    overflow-clip-margin: 1.5rem;
-  }
-}
+/* La case de scène de l'ouverture (socle) laisse déjà 1,5rem de marge de découpe sous 1 024 px :
+   la scène va jusqu'aux bords de l'écran. */
 @media (min-width: 1024px) {
   .openStage {
     height: min(80cqw, 66vh);
@@ -441,12 +436,12 @@
 }
 @media (max-width: 1023px) {
   .dashVoyant {
-    --voyant-size: 56px !important;
+    --voyant-size: 56px;
   }
 }
 @media (min-width: 1024px) {
   .dashVoyant {
-    --voyant-size: 64px !important;
+    --voyant-size: 64px;
   }
 }
 .dashTitle {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Prose } from "@/components/public/page-blocks";
-import { Chantier, LegalSection, TarePlate, type TareRow } from "@/components/pages/legal/legal-objects";
+import { Prose, ToComplete } from "@/components/public/page-blocks";
+import { LegalSection, TarePlate, type TareRow } from "@/components/pages/legal/legal-objects";
 import { LegalShell, type TocEntry } from "@/components/pages/legal/legal-shell";
 import { siteUrl } from "@/core/site-url";
 import { getPublicSiteInfo } from "@/server/site/public-info";
@@ -21,7 +21,7 @@ const TOC: readonly TocEntry[] = [
 ];
 
 function Value({ value, label }: { value: string | null; label: string }) {
-  return value ? <>{value}</> : <Chantier label={label} />;
+  return value ? <>{value}</> : <ToComplete label={label} />;
 }
 
 /** /mentions-legales « L'entrée d'agglomération » (docs/09, F.9). Textes repris mot pour mot. */
@@ -39,12 +39,12 @@ export default async function LegalPage() {
     {
       key: "phone",
       label: "Téléphone",
-      value: info.phone ? <a href={info.phone.href}>{info.phone.display}</a> : <Chantier label="téléphone" />,
+      value: info.phone ? <a href={info.phone.href}>{info.phone.display}</a> : <ToComplete label="téléphone" />,
     },
     {
       key: "email",
       label: "Email",
-      value: info.email ? <a href={`mailto:${info.email}`}>{info.email}</a> : <Chantier label="email" />,
+      value: info.email ? <a href={`mailto:${info.email}`}>{info.email}</a> : <ToComplete label="email" />,
     },
     {
       key: "director",
@@ -66,7 +66,7 @@ export default async function LegalPage() {
             {legal.host ? (
               <span className="whitespace-pre-line">{legal.host}</span>
             ) : (
-              <Chantier label="nom, adresse et téléphone de l'hébergeur" />
+              <ToComplete label="nom, adresse et téléphone de l'hébergeur" />
             )}
           </p>
         </Prose>

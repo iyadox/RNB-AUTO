@@ -67,7 +67,8 @@ export default async function FaqPage() {
           lead="Une question qui n'est pas dans la liste ? Appelez-nous ou écrivez-nous sur WhatsApp."
           actions={
             <div className="flex flex-col items-start gap-3">
-              <PrimaryLink href="/demande">Demander un dépannage</PrimaryLink>
+              {/* Sous 360 px, le bouton se resserre pour tenir dans l'écran (320 px). */}
+              <PrimaryLink href="/demande" className="max-[359px]:px-5 max-[359px]:text-base">Demander un dépannage</PrimaryLink>
               {/* Sur mobile, Appeler et WhatsApp sont déjà dans la barre d'action, juste en dessous. */}
               <div className="flex flex-wrap gap-3 max-sm:hidden">
                 <CallLink phone={info.phone} size="md" />

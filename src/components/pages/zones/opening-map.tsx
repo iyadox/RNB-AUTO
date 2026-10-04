@@ -45,7 +45,7 @@ export function OpeningMap({ info }: { info: PublicSiteInfo }): ReactElement {
         </div>
       </div>
 
-      <div className={styles.mapStage}>
+      <div className={styles.mapStage} data-loops-nojs="">
         <div className={styles.mapParallax} data-parallax="" style={{ "--depth": 0.22 } as CSSProperties}>
           <div className={styles.mapTilt}>
             <div id={MAP_ID} className={styles.mapRecoil}>

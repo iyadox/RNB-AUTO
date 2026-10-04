@@ -365,10 +365,20 @@
   right: 0;
   translate: 0 0;
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   /* « Prix » s'écarte de « Coordonnées », aligné à droite sous la dernière borne. */
   .post:nth-child(5) .postLabel {
     translate: -80% 0;
+  }
+}
+/* 1 024 à 1 279 px : la colonne est étroite (84 px entre deux bornes, « Coordonnées » en fait
+   103) ; les noms des bornes paires descendent d'une ligne, en quinconce : aucun ne se touche. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .stepRoad {
+    margin-bottom: 1.15rem;
+  }
+  .post:nth-child(2n) .postLabel {
+    top: calc(100% + 3px + var(--band-h) + 0.3rem + 1.2rem);
   }
 }
 .post[data-state="current"] .postLabel {

@@ -1,3 +1,4 @@
+"use client";
 /**
  * La carte du récit « De la panne à la solution » (docs/09, E.4) : le Plan RNB autour du dépôt
  * (`PlanIdf variant="depot"`), l'épingle « Vous », l'étiquette du prix, les trois trajets de la
@@ -15,31 +16,38 @@
  * Trajets : même contrat et même code couleur que `RoutePaths` (P10), écrits ici en version
  * légère. Sans JavaScript et en `off` : tout est tracé, la dépanneuse est au drapeau.
  * Décoratif (`aria-hidden`) : tout est dit en texte à côté.
+ *
+ * Budget (G.2) : composant client (son dessin n'est pas répété dans la charge RSC) ; UNE seule
+ * dépanneuse définie (`TruckTopGlyph dynamic`, vide ou chargée selon le tronçon, en CSS).
+ * L'épingle « Vous » de la grande carte passe par la prop `points` de `PlanIdf` : les noms des
+ * communes l'évitent (« Pantin » n'est plus recouvert).
  */
 import type { ReactElement } from "react";
 import type { PublicSiteInfo } from "@/server/site/public-info";
 import { DepotGlyph, FlagGlyph, PinGlyph, TruckTopGlyph } from "@/components/scenes/kit/glyphs";
 import { PlanIdf, resolveDepotPosition } from "@/components/scenes/kit/plan-idf/plan-idf";
 import { pathEnd, poseTransform, smoothPath } from "@/components/scenes/kit/svg-path";
+import { planToGeo } from "./home-geo";
+import { useDesktop } from "./use-desktop";
 import styles from "./home.module.css";
 
 /** Identifiants réutilisés par les mini-cartes (uniques dans la page). */
-export const STORY_SYMBOL = "story-plan";
+const STORY_SYMBOL = "story-plan";
 const G_TRUCK = "story-g-truck";
-const G_TRUCK_LOADED = "story-g-truck-l";
 const G_PIN = "story-g-pin";
 const G_FLAG = "story-g-flag";
 const G_DEPOT = "story-g-depot";
 const G_TAG = "story-g-tag";
 
 const DEPOT = { x: 300, y: 300 };
-const YOU = { x: 175, y: 370 };
+// L'épingle se tient sous le nom « Pantin » (plan étroit : noms agrandis), jamais dessus.
+const YOU = { x: 168, y: 392 };
 const DEST = { x: 380, y: 540 };
 
-const ALLER = smoothPath([DEPOT, { x: 268, y: 318 }, { x: 232, y: 338 }, { x: 200, y: 352 }, YOU]);
-const TRANSPORT = smoothPath([YOU, { x: 196, y: 418 }, { x: 258, y: 452 }, { x: 318, y: 484 }, { x: 352, y: 522 }, DEST]);
+const ALLER = smoothPath([DEPOT, { x: 268, y: 320 }, { x: 230, y: 344 }, { x: 194, y: 366 }, YOU]);
+const TRANSPORT = smoothPath([YOU, { x: 194, y: 428 }, { x: 258, y: 452 }, { x: 318, y: 484 }, { x: 352, y: 522 }, DEST]);
 const RETOUR = smoothPath([DEST, { x: 428, y: 506 }, { x: 446, y: 446 }, { x: 410, y: 386 }, { x: 350, y: 336 }, { x: 312, y: 312 }]);
-const RETOUR_SITE = smoothPath([YOU, { x: 206, y: 398 }, { x: 250, y: 396 }, { x: 284, y: 360 }, { x: 300, y: 318 }]);
+const RETOUR_SITE = smoothPath([YOU, { x: 206, y: 414 }, { x: 250, y: 400 }, { x: 284, y: 360 }, { x: 300, y: 318 }]);
 
 type Leg = { key: string; style: "aller" | "transport" | "retour"; d: string };
 const LEG_ALLER: Leg = { key: "aller", style: "aller", d: ALLER };
@@ -52,17 +60,6 @@ const pose = (d: string) => {
   return poseTransform(end.x, end.y, end.angle);
 };
 
-/** Dépanneuse vue de dessus : vide, ou chargée pendant le transport (`data-route-current`). */
-function Truck({ scale, loaded }: { scale: number; loaded: boolean }) {
-  const s = scale === 1 ? undefined : `scale(${scale})`;
-  return (
-    <>
-      <use href={`#${G_TRUCK}`} transform={s} className={`${styles.tEmpty} ${loaded ? styles.truckAlt : ""}`} />
-      <use href={`#${G_TRUCK_LOADED}`} transform={s} className={`${styles.tLoaded} ${loaded ? "" : styles.truckAlt}`} />
-    </>
-  );
-}
-
 /**
  * Un trajet au contrat P10 (`data-route`, `data-route-leg`, tracés `draw` en pathLength 1,
  * pointillés révélés par un masque `data-draw-mask`, véhicule `data-route-truck` à l'arrivée).
@@ -73,6 +70,7 @@ function Route({
   prefix,
   truck = 0,
   scale = 1,
+  className,
 }: {
   legs: Leg[];
   mode: "view" | "static";
@@ -80,29 +78,28 @@ function Route({
   /** Taille de la dépanneuse (0 : aucune). */
   truck?: number;
   scale?: number;
+  /** Classe ajoutée à la racine du trajet (ex. visible en « Remorquage » seulement). */
+  className?: string;
 }) {
   const last = legs[legs.length - 1]!;
   const dashed = legs.filter((leg) => leg.style !== "transport");
   return (
-    <g data-route="" data-route-mode={mode} className={styles.route}>
-      {dashed.length > 0 ? (
-        <defs>
-          {dashed.map((leg) => (
-            <mask key={leg.key} id={`${prefix}-m-${leg.key}`} maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600">
-              <path
-                id={`${prefix}-mp-${leg.key}`}
-                className="draw"
-                pathLength={1}
-                d={leg.d}
-                fill="none"
-                stroke="#fff"
-                strokeWidth={10 * scale}
-                strokeLinecap="round"
-              />
-            </mask>
-          ))}
-        </defs>
-      ) : null}
+    <g data-route="" data-route-mode={mode} className={className ? `${styles.route} ${className}` : styles.route}>
+      {/* Masques des pointillés (un <mask> n'est jamais dessiné : pas besoin de <defs>). */}
+      {dashed.map((leg) => (
+        <mask key={leg.key} id={`${prefix}-m-${leg.key}`} maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600">
+          <path
+            id={`${prefix}-mp-${leg.key}`}
+            className="draw"
+            pathLength={1}
+            d={leg.d}
+            fill="none"
+            stroke="#fff"
+            strokeWidth={10 * scale}
+            strokeLinecap="round"
+          />
+        </mask>
+      ))}
       {legs.map((leg) =>
         leg.style === "transport" ? (
           <g key={leg.key} data-route-leg="transport">
@@ -125,8 +122,12 @@ function Route({
         ),
       )}
       {truck > 0 ? (
-        <g data-route-truck="" transform={pose(last.d)} className={styles.routeTruck}>
-          <Truck scale={truck} loaded={last.style === "transport"} />
+        <g
+          data-route-truck=""
+          transform={pose(last.d)}
+          className={`${styles.routeTruck} ${last.style === "transport" ? styles.truckLoaded : ""}`}
+        >
+          <use href={`#${G_TRUCK}`} transform={truck === 1 ? undefined : `scale(${truck})`} />
         </g>
       ) : null}
     </g>
@@ -137,7 +138,7 @@ function Route({
 function PriceTag() {
   return (
     <g id={G_TAG}>
-      <path d="M160 330 L171 352" className={styles.tagLine} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M158 334 L163 360" className={styles.tagLine} strokeWidth="1.6" strokeLinecap="round" />
       <rect x="34" y="300" width="128" height="40" rx="3" className={styles.tagPaper} />
       <path d="M44 312h7v7h-7z" transform="rotate(45 47.5 315.5)" className={styles.tagMark} strokeWidth="1" />
       <text x="57" y="318" fontSize="8.6" fontWeight="800" className={styles.tagKicker} style={{ letterSpacing: "0.12em" }}>
@@ -151,17 +152,24 @@ function PriceTag() {
 }
 
 /** Épingle « Vous » (feux de détresse), posée sur le point du client. */
-function Pin({ scale, label = true, drop = false }: { scale: number; label?: boolean; drop?: boolean }) {
+function Pin({ scale, label = true }: { scale: number; label?: boolean }) {
   return (
     <g className={styles.pin} transform={`translate(${YOU.x} ${YOU.y})`}>
-      <g className={drop ? styles.pinDrop : undefined}>
-        <use href={`#${G_PIN}`} transform={`scale(${scale})`} />
-        {label ? (
-          <text y={17 * scale} textAnchor="middle" fontSize={13 * scale} fontWeight="800" className={styles.pinLabel} strokeWidth={3.5 * scale} strokeLinejoin="round" paintOrder="stroke">
-            Vous
-          </text>
-        ) : null}
-      </g>
+      <use href={`#${G_PIN}`} transform={`scale(${scale})`} />
+      {label ? (
+        <text
+          y={17 * scale}
+          textAnchor="middle"
+          fontSize={13 * scale}
+          fontWeight="800"
+          className={styles.pinLabel}
+          strokeWidth={3.5 * scale}
+          strokeLinejoin="round"
+          paintOrder="stroke"
+        >
+          Vous
+        </text>
+      ) : null}
     </g>
   );
 }
@@ -178,21 +186,51 @@ function Flag({ scale, className }: { scale: number; className?: string }) {
 
 export function StoryMap({ depot }: { depot: PublicSiteInfo["depot"] }): ReactElement {
   const known = resolveDepotPosition(depot) !== null;
+  const you = planToGeo(YOU, depot);
+  // Téléphone : la carte de l'étape 1 ne montre que le dépôt et l'épingle (le reste est masqué
+  // en CSS) ; après l'hydratation, ces calques ne sont plus rendus du tout.
+  const desktop = useDesktop();
+  const full = desktop !== false;
+  // Les trajets sont un calque du plan : sous les noms, le losange du dépôt et l'épingle.
+  const routes = (
+    <g className={styles.routes}>
+      <g data-story-route="tow">
+        <Route legs={[LEG_ALLER, LEG_TRANSPORT]} mode="static" prefix="story-a" truck={1.45} scale={1.3} />
+      </g>
+      <g data-story-route="back" className={styles.towOnly}>
+        <Route legs={[LEG_RETOUR]} mode="static" prefix="story-r" scale={1.3} />
+      </g>
+      <g data-story-route="back-site" className={styles.retourSite}>
+        <Route legs={[LEG_RETOUR_SITE]} mode="static" prefix="story-s" scale={1.3} />
+      </g>
+      <g className={styles.siteTruck} transform={pose(ALLER)}>
+        <use href={`#${G_TRUCK}`} transform="scale(1.45)" />
+      </g>
+    </g>
+  );
   return (
     <div className={styles.mapFrame}>
       <div className="tilt-cam-frame">
         <div data-tilt-cam="" className={styles.mapPlane}>
-          <PlanIdf depot={depot} variant="depot" labels="all" symbolId={STORY_SYMBOL} className={styles.plan}>
+          <PlanIdf
+            depot={depot}
+            variant="depot"
+            labels="all"
+            symbolId={STORY_SYMBOL}
+            points={[{ kind: "vous", lat: you.lat, lng: you.lng }]}
+            underlay={full ? routes : null}
+            className={styles.plan}
+          >
             <defs>
               <g id={G_TRUCK}>
-                <TruckTopGlyph headlights />
+                <TruckTopGlyph headlights dynamic />
               </g>
-              <g id={G_TRUCK_LOADED}>
-                <TruckTopGlyph headlights loaded />
-              </g>
-              <g id={G_PIN}>
-                <PinGlyph hazards />
-              </g>
+              {/* Épingle des mini-cartes (téléphone) ; la grande carte a la sienne (`points`). */}
+              {desktop === true ? null : (
+                <g id={G_PIN}>
+                  <PinGlyph hazards />
+                </g>
+              )}
               <g id={G_FLAG}>
                 <FlagGlyph />
               </g>
@@ -202,37 +240,28 @@ export function StoryMap({ depot }: { depot: PublicSiteInfo["depot"] }): ReactEl
               <PriceTag />
             </defs>
             {known ? null : <use href={`#${G_DEPOT}`} x={DEPOT.x} y={DEPOT.y} />}
-            <g className={styles.routes}>
-              <g data-story-route="tow">
-                <Route legs={[LEG_ALLER, LEG_TRANSPORT]} mode="static" prefix="story-a" truck={1.45} scale={1.3} />
-              </g>
-              <g data-story-route="back" className={styles.towOnly}>
-                <Route legs={[LEG_RETOUR]} mode="static" prefix="story-r" scale={1.3} />
-              </g>
-              <g data-story-route="back-site" className={styles.retourSite}>
-                <Route legs={[LEG_RETOUR_SITE]} mode="static" prefix="story-s" scale={1.3} />
-              </g>
-              <g className={styles.siteTruck} transform={pose(ALLER)}>
-                <use href={`#${G_TRUCK}`} transform="scale(1.45)" />
-              </g>
-            </g>
-            <Flag scale={1.4} className={`${styles.flag} ${styles.towOnly}`} />
-            <use href={`#${G_TAG}`} className={styles.priceTag} />
-            <Pin scale={1.4} drop />
+            {full ? (
+              <>
+                <Flag scale={1.4} className={`${styles.flag} ${styles.towOnly}`} />
+                <use href={`#${G_TAG}`} className={styles.priceTag} />
+              </>
+            ) : null}
           </PlanIdf>
-          <div className={styles.mapLegend} aria-hidden="true">
-            <span className="text-small font-bold">
-              <span className={styles.swatch} />1 Aller
-            </span>
-            <span className={`${styles.towOnly} text-small font-bold`}>
-              <span className={`${styles.swatch} ${styles.swatchTransport}`} />2 Transport
-            </span>
-            <span className="text-small font-bold">
-              <span className={`${styles.swatch} ${styles.swatchRetour}`} />
-              <span className={styles.towOnly}>3</span>
-              <span className={styles.siteOnly}>2</span> Retour
-            </span>
-          </div>
+          {full ? (
+            <div className={styles.mapLegend} aria-hidden="true">
+              <span className="text-small font-bold">
+                <span className={styles.swatch} />1 Aller
+              </span>
+              <span className={`${styles.towOnly} text-small font-bold`}>
+                <span className={`${styles.swatch} ${styles.swatchTransport}`} />2 Transport
+              </span>
+              <span className="text-small font-bold">
+                <span className={`${styles.swatch} ${styles.swatchRetour}`} />
+                <span className={styles.towOnly}>3</span>
+                <span className={styles.siteOnly}>2</span> Retour
+              </span>
+            </div>
+          ) : null}
         </div>
       </div>
       <p className={`${styles.mapNote} text-small`}>Plan schématique.</p>
@@ -240,14 +269,20 @@ export function StoryMap({ depot }: { depot: PublicSiteInfo["depot"] }): ReactEl
   );
 }
 
-/** Recadrages 16:10 des mini-cartes (repère du plan). */
+/**
+ * Recadrages 16:10 des mini-cartes (repère du plan), calés sur YOU, le dépôt et DEST : à revoir
+ * si l'un de ces points bouge (l'épingle et « Vous » doivent rester entiers dans le cadre).
+ */
 const VIEWS: Record<2 | 3 | 4, string> = {
-  2: "20 270 240 150",
-  3: "120 245 240 150",
-  4: "64 284 432 270",
+  2: "20 280 240 150",
+  3: "113 267 240 150",
+  4: "60 298 448 280",
 };
 
-export function MiniMap({ step }: { step: 2 | 3 | 4 }): ReactElement {
+export function MiniMap({ step }: { step: 2 | 3 | 4 }): ReactElement | null {
+  // Ordinateur : la carte collante remplace les mini-cartes (masquées en CSS, retirées après
+  // l'hydratation).
+  if (useDesktop() === true) return null;
   return (
     <div className={styles.mini} aria-hidden="true" data-pause-offscreen="">
       <svg viewBox={VIEWS[step]} preserveAspectRatio="xMidYMid slice">
@@ -257,16 +292,10 @@ export function MiniMap({ step }: { step: 2 | 3 | 4 }): ReactElement {
         {step === 3 ? <Route legs={[LEG_ALLER]} mode="view" prefix="story-m3" truck={0.9} scale={0.8} /> : null}
         {step === 4 ? (
           <>
-            <g className={styles.towOnly}>
-              <Route legs={[LEG_RETOUR]} mode="view" prefix="story-m4r" />
-            </g>
-            <g className={styles.retourSite}>
-              <Route legs={[LEG_RETOUR_SITE]} mode="view" prefix="story-m4s" />
-            </g>
-            <g className={styles.towOnly}>
-              <Route legs={[LEG_TRANSPORT]} mode="view" prefix="story-m4t" truck={1.1} />
-            </g>
-            <Flag scale={1} className={styles.towOnly} />
+            <Route legs={[LEG_RETOUR]} mode="view" prefix="story-m4r" className={styles.towOnly} />
+            <Route legs={[LEG_RETOUR_SITE]} mode="view" prefix="story-m4s" className={styles.retourSite} />
+            <Route legs={[LEG_TRANSPORT]} mode="view" prefix="story-m4t" truck={1.1} className={styles.towOnly} />
+            <use href={`#${G_FLAG}`} transform={`translate(${DEST.x} ${DEST.y})`} className={styles.towOnly} />
             <g className={styles.siteTruck} transform={pose(ALLER)}>
               <use href={`#${G_TRUCK}`} />
             </g>

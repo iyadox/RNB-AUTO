@@ -4,6 +4,7 @@
  * Texte existant (le dépôt vient des réglages : `info.depot`, `info.depotLabel`), puces des
  * départements, « Plan schématique. » et lien vers les zones. Le Plan RNB régional : le
  * gyrophare du dépôt balaie, chaque ville s'éclaire à son passage. Aucune distance affichée.
+ * « Au cœur de la Seine-Saint-Denis… » n'est écrit que si le dépôt y est (`depotInSeineSaintDenis`).
  */
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -12,6 +13,7 @@ import { PlanIdf } from "@/components/scenes/kit/plan-idf/plan-idf";
 import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
 import type { PublicSiteInfo } from "@/server/site/public-info";
+import { depotInSeineSaintDenis } from "./home-geo";
 import styles from "./home-lower.module.css";
 
 const DEPARTMENTS = ["93", "75", "92", "94", "95", "77", "78", "91"];
@@ -22,11 +24,9 @@ export function ZoneSection({ info }: { info: PublicSiteInfo }) {
     <section id="zone" data-sky="bleue" aria-labelledby="zone-titre" className={cn(styles.section, styles.zoneSection)}>
       <span className={styles.lane} aria-hidden="true" />
       {/* Grand nom en contour au bas de la section (décor, parallaxe douce). */}
-      <div className={styles.zoneGhost} aria-hidden="true">
-        <span data-parallax="" style={{ "--depth": 0.3 } as CSSProperties}>
-          Île-de-France
-        </span>
-      </div>
+      <span className={styles.zoneGhost} data-parallax="" style={{ "--depth": 0.3 } as CSSProperties} aria-hidden="true">
+        Île-de-France
+      </span>
 
       <div className={cn(styles.container, styles.zoneGrid)}>
         <div className={styles.zoneHead}>
@@ -42,8 +42,11 @@ export function ZoneSection({ info }: { info: PublicSiteInfo }) {
         </div>
 
         <p data-reveal="" className={cn(styles.lead, styles.zoneLead)}>
-          Notre dépanneuse part de {info.depotLabel}. Au cœur de la Seine-Saint-Denis, à quelques minutes de Paris et des
-          grands axes. Votre distance exacte est calculée dès que vous indiquez votre position.
+          Notre dépanneuse part de {info.depotLabel}.{" "}
+          {depotInSeineSaintDenis(info.depot)
+            ? "Au cœur de la Seine-Saint-Denis, à quelques minutes de Paris et des grands axes. "
+            : null}
+          Votre distance exacte est calculée dès que vous indiquez votre position.
         </p>
 
         <figure className={styles.zonePlan}>
@@ -51,24 +54,22 @@ export function ZoneSection({ info }: { info: PublicSiteInfo }) {
           <figcaption className={styles.zoneCaption}>Plan schématique.</figcaption>
         </figure>
 
-        <div className={styles.zoneRest}>
-          <ul className={styles.departments}>
-            {DEPARTMENTS.map((code, index) => (
-              <li
-                key={code}
-                data-reveal=""
-                data-reveal-step={index < 3 ? undefined : index < 6 ? "2" : "3"}
-                className={cn(styles.department, "font-figure")}
-              >
-                {code}
-              </li>
-            ))}
-          </ul>
-          <Link href="/zones-d-intervention" className={styles.textLink}>
-            Voir les zones desservies
-            <Icon name="arrowRight" size={20} strokeWidth={2.4} />
-          </Link>
-        </div>
+        <ul className={styles.departments}>
+          {DEPARTMENTS.map((code, index) => (
+            <li
+              key={code}
+              data-reveal=""
+              data-reveal-step={index < 3 ? undefined : index < 6 ? "2" : "3"}
+              className={cn(styles.department, "font-figure")}
+            >
+              {code}
+            </li>
+          ))}
+        </ul>
+        <Link href="/zones-d-intervention" className={cn(styles.textLink, styles.zoneLink)}>
+          Voir les zones desservies
+          <Icon name="arrowRight" size={20} strokeWidth={2.4} />
+        </Link>
       </div>
     </section>
   );

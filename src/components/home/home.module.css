@@ -66,13 +66,11 @@
 }
 
 /* Ordinateur : la lueur de la ville et du gyrophare monte dans le ciel, au-dessus de la scène
-   (dégradé radial statique, sans filtre ; ses sources sont la ville et la dépanneuse). */
-.heroSkyGlow {
-  display: none;
-}
+   (dégradé radial statique, sans filtre ; ses sources sont la ville et la dépanneuse).
+   Pseudo-élément de l'ouverture : budget de nœuds. */
 @media (min-width: 1024px) {
-  .heroSkyGlow {
-    display: block;
+  .hero::before {
+    content: "";
     position: absolute;
     inset: 12% 0 0 28%;
     z-index: -1;
@@ -277,7 +275,9 @@
   }
 }
 
-.cityGlow {
+/* Lueur de la ville (pseudo-élément du décor : budget de nœuds). */
+.sceneDecor::before {
+  content: "";
   position: absolute;
   inset: 0 0 26%;
   background: radial-gradient(
@@ -345,7 +345,9 @@
   -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
   mask-image: linear-gradient(to bottom, #000, transparent);
 }
-.roadEdge {
+.road::after {
+  /* Ligne de rive (pseudo-élément : budget de nœuds). */
+  content: "";
   position: absolute;
   inset-inline: 0;
   bottom: 24%;
@@ -505,8 +507,6 @@
   z-index: 1;
   width: min(100% - 3.5rem, 44rem);
   margin-top: 3rem;
-  /* Deux lignes de 22 caractères au plus à 390 px : LED de 20 px (le masque à points reste lisible). */
-  --text-led: clamp(1.25rem, 0.6rem + 2.6vw, 1.5rem);
 }
 /* Suspentes du panneau, accrochées à la poutre. */
 .pmvSlot::before,
@@ -527,19 +527,29 @@
 @media (min-width: 1024px) {
   .pmvSlot {
     width: min(100% - 8rem, 64rem);
-    --text-led: clamp(1.375rem, 1rem + 1.5vw, 2rem);
   }
 }
-/* Projecteurs fixés sous la poutre, tournés vers le panneau. */
-.flood {
+/* Projecteurs fixés sous la poutre (pseudo-éléments de la poutre) et leurs faisceaux
+   (pseudo-éléments de la charpente), tournés vers le panneau : budget de nœuds. */
+.truss::before,
+.truss::after {
+  content: "";
   position: absolute;
-  top: calc(var(--truss-top) + 2.15rem);
+  top: calc(2.15rem - 3px);
   width: 1.1rem;
   height: 0.55rem;
   border-radius: 2px 2px 6px 6px;
   background: linear-gradient(var(--color-asphalt-600), var(--color-asphalt-750) 60%, var(--color-xenon) 62%);
 }
-.floodBeam {
+.truss::before {
+  left: calc(50% - 7rem);
+}
+.truss::after {
+  left: calc(50% + 5.9rem);
+}
+.gantryDecor::before,
+.gantryDecor::after {
+  content: "";
   position: absolute;
   top: calc(var(--truss-top) + 2.6rem);
   width: 12rem;
@@ -547,6 +557,12 @@
   translate: -50% 0;
   clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%);
   background: linear-gradient(to bottom, color-mix(in srgb, var(--color-xenon) 14%, transparent), transparent);
+}
+.gantryDecor::before {
+  left: calc(50% - 6.45rem);
+}
+.gantryDecor::after {
+  left: calc(50% + 6.45rem);
 }
 /* La route passe sous le portique : bitume, tirets, reflet ambre du panneau sur la chaussée. */
 .gantryRoad {
@@ -601,20 +617,6 @@
   overflow-x: clip;
   padding-block: calc(var(--spacing-section) * 0.75) calc(var(--spacing-section) * 0.5);
 }
-.crossHead {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-@media (min-width: 1024px) {
-  .crossHead {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 3rem;
-  }
-}
-
 /* La jonction : la ligne médiane descend, se divise et mène à chaque panneau. */
 .junction {
   --lane: 1.5rem;
@@ -642,35 +644,6 @@
 .slot > a {
   min-height: var(--slot-min);
 }
-/* Panneaux étroits : l'inscription (un mot comme « MAINTENANT » ou « L'AUTOROUTE ? » ne se
-   coupe pas) passait sous la flèche. Sur téléphone et entre 1 024 et 1 279 px, le pictogramme,
-   la flèche et l'inscription sont un peu plus compacts. */
-@media (max-width: 639px) {
-  .signs {
-    --text-sign: clamp(1.0625rem, 10vw - 1.25rem, 1.25rem);
-  }
-  .slot > a {
-    gap: 0.625rem;
-    padding-inline: 0.75rem 0.875rem;
-  }
-  .slot > a > span:not([aria-hidden]) {
-    gap: 0.625rem;
-  }
-  .slot > a span[aria-hidden="true"]:not([data-arrow]):has(> svg) {
-    width: 2.75rem;
-    height: 2.75rem;
-  }
-  .slot > a [data-arrow] {
-    width: 2.125rem;
-    height: 2.125rem;
-  }
-}
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .signs {
-    --text-sign: clamp(1.375rem, 0.4rem + 1.6vw, 1.625rem);
-  }
-}
-
 /* Tronçon de route vertical (un par panneau) : bitume, rives, tirets centraux. */
 .slot::before,
 .slot::after {
@@ -751,7 +724,7 @@
     transform-origin: 100% 50%;
   }
   /* Plots rétroréfléchissants au centre de la jonction. */
-  .junctionStuds {
+  .junction::after {
     display: block;
   }
 }
@@ -847,7 +820,9 @@
     translate: 0 100%;
   }
 }
-.junctionStuds {
+/* Plots rétroréfléchissants au centre de la jonction (pseudo-élément : budget de nœuds). */
+.junction::after {
+  content: "";
   display: none;
   position: absolute;
   left: 50%;
@@ -920,15 +895,10 @@
   padding-top: calc(var(--spacing-section) * 0.75);
   padding-bottom: calc(var(--spacing-section) * 0.5);
 }
-.storyIntro {
-  margin-top: 1.25rem;
-  max-width: 34rem;
-  color: var(--color-asphalt-200);
-}
 .stageGrid {
   display: grid;
   gap: 0;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 @media (min-width: 1024px) {
   .stageGrid {
@@ -997,18 +967,21 @@
 }
 
 /* Calques du plan (SVG, repère 600 × 600). */
+/* Jamais sur `.siteTruck` : sa pose (attribut `transform` avec rotation) tournerait autour du
+   coin de sa boîte, et la dépanneuse « Réparé sur place » quittait l'épingle. */
 .pin,
 .priceTag,
-.flag,
-.siteTruck {
+.flag {
   transform-box: fill-box;
 }
 .priceTag {
   transform-origin: 100% 50%;
 }
-.pinDrop {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
+/* Épingle « Vous » de la grande carte : dessinée par `PlanIdf` (prop `points`, les noms des
+   communes l'évitent) ; c'est le seul repère du plan qui porte des feux de détresse. Même
+   taille à toutes les largeurs (le kit l'agrandit déjà sur un plan étroit). */
+.plan svg > g:has(> g > g > ellipse:global(.hazard)) > g {
+  scale: 1.4;
 }
 
 /* Trajets légers (contrat P10) : allure de la dépanneuse selon le tronçon en cours. */
@@ -1053,16 +1026,21 @@
   fill: var(--color-chalk);
   stroke: var(--color-night-950);
 }
-.truckAlt {
-  display: none;
+/* Une seule dépanneuse (`TruckTopGlyph dynamic`) : vide par défaut, chargée au bout du
+   transport (sans JavaScript), puis selon le tronçon en cours (`data-route-current`). */
+.mapFrame,
+.mini {
+  --ttg-loaded: none;
+  --ttg-rnb: inline;
+  --ttg-agree: none;
 }
-.route[data-route-current] .routeTruck use {
-  display: none;
+.truckLoaded,
+.route[data-route-current="transport"] .routeTruck {
+  --ttg-loaded: inline;
 }
-.route[data-route-current="aller"] .routeTruck .tEmpty,
-.route[data-route-current="retour"] .routeTruck .tEmpty,
-.route[data-route-current="transport"] .routeTruck .tLoaded {
-  display: inline;
+.route[data-route-current="aller"] .routeTruck,
+.route[data-route-current="retour"] .routeTruck {
+  --ttg-loaded: none;
 }
 
 /* Mode « Réparé sur place » (interrupteur en CSS :has, sans JavaScript). */
@@ -1081,7 +1059,9 @@
 }
 /* Sans la scène : en « Réparé sur place », la dépanneuse reste chez vous. Avec la scène
    (`data-story`), c'est la dépanneuse du trajet qui s'y arrête. */
-.story:has(input[value="on_site"]:checked):not([data-story]) .routes [data-route-truck] {
+.story:has(input[value="on_site"]:checked):not([data-story]) .routes [data-route-truck],
+.story:has(input[value="on_site"]:checked):not([data-story]) .routes [data-route-leg="transport"] {
+  /* Sans la scène (sans JavaScript, niveau `off`), le transport jaune restait tracé. */
   display: none;
 }
 .story[data-story] .visual .siteTruck {
@@ -1106,12 +1086,12 @@
 
 /* Ordinateur : temps de la scène (`data-story`, posé par la scène quand on y arrive). */
 @media (min-width: 1024px) {
-  .story[data-story] .pinDrop {
+  .story[data-story] .plan svg > g:has(> g > g > ellipse:global(.hazard)) > g {
     transition:
       translate 520ms var(--ease-out-back),
       opacity 220ms ease;
   }
-  .story[data-story="0"] .pinDrop {
+  .story[data-story="0"] .plan svg > g:has(> g > g > ellipse:global(.hazard)) > g {
     translate: 0 -60px;
     opacity: 0;
   }
@@ -1245,7 +1225,7 @@
 }
 .step {
   position: relative;
-  padding-block: 1.75rem;
+  padding-block: 1.375rem;
 }
 .step + .step {
   border-top: 0;
@@ -1271,6 +1251,7 @@
   }
 }
 .stepBody {
+  flex: 1;
   display: grid;
   grid-template-columns: auto 1fr;
   column-gap: 1.125rem;
@@ -1304,7 +1285,7 @@
     inset 0 0 0 1px color-mix(in srgb, var(--color-night-950) 25%, transparent),
     0 18px 30px -16px color-mix(in srgb, var(--color-night-950) 90%, transparent);
 }
-.borne span {
+.borne {
   @apply font-figure;
   font-size: 1.6rem;
   line-height: 1;
@@ -1314,7 +1295,7 @@
     width: 4rem;
     height: 5.25rem;
   }
-  .borne span {
+  .borne {
     font-size: 2rem;
   }
 }
@@ -1322,7 +1303,7 @@
 /* Mini-carte d'une étape (mobile) */
 .mini {
   position: relative;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   aspect-ratio: 16 / 10;
   border-radius: 6px;
   overflow: clip;
@@ -1342,7 +1323,7 @@
 
 /* Pied du récit : légende et interrupteur. */
 .storyFooter {
-  padding-top: 1.75rem;
+  padding-top: 1.25rem;
 }
 @media (min-width: 1024px) {
   .storyFooter {

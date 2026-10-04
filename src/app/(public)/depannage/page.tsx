@@ -55,7 +55,8 @@ export default async function DepannagePage() {
           lead="Batterie à plat, crevaison, petite panne : quand le problème peut se régler sur place, nous intervenons directement. Sinon, votre véhicule est remorqué là où vous le souhaitez."
           actions={
             <div className="flex flex-wrap items-center gap-3">
-              <PrimaryLink href="/demande">Estimer mon dépannage</PrimaryLink>
+              {/* Sous 360 px, le bouton se resserre pour tenir dans l'écran (320 px). */}
+              <PrimaryLink href="/demande" className="max-[359px]:px-5 max-[359px]:text-base">Estimer mon dépannage</PrimaryLink>
               <CallLink phone={info.phone} size="lg" className="max-sm:hidden" />
             </div>
           }

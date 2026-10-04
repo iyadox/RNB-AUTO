@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Prose } from "@/components/public/page-blocks";
-import { Chantier, Essentials, LegalSection, SignList } from "@/components/pages/legal/legal-objects";
+import { Prose, ToComplete } from "@/components/public/page-blocks";
+import { Essentials, LegalSection, SignList } from "@/components/pages/legal/legal-objects";
 import { LegalShell, type TocEntry } from "@/components/pages/legal/legal-shell";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 
@@ -177,7 +177,7 @@ export default async function TermsPage() {
               </>
             ) : null}
             . En cas de désaccord persistant, vous pouvez recourir gratuitement au médiateur de la consommation :{" "}
-            <Chantier label="nom et coordonnées du médiateur" />.
+            <ToComplete label="nom et coordonnées du médiateur" />.
           </p>
         </Prose>
       </LegalSection>

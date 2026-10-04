@@ -14,26 +14,6 @@
    animations liées au défilement n'existent qu'en niveau `full` et sont coupées en `off`.
    ═════════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Titre principal ───────────────────────────────────────────────────────── */
-
-.heroTitle {
-  display: block;
-}
-/* Mobile : le bouton reste sous 580 px à 390 × 664 (U4). */
-@media (max-width: 1023px) {
-  .heroTitle {
-    font-size: min(var(--text-hero), 12.6vw);
-    line-height: 0.95;
-  }
-}
-/* Ordinateur : la taille suit aussi la hauteur et la largeur de la colonne. */
-@media (min-width: 1024px) {
-  .heroTitle {
-    font-size: min(var(--text-hero), 12vh, 7.4vw);
-    line-height: 0.95;
-  }
-}
-
 /* ═══ PK 00 · Le dépôt la nuit ═══════════════════════════════════════════════ */
 
 .openFrame {
@@ -146,10 +126,8 @@
   left: -8%;
   width: 78%;
   bottom: 25.9%;
-}
-/* Rideau : 1,2 s (F.6) au lieu de la seconde par défaut du dessin. */
-:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openDepot svg[data-inview] g[clip-path] > g {
-  animation-duration: 1.2s;
+  /* Rideau (`[data-depot-shutter]`) : 1,2 s (F.6) au lieu de la seconde par défaut du dessin. */
+  --depot-duration: 1.2s;
 }
 
 /* Lumière de l'atelier qui se répand sur le parvis et la chaussée quand le rideau est levé. */

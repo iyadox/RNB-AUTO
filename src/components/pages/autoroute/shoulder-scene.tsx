@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * /panne-autoroute, ouverture (docs/09, F.4) : la bande d'arrêt d'urgence, de nuit.
  *
@@ -8,7 +10,8 @@
  * STATIQUES (pose longue). Aucune dépanneuse : on est sur l'autoroute.
  *
  * Toute la géométrie passe par la même caméra (`perspective.ts`) : voies, glissière et décor
- * fuient vers un seul point. Composant serveur, décoratif (`aria-hidden`).
+ * fuient vers un seul point. Composant client sans état (décision L9-F3-1) : la charge RSC ne
+ * porte qu'une référence, pas le balisage SVG ; rendu serveur identique. Décoratif (`aria-hidden`).
  */
 import type { ReactElement } from "react";
 import { cn } from "@/components/ui/cn";

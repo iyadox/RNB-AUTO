@@ -412,12 +412,12 @@ Le niveau est posé sur `<html data-motion="full|lite|off">` **avant le premier 
    - **Classe `.motion-ready` :** posée seulement si le niveau n'est pas `off`, après le marquage des éléments visibles.
    - **Origine des transitions :** un écouteur `click` en capture, sur les liens internes, écrit `--vt-x` et `--vt-y` sur `<html>`. C'est le point touché, ou le centre du lien pour un clavier.
    - **Repli de la progression :** si `animation-timeline` n'est pas pris en charge, la progression est calculée en JavaScript (écoute passive du défilement, puis `requestAnimationFrame`).
-   - **Halo** (P21) : ordinateur, niveau `full`, hors des routes calmes (`CALM_ROUTES`).
+   - **Halo** (P21) : ordinateur, niveau `full`, hors des routes calmes (`CALM_ROUTES`), des routes sans halo (`NO_HALO_ROUTES`) et des pages marquées `data-calm` (404, erreur). Le marqueur est relu s'il apparaît après coup : le halo s'éteint, puis revient si le marqueur disparaît (voir J, L9-F1-2).
    - **Chargement différé :** au premier `requestIdleCallback` (délai maximal 1 500 ms ; `setTimeout(1200)` sur Safari), au premier défilement ou au premier toucher. Seulement si la page contient `[data-split]`, `[data-stage]`, `[data-route-mode="scrub"]` ou une scène qui l'exige, et si le niveau n'est pas `off`. Le chargement :
      - importe une seule fois `gsap`, `gsap/ScrollTrigger` et `gsap/SplitText` (avec `ScrollTrigger.config({ ignoreMobileResize: true })`) ;
      - lance les aides globales (montée des lignes, scènes collantes, tracés liés au défilement) ;
      - lance les scènes enregistrées qui approchent de l'écran (`rootMargin: "100%"`).
-   - **Lenis :** sur ordinateur (`pointer: fine`, niveau `full`, hors routes calmes). Import dynamique, `anchors: true`, branché sur `ScrollTrigger.update`. Il s'arrête quand le menu est ouvert ou quand un champ a le focus, et revient en haut (`immediate`) à chaque navigation.
+   - **Lenis :** sur ordinateur (`pointer: fine`, niveau `full`, hors routes calmes et hors pages marquées `data-calm` ou `data-calm="full"`). Import dynamique, `anchors: true`, branché sur `ScrollTrigger.update` quand GSAP est chargé. Une seule instance, détruite et recréée à chaque page. Il s'arrête quand le menu est ouvert. Quand un champ a le focus, il rend la molette au défilement natif (`smoothWheel: false`) au lieu de s'arrêter (voir J, S1-18).
    - **Polices :** `document.fonts.ready` déclenche `ScrollTrigger.refresh()`.
    - **Changement de niveau :** l'événement `rnb:motion-change` (bouton) ou la préférence système qui change entraîne un nouveau calcul. En `off`, les contextes GSAP sont annulés, SplitText est retiré, Lenis est détruit et `.motion-ready` est retiré.
 3. **Changement de page :** tous les contextes de la page précédente sont annulés (`gsap.context().revert()`, observateurs déconnectés), puis le cycle recommence.
@@ -435,21 +435,23 @@ export type GsapKit = {
   SplitText: typeof import("gsap/SplitText").SplitText;
 };
 export type SceneHelpers = {
-  /** Trace un chemin pathLength="1" (0 → 1) via --draw. */
-  setDraw(el: SVGGeometryElement, progress: number): void;
+  /** Trace un chemin pathLength="1" (0 → 1) via --draw. Suit aussi `data-draw-mask="<id>"`. */
+  setDraw(el: SVGGeometryElement | SVGGElement, progress: number): void;
   /** Place un groupe sur un chemin (getPointAtLength) et l'oriente dans le sens de la marche. */
   follow(el: SVGGraphicsElement, path: SVGGeometryElement, progress: number, opts?: { rotate?: boolean }): void;
   /** Petite interpolation sans GSAP (requestAnimationFrame). Retourne une fonction d'arrêt. */
-  tween(opts: { duration: number; ease?: (t: number) => number; onUpdate: (p: number) => void }): () => void;
+  tween(opts: { duration: number; ease?: (t: number) => number; onUpdate: (p: number) => void; onComplete?: () => void }): () => void;
 };
 export type SceneContext = {
   level: Exclude<MotionLevel, "off">;
   desktop: boolean; // (min-width: 1024px) and (pointer: fine)
-  kit: GsapKit | null; // non nul si needsGsap
+  kit: GsapKit | null; // non nul si le module déclare needsGsap (ou si sa fonction a répondu vrai)
   helpers: SceneHelpers;
 };
+/** Ce que le runtime sait AVANT d'initialiser une scène (pour décider de charger GSAP). */
+export type SceneGsapQuery = { level: Exclude<MotionLevel, "off">; desktop: boolean };
 export type SceneModule = {
-  needsGsap?: boolean;
+  needsGsap?: boolean | ((query: SceneGsapQuery) => boolean);
   init(root: HTMLElement, ctx: SceneContext): void | (() => void);
 };
 export type SceneLoaders = Record<string, () => Promise<{ default: SceneModule }>>;
@@ -688,7 +690,7 @@ Chaque primitive est décrite par : son effet, sa technique, son comportement su
   - un `div` de 560 px dans le calque du ciel, en `radial-gradient(circle, rgb(255 236 200 / .06), transparent 60%)` ;
   - il suit le pointeur avec un lissage de 0,18 par image (`requestAnimationFrame` sans GSAP) et s'arrête à l'arrêt du pointeur ;
   - il est masqué quand un champ a le focus.
-- **Absent :** sur mobile, en `lite` et en `off`, sur les routes calmes.
+- **Absent :** sur mobile, en `lite` et en `off`, sur les routes calmes (`CALM_ROUTES`), sur les routes sans halo (`NO_HALO_ROUTES`) et sur les pages marquées `data-calm` (404, erreur).
 - Le curseur système n'est jamais remplacé.
 
 **P22 · Scènes de lot**, `useScenes` et `data-scene`. Voir C.4. Ce sont les seules chorégraphies propres à une page (freinage de l'ouverture, récit de l'accueil, séquence de chargement).
@@ -705,7 +707,11 @@ Chaque primitive est décrite par : son effet, sa technique, son comportement su
 | Pages légales | P1, P19, progression de lecture | Non | Non |
 | 404, erreur | P1, P14, P16 | Non | Non |
 
-**`CALM_ROUTES`** = `/demande`, `/contact`, `/mentions-legales`, `/confidentialite`, `/conditions-d-intervention`.
+**`CALM_ROUTES`** = `/demande`, `/contact`, `/mentions-legales`, `/confidentialite`, `/conditions-d-intervention` (ni Lenis ni halo).
+
+**`NO_HALO_ROUTES`** = `/panne-autoroute` (Lenis sans halo).
+
+**Pages marquées `data-calm`** (404, erreur : leur adresse n'est pas connue d'avance) : `data-calm` ou `data-calm="full"` = ni Lenis ni halo ; `data-calm="halo"` = sans halo, Lenis gardé (J, L9-F1-2).
 
 ---
 
@@ -1500,7 +1506,7 @@ Toutes les pages ont `<PageTransition>`, un seul titre principal et `data-sky` s
 
 | Mesure | Cible |
 |---|---|
-| HTML de l'accueil, compressé, en production | ≤ 40 Ko (aujourd'hui ≈ 63 Ko en développement) |
+| HTML de l'accueil, compressé, en production | ≤ 40 Ko, mesuré avec la compression du serveur de production (brotli sur Vercel ; zstd ou gzip derrière Caddy, voir `docs/08`, section 3). `next start` seul compresse en gzip au niveau par défaut, plus lourd. |
 | Nœuds DOM de l'accueil | ≤ 1 500 |
 | Nœuds SVG par scène | ≤ 400 |
 | CSS total compressé | ≤ 35 Ko |
@@ -2097,13 +2103,14 @@ Restait ouvert : le texte existant « Les boutons Appeler et WhatsApp en bas de 
 
 La recette est répartie en chantiers ; chacun rend un compte rendu (corrections, mesures avant et après, captures à 390 et 1 440 px, en normal et en « moins d'animations »). Ces comptes rendus, joints à la livraison du lot L9, font foi pour le détail ; cette section n'en garde que les règles durables.
 
-- **Tests de recette** : `tests/e2e/urgence.spec.ts` (U1 à U4, U6, U8, U10) et `tests/e2e/immersion.spec.ts` (A1, A3, textes uniques de G.1, cases à cocher, débordement horizontal, erreurs de console, `[data-reveal]`, `data-sky`, GSAP absent des pages calmes). Ils couvrent toutes les pages publiques, y compris la page « Route barrée » d'une adresse inconnue. Le projet Playwright `desktop` (1 440 × 900) n'exécute que ces deux fichiers ; le projet `mobile` les exécute aussi, à 390 × 844.
+- **Tests de recette** : `tests/e2e/urgence.spec.ts` (U1 à U4, U6, U8, U10) et `tests/e2e/immersion.spec.ts` (A1, A3, textes uniques de G.1, cases à cocher, débordement horizontal, erreurs de console, `[data-reveal]`, `data-sky`, GSAP absent des pages calmes). Ils couvrent toutes les pages publiques, y compris la page « Route barrée » d'une adresse inconnue. Leurs aides communes (liste des pages, défilement de haut en bas, attente du moment calme, choix d'une adresse dans /demande…) sont écrites une seule fois, dans `tests/e2e/helpers.ts` ; `parcours.spec.ts` ne les utilise pas. Le projet Playwright `desktop` (1 440 × 900) n'exécute que ces deux fichiers ; le projet `mobile` les exécute aussi, à 390 × 844.
 - **U6 pendant une transition** : la mesure se fait à `ready` de la transition (après la phase de mise à jour du DOM, voir J.2), 100 ms plus tard et à la fin.
 - **U8** : le test retarde la réponse du serveur à l'estimation (7 s) pour vérifier le message de 4 s, puis contrôle, dans la même image, le titre, le prix dans la zone `aria-live` et le bouton actif.
 - **Sur ordinateur**, la barre d'action n'existe pas (à partir de 768 px) : U1 et U6 contrôlent les liens de l'en-tête. Sans numéro réglé, l'en-tête n'affiche pas Appeler (D.5) ; le lien Contact y mène.
 - **A3** : en niveau `off`, le test refuse toute animation infinie en cours et toute animation liée au défilement, avec une seule exception : le fondu « il reste des liens » en bas du menu mobile (`menu-fade`), un indicateur d'état du défilement de la liste qui ne déplace rien.
 - **Bruit du serveur de développement** : l'erreur Turbopack « No link element found for chunk … css » (course au chargement d'une feuille CSS pendant la compilation) est ignorée par les tests ; elle n'existe pas en production.
-- `@gsap/react` sera retiré des dépendances dès que plus aucun fichier ne l'importera : au 04/10/2026, seul l'ancien `home-motion.tsx` (code mort, à supprimer avec `sections.tsx`) l'importe encore.
+- **Mesure du budget de HTML (G.2)** : elle se fait avec la compression du serveur de production, pas avec le gzip par défaut de `next start`. Accueil, build de production du 04/10/2026, 250 Ko de HTML brut : 42,2 Ko en gzip servi par `next start`, 37,3 Ko en zstd niveau 3 (niveau par défaut de Caddy), 28,3 Ko en brotli 11. Un navigateur qui ne lit pas zstd reçoit du gzip (environ 42 Ko) : seul le brotli (Vercel) laisse une marge nette sous 40 Ko. `docs/08` (section 3) donne la configuration de Caddy qui compresse en zstd.
+- **Code mort retiré** : l'ancien code de l'accueil (`src/components/home/sections.tsx`, `src/components/home/home-motion.tsx`) est supprimé, et `@gsap/react`, qui n'était plus importé que par `home-motion.tsx`, est retiré de `package.json` et du fichier de verrouillage. Pour le mouvement, il ne reste que `gsap` et `lenis`.
 - **Piège corrigé pendant la recette** : la vitre de l'en-tête sans JavaScript (`html:not(.js) .header::after`, animation liée au défilement) s'appliquait aussi avec JavaScript et en niveau `off`, car `.js` était renommé par le module CSS. Le test A3 l'a détecté ; la règle est maintenant écrite `:global(html:not(.js)) .header::after`.
 
 #### Écarts de la recette L9, par chantier

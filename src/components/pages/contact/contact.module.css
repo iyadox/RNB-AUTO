@@ -420,6 +420,8 @@ a.keyWhatsapp:hover .keyGo {
 /* Adresse : texte puis plan de quartier (sur mobile), côte à côte à partir de `md`. */
 .address {
   display: grid;
+  /* Colonne bornée : le plan pleine largeur ne l'élargit jamais au-delà de l'écran. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 2rem;
 }
 @media (min-width: 768px) {
@@ -444,15 +446,26 @@ a.keyWhatsapp:hover .keyGo {
 }
 
 /* Le plan de quartier : panneau sur deux pieds, éclairé par une petite lampe au sodium. */
+/* Téléphone : le plan prend toute la largeur de la colonne, recadré en 4:3 (calé à gauche sur
+   280 px, il laissait 80 px de vide à droite sous un titre pleine largeur). */
 .board {
   position: relative;
   width: 100%;
-  max-width: 17.5rem;
   padding-bottom: 3.25rem;
-  justify-self: start;
+}
+@media (max-width: 767px) {
+  .boardMap {
+    aspect-ratio: 4 / 3;
+  }
+  .boardMap > div {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
 }
 @media (min-width: 768px) {
   .board {
+    max-width: 17.5rem;
     justify-self: end;
   }
 }
@@ -532,8 +545,10 @@ a.keyWhatsapp:hover .keyGo {
   /* Sol mouillé et reflet de la lampe. */
   content: "";
   position: absolute;
-  left: -40%;
-  right: -40%;
+  /* −25 % de la largeur des pieds : le reflet reste dans le panneau (pleine largeur sur
+     téléphone : à −40 %, il débordait de l'écran de 11 px). */
+  left: -25%;
+  right: -25%;
   bottom: -2px;
   height: 2px;
   background: linear-gradient(to right, transparent, color-mix(in srgb, var(--color-reflect) 22%, transparent), transparent);

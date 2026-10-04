@@ -14,7 +14,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { whatsappHref, whatsappRequestMessage, type PhoneLink } from "@/core/contact";
-import { formatEurosShort, formatKm, formatPhone } from "@/core/format";
+import { formatEurosShort, formatKm, formatPhone, formatTime } from "@/core/format";
 import type { ClientEstimate } from "@/core/quotes/client-view";
 import type { GeoPoint, Place, QuoteRequestInput } from "@/core/quotes/types";
 import { estimateAction, submitRequestAction } from "@/app/(public)/demande/actions";
@@ -33,6 +33,7 @@ import { AddressInput, useGeolocation } from "./address-input";
 import { PhotoUploader } from "./photo-uploader";
 import { RequestBackdrop } from "./request-backdrop";
 import { RoutePlan, RouteRecap, RouteSheetBar, RouteSheetColumn, type SheetRow } from "./route-sheet";
+import { currentMotionLevel } from "@/components/motion/level";
 import { StepRoad } from "./step-road";
 import styles from "./request.module.css";
 
@@ -73,6 +74,10 @@ const subscribeNarrow = (onChange: () => void) => {
 const narrowSnapshot = () => window.matchMedia(NARROW_QUERY).matches;
 /** Mobile d'abord : l'étape Prix n'est jamais rendue côté serveur. */
 const narrowServerSnapshot = () => true;
+
+/** Défilement vers le haut du parcours : instantané en niveau « off » (moins d'animations). Un
+ *  `behavior: "smooth"` explicite ignorerait la préférence système. */
+const scrollBehavior = (): ScrollBehavior => (currentMotionLevel() === "off" ? "instant" : "smooth");
 
 /** Ordre des écrans, pour le sens du glissement (interface seulement). */
 const SCREEN_ORDER: Step[] = ["pickup", "highway", "dropoff", "vehicle", "problem", "estimate", "contact", "done"];
@@ -180,7 +185,7 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
     setState((s) => ({ ...s, step }));
     window.history.pushState({ ...(window.history.state ?? {}), rnbStep: step }, "");
     window.requestAnimationFrame(() => {
-      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      topRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
       // Le titre de la nouvelle étape reçoit le focus (lecteurs d'écran, clavier), sans saut.
       topRef.current?.querySelector<HTMLElement>("[data-step-title]")?.focus({ preventScroll: true });
     });
@@ -262,7 +267,7 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
       if (result.status === "created") {
         update({ reference: result.reference, photoToken: result.photoToken, step: "done" });
         window.history.replaceState({ ...(window.history.state ?? {}), rnbStep: "done" }, "");
-        topRef.current?.scrollIntoView({ behavior: "smooth" });
+        topRef.current?.scrollIntoView({ behavior: scrollBehavior() });
         // « Demande reçue ! » reçoit le focus, comme le titre de chaque étape (lecteurs d'écran).
         window.requestAnimationFrame(() => topRef.current?.querySelector<HTMLElement>("[data-step-title]")?.focus({ preventScroll: true }));
       } else if (result.status === "price_changed") {
@@ -1025,7 +1030,7 @@ function ComputingView({
   }, [pending]);
 
   return (
-    <div aria-live="polite">
+    <div>
       <StepTitle title="Calcul en cours…" accent="en cours…" />
       <p className="text-lead mt-4 text-asphalt-200">Nous calculons le trajet réel de la dépanneuse.</p>
       {pending && slow ? (
@@ -1086,24 +1091,34 @@ function EstimateStep({
 }) {
   const estimate = state.estimate;
   const narrow = useSyncExternalStore(subscribeNarrow, narrowSnapshot, narrowServerSnapshot);
+  const computing = pending || !estimate;
+  const liveRef = useRef<HTMLDivElement>(null);
+  const wasComputing = useRef(computing);
 
-  if (pending || !estimate) {
-    return (
-      <ComputingView
-        pending={pending}
-        failed={!pending && !estimate}
-        onSite={state.dropoffMode === "on_site"}
-        phone={phone}
-        whatsappLink={whatsappLink}
-        plan={plan}
-        onRetry={onRetry}
-      />
-    );
-  }
+  // À la réception du prix, l'écran de calcul (dont le titre avait le focus) est remplacé :
+  // « Votre estimation » reçoit le focus, comme le titre de chaque étape (lecteurs d'écran, clavier).
+  useEffect(() => {
+    if (wasComputing.current && !computing) {
+      liveRef.current?.querySelector<HTMLElement>("[data-step-title]")?.focus({ preventScroll: true });
+    }
+    wasComputing.current = computing;
+  }, [computing]);
 
+  // Une seule zone `aria-live`, stable autour du calcul puis du prix : une zone insérée déjà
+  // remplie n'est en général pas annoncée, le prix le serait donc rarement.
   return (
-    <div aria-live="polite">
-      {estimate.priceTtcCents !== null ? (
+    <div ref={liveRef} aria-live="polite">
+      {computing ? (
+        <ComputingView
+          pending={pending}
+          failed={!pending && !estimate}
+          onSite={state.dropoffMode === "on_site"}
+          phone={phone}
+          whatsappLink={whatsappLink}
+          plan={plan}
+          onRetry={onRetry}
+        />
+      ) : estimate.priceTtcCents !== null ? (
         <>
           <StepTitle className="[&_h1]:text-[clamp(2.5rem,10.5vw,4.25rem)]" title="Votre estimation" accent="estimation" />
           {/* Le vrai prix du serveur, imprimé au montage (450 ms), prix en haut ; texte immédiat.
@@ -1141,7 +1156,7 @@ function EstimateStep({
               </button>
               <p className="pt-3 text-[0.9375rem] leading-relaxed text-asphalt-300">
                 Estimation indicative établie avec les informations données
-                {estimate.validUntil ? ", valable 30 minutes environ" : ""}. Le prix est confirmé avec vous avant l&apos;intervention.
+                {estimate.validUntil ? `, valable jusqu'à ${formatTime(estimate.validUntil)}` : ""}. Le prix est confirmé avec vous avant l&apos;intervention.
               </p>
             </div>
           </div>

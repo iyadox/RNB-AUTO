@@ -9,7 +9,8 @@ import { DepotOpening } from "@/components/pages/entreprise/depot-opening";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 
 export const metadata: Metadata = {
-  title: "L'entreprise RNB AUTO",
+  // Titre absolu : le modèle « %s · RNB AUTO » aurait répété le nom de l'entreprise.
+  title: { absolute: "L'entreprise RNB AUTO" },
   description:
     "RNB AUTO, entreprise de dépannage et de remorquage basée à Bobigny. Des prix clairs, un interlocuteur direct, une dépanneuse plateau au service de toute l'Île-de-France.",
   alternates: { canonical: "/entreprise" },
@@ -68,6 +69,9 @@ export default async function CompanyPage() {
             </>
           }
           split
+          // Marge basse réduite : 180 px (téléphone) à 300 px (ordinateur) de nuit vide séparaient
+          // le plan de la section suivante, qui a déjà sa propre marge haute.
+          className="pb-[calc(var(--spacing-section)*0.35)]"
         >
           <Blueprint depotLabel={info.depotLabel} />
         </Section>
@@ -88,7 +92,7 @@ export default async function CompanyPage() {
           <Commitments />
         </Section>
 
-        <RelatedFaq ids={["calcul-du-prix", "vehicules", "sans-le-site"]} />
+        <RelatedFaq ids={["calcul-du-prix", "vehicules", "sans-le-site"]} title="Vos questions sur RNB AUTO." />
         <NextExit from="/entreprise" />
         <DawnCta info={info} title="Besoin d'une dépanneuse maintenant ?" truck="empty" />
       </PageTransition>

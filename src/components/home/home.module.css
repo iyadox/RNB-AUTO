@@ -229,6 +229,32 @@
   top: 0;
   z-index: 3;
 }
+/* Téléphone et tablette : une simple pastille ronde (pictogramme seul, le nom « Pause » /
+   « Lecture » reste lu par les lecteurs d'écran), dans le coin bas gauche de la scène, sur la
+   chaussée, juste au-dessus de la barre d'action : rien ne s'intercale entre le bouton principal
+   et la scène. Pastille de 40 px, zone de toucher de 48 px (pseudo-élément). */
+@media (max-width: 1023px) {
+  .heroPause {
+    top: auto;
+    right: auto;
+    left: 0.75rem;
+    bottom: 0.25rem;
+    justify-content: center;
+    width: 2.5rem;
+    min-height: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+    line-height: 0;
+  }
+  .heroPause::after {
+    content: "";
+    position: absolute;
+    inset: -0.25rem;
+    border-radius: 50%;
+  }
+}
 /* Ordinateur : en haut à droite de la scène, au-dessus de la ville (en bas, il couvrait la
    voiture du client). */
 @media (min-width: 1024px) {
@@ -328,22 +354,32 @@
   height: 3px;
   background: linear-gradient(90deg, var(--color-asphalt-600), color-mix(in srgb, var(--color-sodium) 30%, var(--color-asphalt-600)) 50%, var(--color-asphalt-600));
 }
-.roadDash {
+/* Tirets et reflets : calques plus larges d'une période (120 px) qui glissent en `transform`
+   (processeur graphique), jamais `background-position` (redessiné à chaque image, C.1-7). */
+.roadDash,
+.roadDashReflect {
   position: absolute;
-  inset-inline: 0;
+  left: 0;
+  right: -120px;
+  animation: road-slide 0.5s linear infinite;
+}
+.roadDash {
   top: 30%;
   height: 4px;
   background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-chalk) 72%, transparent) 0 60px, transparent 60px 120px);
 }
 .roadDashReflect {
-  position: absolute;
-  inset-inline: 0;
   top: calc(30% + 6px);
   height: 10px;
   opacity: 0.18;
   background: repeating-linear-gradient(90deg, var(--color-chalk) 0 60px, transparent 60px 120px);
   -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
   mask-image: linear-gradient(to bottom, #000, transparent);
+}
+@keyframes road-slide {
+  to {
+    transform: translateX(-120px);
+  }
 }
 .road::after {
   /* Ligne de rive (pseudo-élément : budget de nœuds). */
@@ -379,6 +415,30 @@
   translate: -50% -50%;
   border-radius: 50%;
   background: radial-gradient(closest-side, color-mix(in srgb, var(--color-beacon-500) 22%, transparent), color-mix(in srgb, var(--color-beacon-500) 6%, transparent) 50%, transparent);
+}
+/* Feux du gyrophare (dessinés ici, pas dans le SVG : seule l'opacité d'un calque varie).
+   Repère du dessin 360 × 150 : feux en (259, 34) et (275, 34), halo de rayon 22. */
+.beaconLens {
+  position: absolute;
+  left: 71.94%;
+  top: 22.67%;
+  width: 12.22%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 154 61 / 0.95), rgb(255 122 26 / 0.45) 40%, transparent);
+}
+.beaconLensAlt {
+  left: 76.39%;
+  animation-delay: 0.6s;
+}
+/* Téléphone : roues et suspension s'arrêtent à la fin de l'arrivée (1,6 s) ; le défilement de la
+   ville et des lampadaires suffit à donner l'élan. Il ne reste que les lumières (E.1-4). */
+@media (max-width: 1023px) {
+  .truckRig :global(.animate-wheel),
+  .truckRig :global(.animate-truck-idle) {
+    animation-iteration-count: 2;
+  }
 }
 /* Reflets sur la chaussée mouillée : gyrophare (pulsé), phares et feux stop (statiques). */
 .wet {
@@ -434,6 +494,23 @@
   display: block;
   width: 100%;
   height: auto;
+}
+/* Feux de détresse de la voiture (repère du dessin 240 × 110), un seul calque qui clignote à
+   1 Hz (`.hazard`) : clignotants allumés (arrière, avant, rétroviseur), halos ambrés et reflets
+   étirés sur la chaussée mouillée. */
+.carHazards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(#ffb15c 0 0) 5.79% 57.36% / 2.17% 2.36% no-repeat,
+    linear-gradient(#ffb15c 0 0) 95.25% 58.29% / 1.83% 2.36% no-repeat,
+    linear-gradient(#ffb15c 0 0) 70.7% 47.6% / 1.58% 1.45% no-repeat,
+    radial-gradient(ellipse 6.25% 13.64% at 6.67% 57.18%, rgb(255 154 61 / 0.9), rgb(255 154 61 / 0.32) 35%, transparent),
+    radial-gradient(ellipse 5.42% 11.82% at 94.42% 58.09%, rgb(255 154 61 / 0.9), rgb(255 154 61 / 0.32) 35%, transparent),
+    radial-gradient(ellipse 2.5% 5.45% at 70.38% 47.64%, rgb(255 154 61 / 0.9), rgb(255 154 61 / 0.32) 35%, transparent),
+    radial-gradient(ellipse 0.71% 9% at 6.67% 90%, rgb(255 177 92 / 0.5), rgb(255 154 61 / 0.16) 45%, transparent),
+    radial-gradient(ellipse 0.67% 8.6% at 94.42% 90%, rgb(255 177 92 / 0.5), rgb(255 154 61 / 0.16) 45%, transparent);
 }
 
 /* `off` : image fixe, dépanneuse arrêtée derrière la voiture, feux stop allumés. */
@@ -572,10 +649,14 @@
   margin-top: 2.25rem;
   background: linear-gradient(to bottom, var(--color-asphalt-800), var(--color-night-950));
   box-shadow: 0 -2px 0 var(--color-asphalt-700);
+  overflow-x: clip;
 }
+/* Calque plus large de 480 px (4 périodes) : il glisse en `translate` avec le défilement, sans
+   redessiner (jamais `background-position`, C.1-7). */
 .gantryDash {
   position: absolute;
-  inset-inline: 0;
+  left: 0;
+  right: -480px;
   top: 50%;
   height: 3px;
   margin-top: -1.5px;
@@ -601,10 +682,10 @@
 }
 @keyframes dash-roll {
   from {
-    background-position: 0 0;
+    translate: 0 0;
   }
   to {
-    background-position: -480px 0;
+    translate: -480px 0;
   }
 }
 
@@ -682,6 +763,44 @@
 }
 .slotSignal::after {
   --dash: color-mix(in srgb, var(--color-signal-500) 85%, transparent);
+}
+
+/* Une colonne (téléphone, tablette) : pictogramme et flèche empilés à gauche, le texte prend
+   toute la largeur restante. Les quatre inscriptions commencent au même endroit, quelle que
+   soit l'orientation de la flèche, et gardent au moins 17 px à 320 px de large (le mot le plus
+   long, « L'AUTOROUTE ? », tient dans la colonne). Ordinateur : panneau du kit, inchangé. */
+@media (max-width: 1023px) {
+  .junction {
+    --slot-min: 6.25rem;
+  }
+  .slot .signRail {
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+  /* Face du panneau (pictogramme et texte) : alignée en haut, à côté du pictogramme. */
+  .slot .signRail > span:not([aria-hidden]):not([data-arrow]) {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .slot .signRail > span:not([aria-hidden]):not([data-arrow]) > span[aria-hidden] {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .slot .signRail > [data-arrow] {
+    position: absolute;
+    left: 0.75rem;
+    top: 3.625rem;
+    order: 0;
+    width: 2.5rem;
+    height: 1.75rem;
+    margin: 0;
+  }
+}
+@media (max-width: 359px) {
+  .junction {
+    --lane: 1.125rem;
+    --stub: 0.5rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -948,6 +1067,29 @@
   border-radius: 6px;
   overflow: clip;
 }
+.planBox {
+  position: relative;
+}
+/* Onde du dépôt (repère du plan : dépôt au centre, cercle de rayon 13, trait de 1,6 ; le plan
+   « dépôt » est recadré au centre, son échelle suit la largeur). Calque HTML : l'onde SVG du kit
+   est masquée ici, elle repeignait tout le plan à chaque image. Sans JavaScript, immobile. */
+.plan :global(.animate-pulse-ring) {
+  display: none;
+}
+.depotPulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4.6%;
+  aspect-ratio: 1;
+  margin: -2.3% 0 0 -2.3%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, transparent 86%, #ff7a1a 89% 97%, transparent 100%);
+}
+:global(html:not(.motion-ready)) .depotPulse {
+  animation: none;
+}
 .plan {
   aspect-ratio: 16 / 10;
 }
@@ -978,9 +1120,9 @@
   transform-origin: 100% 50%;
 }
 /* Épingle « Vous » de la grande carte : dessinée par `PlanIdf` (prop `points`, les noms des
-   communes l'évitent) ; c'est le seul repère du plan qui porte des feux de détresse. Même
-   taille à toutes les largeurs (le kit l'agrandit déjà sur un plan étroit). */
-.plan svg > g:has(> g > g > ellipse:global(.hazard)) > g {
+   communes l'évitent), repérée par `data-plan-point="vous"`. Même taille à toutes les largeurs
+   (le kit l'agrandit déjà sur un plan étroit). */
+.plan [data-plan-point="vous"] > g {
   scale: 1.4;
 }
 
@@ -1086,12 +1228,12 @@
 
 /* Ordinateur : temps de la scène (`data-story`, posé par la scène quand on y arrive). */
 @media (min-width: 1024px) {
-  .story[data-story] .plan svg > g:has(> g > g > ellipse:global(.hazard)) > g {
+  .story[data-story] .plan [data-plan-point="vous"] > g {
     transition:
       translate 520ms var(--ease-out-back),
       opacity 220ms ease;
   }
-  .story[data-story="0"] .plan svg > g:has(> g > g > ellipse:global(.hazard)) > g {
+  .story[data-story="0"] .plan [data-plan-point="vous"] > g {
     translate: 0 -60px;
     opacity: 0;
   }

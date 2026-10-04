@@ -251,7 +251,8 @@ html[data-motion="lite"] .brandMark::after {
   background: linear-gradient(90deg, var(--color-signal-600), var(--color-signal-500) 70%, var(--color-signal-300));
   box-shadow: 0 0 10px rgb(255 196 0 / 0.65);
 }
-@media (min-width: 1024px) {
+/* Elle reste jusqu'à 1 359 px : la ligne de route (D.3) ne s'affiche qu'à partir de 1 360 px. */
+@media (min-width: 1360px) {
   .progress {
     display: none;
   }
@@ -544,6 +545,26 @@ html[data-motion="lite"] .brandMark::after {
 .menuCalls {
   margin-top: 0.75rem;
 }
+/* Téléphone : la barre d'action (Appeler, WhatsApp, Demande) reste visible sous le panneau. La
+   rangée Appeler / WhatsApp du menu ferait doublon, et le bouton du menu passe au trait : un seul
+   aplat jaune à l'écran (Appeler, dans la barre). Règles hors couche : elles priment sur les
+   classes Tailwind du bouton principal. */
+@media (max-width: 767px) {
+  .menuCalls {
+    display: none;
+  }
+  .menuPrimary {
+    color: var(--color-signal-400);
+    background: color-mix(in srgb, var(--color-night-950) 55%, transparent);
+    box-shadow:
+      inset 0 0 0 1.5px var(--color-signal-500),
+      0 0 26px -10px rgb(255 196 0 / 0.55);
+  }
+  .menuPrimary:hover {
+    color: var(--color-asphalt-950);
+    background: var(--color-signal-500);
+  }
+}
 /* Écran bas (390 × 664, par exemple) : lignes resserrées, mais toujours 48 px de toucher et une
    aide de 14 px. Les huit liens, le bouton jaune et Appeler / WhatsApp tiennent sans défiler. */
 @media (max-height: 790px) {
@@ -645,6 +666,14 @@ html[data-motion="lite"] .brandMark::after {
 .footer {
   isolation: isolate;
 }
+.captionWrap {
+  padding-top: 2.25rem;
+}
+@media (min-width: 1024px) {
+  .captionWrap {
+    padding-top: 5rem;
+  }
+}
 
 .returnCaption {
   display: flex;
@@ -690,6 +719,50 @@ html[data-motion="lite"] .brandMark::after {
     --depot-x: 12cqw;
     --truck-x: calc(var(--depot-x) + var(--depot-w) + 1.5cqw);
   }
+}
+
+/* ─── Un seul horizon par fin de page ─────────────────────────────────────────
+   Quand l'aube (`DawnCta`, `data-dawn-cta`) précède le pied de page, elle porte déjà la ville,
+   l'aube et le soleil : le pied de page ne les redessine pas (deux couchers de soleil coup sur
+   coup, constaté). Il reprend au pied de la même route : sans chevrons, une bande basse où le
+   dépôt et la dépanneuse qui rentre se découpent sur le ciel de l'aube (le ciel global, à l'heure
+   `aube`), éclairés au ras du sol par la lumière qui vient de l'horizon, plus haut. */
+:global(body:has([data-dawn-cta])) .footerChevrons,
+:global(body:has([data-dawn-cta])) .dawn,
+:global(body:has([data-dawn-cta])) .sun,
+:global(body:has([data-dawn-cta])) .skyline,
+:global(body:has([data-dawn-cta])) .sunReflection {
+  display: none;
+}
+:global(body:has([data-dawn-cta])) .captionWrap {
+  padding-top: 1.5rem;
+}
+:global(body:has([data-dawn-cta])) .horizon {
+  height: max(150px, min(20svh, 12rem));
+  margin-top: 0.5rem;
+  --ground: 30%;
+  --depot-w: min(54cqw, 330px);
+  --truck-w: min(32cqw, 230px);
+  background:
+    /* Lumière rasante de l'aube, venue de l'horizon au-dessus : un voile bas, sans ville ni soleil,
+       qui accroche le dépôt et la chaussée. */
+    radial-gradient(60% 70% at 58% calc(100% - var(--ground)), rgb(234 168 104 / 0.2), transparent 72%),
+    linear-gradient(to top, transparent var(--ground), rgb(185 103 90 / 0.14) var(--ground), transparent 78%);
+}
+@media (min-width: 768px) {
+  :global(body:has([data-dawn-cta])) .horizon {
+    height: max(180px, min(28svh, 15rem));
+    --depot-w: min(30cqw, 360px);
+    --truck-w: min(18cqw, 240px);
+    --depot-x: 14cqw;
+  }
+}
+:global(body:has([data-dawn-cta])) .groundBand {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-dawn-gold) 14%, var(--color-night-900)) 0%,
+    var(--color-night-900) 55%
+  );
 }
 
 /* Aube locale : violet, puis rose, puis or au ras de l'horizon. Aucun texte dessus. */
@@ -978,28 +1051,39 @@ html[data-motion="lite"] .brandMark::after {
   }
 }
 
-/* Sous l'horizon : le sol de nuit, et le pied de page. */
+/* Sous l'horizon : le sol de nuit, et le pied de page. Téléphone : la marge basse laisse juste la
+   place de la barre d'action. */
 .footerGround {
   position: relative;
   background: var(--color-night-900);
-  padding-bottom: 7.5rem;
+  padding-top: 1.5rem;
+  padding-bottom: calc(var(--actionbar-h, calc(3.5rem + 0.625rem + max(0.75rem, env(safe-area-inset-bottom)))) + 1.5rem);
 }
 @media (min-width: 768px) {
   .footerGround {
+    padding-top: 0;
     padding-bottom: 2.5rem;
   }
 }
 
-/* Grand « RNB AUTO » en contour ; le remplissage doré monte une fois. */
+/* Grand « RNB AUTO » en contour ; le remplissage doré monte une fois. Ordinateur seulement : sur
+   téléphone, il doublait la signature (logo et nom) juste en dessous. Remplissage clair et net
+   (or, puis lumière de l'aube) : le dégradé passait par le rose et rendait un brun sale sur la
+   nuit (constaté). */
 .wordmark {
-  display: grid;
-  justify-items: center;
-  padding: 1.75rem 1rem 0.5rem;
-  overflow: clip;
-  font-size: clamp(4.4rem, 22vw, 16.5rem);
-  line-height: 0.82;
-  pointer-events: none;
-  user-select: none;
+  display: none;
+}
+@media (min-width: 1024px) {
+  .wordmark {
+    display: grid;
+    justify-items: center;
+    padding: 1.25rem 1rem 0.25rem;
+    overflow: clip;
+    font-size: clamp(7rem, 11vw, 10rem);
+    line-height: 0.82;
+    pointer-events: none;
+    user-select: none;
+  }
 }
 .wordOutline,
 .wordFill {
@@ -1013,20 +1097,15 @@ html[data-motion="lite"] .brandMark::after {
 }
 .wordOutline {
   color: transparent;
-  -webkit-text-stroke: 1.5px rgb(255 253 246 / 0.16);
+  -webkit-text-stroke: 1.5px rgb(255 253 246 / 0.12);
 }
 .wordFill {
-  /* La lumière de l'aube monte sur le pied des lettres, puis s'efface. */
-  background: linear-gradient(
-    to top,
-    var(--color-dawn-gold) 0%,
-    rgb(234 168 104 / 0.5) 20%,
-    rgb(185 103 90 / 0.16) 52%,
-    rgb(185 103 90 / 0) 80%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* La lumière de l'aube monte le long des lettres : un trait doré net sur le contour, sans
+     remplissage (un remplissage doré semi-transparent rendait un brun sale sur la nuit). */
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-dawn-gold);
+  -webkit-mask-image: linear-gradient(to top, #000 20%, rgb(0 0 0 / 0.35) 70%, transparent);
+  mask-image: linear-gradient(to top, #000 20%, rgb(0 0 0 / 0.35) 70%, transparent);
 }
 :global(html.motion-ready[data-motion]:not([data-motion="off"])) .wordmark:not([data-play]) .wordFill {
   clip-path: inset(100% 0 0 0);
@@ -1040,6 +1119,96 @@ html[data-motion="lite"] .brandMark::after {
   }
   to {
     clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Plan du site. Téléphone : replié derrière « Plan du site » (une ligne de 48 px, marquage au sol
+   au-dessus) ; une fois ouvert, Services et RNB AUTO côte à côte, puis Informations sur toute la
+   largeur, ses liens en deux colonnes (cibles de 44 px). À partir de 640 px : toujours déplié, en
+   trois colonnes, sans le bouton (`::details-content` ; un navigateur qui ne le connaît pas garde
+   le bouton, rien n'est perdu). */
+.siteMapSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3rem;
+  list-style: none;
+  cursor: pointer;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 24px, transparent 24px 48px) 0 0 / 100% 1px no-repeat;
+}
+.siteMapSummary::-webkit-details-marker {
+  display: none;
+}
+.siteMapSummary::marker {
+  content: "";
+}
+.siteMapToggle {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1.5px rgb(255 253 246 / 0.22);
+  transition: rotate var(--dur-ui) var(--ease-out-expo);
+}
+.siteMapToggle::before,
+.siteMapToggle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  margin: -1px 0 0 -6px;
+  border-radius: 2px;
+  background: var(--color-chalk);
+}
+.siteMapToggle::after {
+  rotate: 90deg;
+  transition: scale var(--dur-ui) var(--ease-out-expo);
+}
+.siteMapDetails[open] .siteMapToggle::after {
+  scale: 0 1;
+}
+.siteMap {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 1.5rem;
+  padding-top: 0.75rem;
+}
+.siteMap > :last-child {
+  grid-column: 1 / -1;
+}
+.siteMap > :last-child ul {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.5rem;
+}
+@media (min-width: 640px) {
+  .siteMap {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 2.5rem;
+    padding-top: 0;
+  }
+  .siteMap > :last-child {
+    grid-column: auto;
+  }
+  .siteMap > :last-child ul {
+    grid-template-columns: none;
+  }
+  @supports selector(::details-content) {
+    .siteMapSummary {
+      display: none;
+    }
+    .siteMapDetails::details-content {
+      content-visibility: visible;
+      display: block;
+      block-size: auto;
+    }
+  }
+}
+@media (min-width: 1024px) {
+  .siteMapNav {
+    grid-column: span 7 / span 7;
   }
 }
 
@@ -1066,13 +1235,21 @@ html[data-motion="lite"] .brandMark::after {
 .footerBase {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 3.5rem;
-  padding-top: 1.75rem;
+  gap: 1rem;
+  margin-top: 2.25rem;
+  padding-top: 1.25rem;
   background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 24px, transparent 24px 48px) 0 0 / 100% 1px no-repeat;
+}
+/* Téléphone : le plan du site replié est juste au-dessus, avec son propre marquage au sol. */
+@media (max-width: 639px) {
+  .footerBase {
+    margin-top: 0.75rem;
+  }
 }
 @media (min-width: 1024px) {
   .footerBase {
+    margin-top: 3.5rem;
+    padding-top: 1.75rem;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;

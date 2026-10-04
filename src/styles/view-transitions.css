@@ -55,14 +55,28 @@
   }
 }
 
-/* Morph partagé entre un panneau du carrefour et la plaque d'ouverture de la page d'arrivée. */
+/* Morph partagé entre un panneau du carrefour et la plaque d'ouverture de la page d'arrivée.
+   Au milieu du trajet, les deux images se fondent l'une dans l'autre :
+   - téléphone et tablette : simple creux d'opacité, entièrement sur le processeur graphique
+     (G.2 : aucun `filter: blur` sur mobile) ;
+   - ordinateur à souris : le léger flou prévu par D.4 (`via-blur`), sur un seul petit panneau. */
 ::view-transition-group(.morph) {
   animation-duration: 380ms;
   animation-timing-function: var(--ease-out-expo);
 }
 ::view-transition-image-pair(.morph) {
-  animation-name: vt-via-blur;
+  animation-name: vt-via-dip;
   animation-duration: 380ms;
+}
+@keyframes vt-via-dip {
+  40% {
+    opacity: 0.82;
+  }
+}
+@media (min-width: 1024px) and (pointer: fine) {
+  ::view-transition-image-pair(.morph) {
+    animation-name: vt-via-blur;
+  }
 }
 @keyframes vt-via-blur {
   40% {

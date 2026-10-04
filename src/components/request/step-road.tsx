@@ -48,9 +48,10 @@ export function StepRoad({ index, vehicle, onBack, className }: StepRoadProps) {
             Retour
           </button>
         ) : (
-          <span className="font-plate text-plate whitespace-nowrap tracking-[0.12em] text-signal-500 sm:tracking-[0.2em]">Demande de dépannage</span>
+          <span className="font-plate text-plate min-w-0 tracking-[0.12em] text-signal-500 sm:whitespace-nowrap sm:tracking-[0.2em]">Demande de dépannage</span>
         )}
-        <span className="font-figure whitespace-nowrap text-[1.0625rem] text-asphalt-200 [word-spacing:0.08em]">
+        {/* « Étape x sur 6 » toujours entier : sous 390 px, c'est l'intitulé qui passe sur deux lignes. */}
+        <span className="font-figure shrink-0 whitespace-nowrap text-[1.0625rem] text-asphalt-200 [word-spacing:0.08em]">
           Étape {current + 1} sur {total}
         </span>
       </div>

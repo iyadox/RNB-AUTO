@@ -14,7 +14,7 @@ import { getPublicSiteInfo } from "@/server/site/public-info";
 
 export const metadata: Metadata = {
   title: "Questions fréquentes",
-  description: "Prix, délais, autoroute, véhicules acceptés, paiement : les réponses aux questions les plus fréquentes sur le dépannage RNB AUTO.",
+  description: "Prix, autoroute, véhicules acceptés, paiement : les réponses aux questions les plus fréquentes sur le dépannage RNB AUTO.",
   alternates: { canonical: "/questions-frequentes" },
 };
 

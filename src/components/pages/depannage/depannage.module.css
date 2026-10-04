@@ -444,6 +444,80 @@
     --voyant-size: 64px;
   }
 }
+/* Ordinateur, niveau `full` : les voyants s'allument tour à tour au défilement, rangée par rangée
+   et colonne par colonne (un tableau de bord qu'on lit de gauche à droite). Une flaque de lumière
+   ambrée monte sous chaque voyant. Le texte n'est jamais caché ni retardé : seul le voyant et
+   sa lueur changent. */
+.dashItem > :first-child {
+  position: relative;
+}
+@media (min-width: 1024px) {
+  .dashItem > :first-child::before {
+    content: "";
+    position: absolute;
+    inset: -70%;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-led) 34%, transparent), transparent);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  @supports (animation-timeline: view()) {
+    :global(html[data-motion="full"]) .dashItem > :first-child::before {
+      animation: dash-pool linear both;
+      animation-timeline: view();
+      animation-range: entry 60% cover 42%;
+    }
+    :global(html[data-motion="full"]) .dashItem > :first-child {
+      animation: dash-lamp linear both;
+      animation-timeline: view();
+      animation-range: entry 60% cover 42%;
+    }
+    /* Décalage par colonne (3 colonnes à partir de 1 280 px, 2 en dessous). */
+    :global(html[data-motion="full"]) .dashItem:nth-child(2n) > :first-child,
+    :global(html[data-motion="full"]) .dashItem:nth-child(2n) > :first-child::before {
+      animation-range: entry 80% cover 47%;
+    }
+  }
+}
+@media (min-width: 1280px) {
+  @supports (animation-timeline: view()) {
+    :global(html[data-motion="full"]) .dashItem:nth-child(n) > :first-child,
+    :global(html[data-motion="full"]) .dashItem:nth-child(n) > :first-child::before {
+      animation-range: entry 60% cover 40%;
+    }
+    :global(html[data-motion="full"]) .dashItem:nth-child(3n + 2) > :first-child,
+    :global(html[data-motion="full"]) .dashItem:nth-child(3n + 2) > :first-child::before {
+      animation-range: entry 75% cover 45%;
+    }
+    :global(html[data-motion="full"]) .dashItem:nth-child(3n) > :first-child,
+    :global(html[data-motion="full"]) .dashItem:nth-child(3n) > :first-child::before {
+      animation-range: entry 90% cover 50%;
+    }
+  }
+}
+@keyframes dash-pool {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  70% {
+    opacity: 1;
+    scale: 1.08;
+  }
+  100% {
+    opacity: 0.6;
+    scale: 1;
+  }
+}
+@keyframes dash-lamp {
+  from {
+    filter: brightness(0.45) saturate(0.6);
+  }
+  to {
+    filter: none;
+  }
+}
 .dashTitle {
   @apply font-step;
   font-size: clamp(1.3rem, 1.1rem + 0.6vw, 1.55rem);

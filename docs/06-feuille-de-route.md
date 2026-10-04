@@ -31,12 +31,11 @@ Référence : [09 — Refonte immersive](09-refonte-immersive.md). Le journal de
 | S2a — Coque | ✅ fait | en-tête, menu « plan de nuit », barre d'action, fins de page (prochaine sortie, aube, retour au dépôt), bouton « Arrêter les animations » |
 | S2b — Kit d'illustrations | ✅ fait | panneaux, plaques, voyants, ticket d'estimation, trois trajets, plan schématique, séquence de chargement, relais d'autoroute |
 | L1 à L8 — Pages | ✅ fait | accueil, dépannage, remorquage, zones, panne sur autoroute, questions fréquentes, entreprise, contact, habillage de la demande, pages légales, page introuvable et page d'erreur |
-| L9 — Recette | 🟡 en cours | corrections remontées par les lots, budgets de performance (poids, nœuds, Lighthouse), tests de recette `tests/e2e/urgence.spec.ts` et `tests/e2e/immersion.spec.ts` (téléphone et ordinateur), retrait du code mort et de `@gsap/react`, documentation |
+| L9 — Recette | 🟡 en cours | corrections remontées par les lots, budgets de performance (poids, nœuds, Lighthouse), tests de recette `tests/e2e/urgence.spec.ts` et `tests/e2e/immersion.spec.ts` (téléphone et ordinateur), retrait du code mort et de `@gsap/react` (fait : `sections.tsx` et `home-motion.tsx` supprimés, `@gsap/react` retiré des dépendances), documentation |
 
 Reste à faire avant la mise en ligne de la refonte :
 - tenir les budgets de G.2 (HTML de l'accueil et nombre de nœuds) et les mesurer sur un build de production ;
 - garder `npm run e2e` au vert avec les deux nouveaux fichiers de test (239 tests réussis le 04/10/2026, les 13 contrôles U4 réservés au téléphone étant sautés sur ordinateur) ;
-- supprimer l'ancien code de l'accueil (`src/components/home/sections.tsx`, `home-motion.tsx`), puis retirer `@gsap/react`, qui n'est plus importé que par `home-motion.tsx` ;
 - faire valider par l'administrateur les points listés dans [07 — Questions ouvertes](07-questions-ouvertes.md), section E (lien vers le 112, textes de sécurité, textes qui citent Bobigny ou la Seine-Saint-Denis, photos réelles).
 
 ## Ordre proposé

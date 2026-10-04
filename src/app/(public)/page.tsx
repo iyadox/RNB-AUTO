@@ -4,6 +4,7 @@
  * autoroute (PK 04) · zone (PK 05) · questions (PK 06) · « On arrive. » (PK 07), puis le pied de
  * page « Retour au dépôt ». La ligne de route (`RoadLine`) reste hors de la transition de page.
  */
+import type { Metadata } from "next";
 import { Crossroads } from "@/components/home/crossroads";
 import { FaqPreview } from "@/components/home/faq-preview";
 import { Gantry } from "@/components/home/gantry";
@@ -19,6 +20,11 @@ import { DawnCta } from "@/components/public/page-blocks";
 import { RoadLine, type RoadMarker } from "@/components/public/road-line";
 import { getHomePriceExamples } from "@/server/site/price-examples";
 import { getPublicSiteInfo } from "@/server/site/public-info";
+
+/** Titre et description : ceux du layout. Seule l'URL canonique est ajoutée (paramètres retirés). */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const MARKERS: RoadMarker[] = [
   { id: "carrefour", pk: "01", label: "Votre situation" },

@@ -39,6 +39,13 @@
     letter-spacing: 0.13em;
   }
 }
+/* Sous 400 px, encore un peu moins : « PK 01 · LES SITUATIONS COURANTES » et « PK 02 · NOTRE
+   FAÇON DE TRAVAILLER » tiennent sur une ligne à 390 px (la plaque se lit d'un seul tenant). */
+@media (max-width: 399px) {
+  .plate > span:last-child {
+    letter-spacing: 0.09em;
+  }
+}
 .plate_signal {
   color: var(--color-signal-500);
 }
@@ -164,29 +171,53 @@
        jusqu'aux bords de l'écran au lieu d'être coupée à 16 px du bord. */
     overflow-clip-margin: 1.5rem;
   }
-  /* `stage="tall"` : une scène haute (F.3, carte de 60svh). */
-  .opening_tallStage .openingScene {
-    max-height: 60svh;
+}
+/* Téléphone : l'ouverture occupe au moins le premier écran, barre d'action déduite, et la scène
+   prend la place qui reste sous le texte (34svh au plus, 10rem au moins). Elle est calée en bas :
+   si elle est rognée, c'est par le haut (le ciel), jamais par les véhicules ni la chaussée. Elle
+   descendait sous la barre d'action (véhicules coupés à mi-caisse, constaté sur /remorquage et
+   /depannage), comme l'ouverture de l'accueil avant sa correction. */
+@media (max-width: 767px) {
+  .opening:has(.openingScene) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    padding-bottom: calc(var(--actionbar-h, calc(3.5rem + 0.625rem + max(0.75rem, env(safe-area-inset-bottom)))) + 0.75rem);
+  }
+  .openingGrid {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+  .openingScene {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 10rem;
+  }
+  .openingScene > * {
+    flex: none;
+  }
+}
+/* Écran bas (moins de 760 px) : le texte occupe déjà le premier écran, la scène ne peut pas y
+   tenir ; elle garde sa taille (34svh au plus), toujours calée en bas. */
+@media (max-width: 767px) and (max-height: 759px) {
+  .openingScene {
+    flex: none;
   }
 }
 @media (min-width: 1024px) {
-  .opening_split .openingGrid {
+  .openingGrid {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
     align-items: center;
     gap: 3rem;
     min-height: min(calc(88vh - var(--header-h, 5rem) - 8.5rem), 46rem);
   }
-  .opening_split .openingScene {
+  .openingScene {
     margin-top: 0;
   }
-}
-.opening_compact {
-  max-height: none;
-}
-.opening_compact .openingTitle {
-  --title-base: var(--text-display);
-  line-height: var(--text-display--line-height);
 }
 
 /* Ligne de rive en tirets, au bas de l'ouverture (60/60). */
@@ -222,7 +253,7 @@
   font-size: min(clamp(2.5rem, 1.6rem + 3.4vw, 4.25rem), var(--fit-size));
 }
 .fit > .dawnTitle {
-  font-size: min(var(--text-dawn), var(--fit-size));
+  font-size: min(var(--text-dawn), 7rem, var(--fit-size));
 }
 
 /* ─── Sections ──────────────────────────────────────────────────────────────── */
@@ -470,7 +501,7 @@
 }
 @media (min-width: 1024px) {
   .exitSign {
-    min-height: 18rem;
+    min-height: 15rem;
     padding: 2.75rem 3rem 2.6rem;
   }
 }
@@ -573,16 +604,27 @@
 
 .dawnCta {
   position: relative;
-  padding-top: var(--spacing-section);
+  /* La Prochaine sortie, juste au-dessus, garde déjà sa marge basse : une section entière de vide
+     s'ajoutait avant le titre (constaté : environ 250 px sur ordinateur). */
+  padding-top: calc(var(--spacing-section) * 0.45);
   overflow: clip;
 }
 .dawnTitle {
   @apply font-display text-dawn;
+  /* 7 rem au plus : à 11 rem, le titre prenait trois lignes et un écran entier sur ordinateur. */
+  font-size: min(var(--text-dawn), 7rem);
   max-width: 13ch;
   /* Interligne un peu plus large : les accents des capitales ne touchent pas la ligne du dessus. */
   line-height: 0.96;
   text-wrap: balance;
   color: var(--color-signal-500);
+}
+/* Ordinateur : deux lignes au plus (11 em à 7 rem : les titres de l'aube tiennent en deux lignes
+   équilibrées). */
+@media (min-width: 1024px) {
+  .dawnTitle {
+    max-width: 11em;
+  }
 }
 .dawnText {
   @apply text-lead;
@@ -598,11 +640,15 @@
   container-type: inline-size;
   pointer-events: none;
   --horizon: 40%;
+  /* Le bas de la route se fond dans la nuit : le pied de page reprend au pied de cette route, sans
+     coupure nette. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
 }
 @media (min-width: 1024px) {
   .dawnScene {
-    height: max(20rem, 52vh);
-    margin-top: 3.5rem;
+    height: max(20rem, 46vh);
+    margin-top: 3rem;
   }
 }
 /* Bande d'aube locale : violet, rose, or. Aucun texte dessus. */
@@ -637,6 +683,23 @@
     rgb(234 168 104 / 0.14) 48%,
     transparent 70%
   );
+}
+/* Le soleil se lève avec le défilement (niveau `full`) ; état de base : levé. C'est le seul
+   soleil de la fin de page (le pied de page n'en dessine plus quand l'aube le précède). */
+@supports (animation-timeline: view()) {
+  html[data-motion="full"] .dawnSun {
+    animation: dawn-sun-rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 25%;
+  }
+}
+@keyframes dawn-sun-rise {
+  from {
+    translate: -50% -8%;
+  }
+  to {
+    translate: -50% -56%;
+  }
 }
 .dawnSkyline {
   position: absolute;
@@ -875,7 +938,7 @@ html[data-motion="off"] .groundText {
   }
 }
 
-/* ─── Texte long et « À COMPLÉTER » ─────────────────────────────────────────── */
+/* ─── Texte long ───────────────────────────────────────────────────────────── */
 
 .prose {
   max-width: 68ch;
@@ -933,59 +996,22 @@ html[data-motion="off"] .groundText {
   background: var(--color-signal-500);
 }
 
-/* Zone de chantier (F.9) : bordure à chevrons orange et noirs, texte orange sur fond de nuit.
-   Impossible à manquer, jamais confondu avec une vraie donnée. 0,5 em de place pour la
-   ponctuation qui suit (le point ne passe pas seul à la ligne). */
-.toComplete {
-  display: inline-flex;
-  max-width: calc(100% - 0.5em);
-  padding: 3px;
-  vertical-align: middle;
-  border-radius: 6px;
-  font-size: 0.95em;
-  font-weight: 800;
-  line-height: 1.35;
-  color: var(--color-beacon-400);
-  background: repeating-linear-gradient(-45deg, var(--color-beacon-500) 0 6px, var(--color-asphalt-950) 6px 12px);
-}
-.toCompleteFace {
-  max-width: 100%;
-  padding: 0.2rem 0.6rem;
-  border-radius: 3px;
-  white-space: normal;
-  background:
-    linear-gradient(
-      color-mix(in srgb, var(--color-beacon-500) 14%, transparent),
-      color-mix(in srgb, var(--color-beacon-500) 14%, transparent)
-    ),
-    var(--color-night-950);
-}
-.toComplete_short {
-  max-width: none;
-  white-space: nowrap;
-}
-.toComplete_short .toCompleteFace {
-  white-space: nowrap;
-}
-@media (forced-colors: active) {
-  .toComplete {
-    border: 2px solid CanvasText;
-  }
-}
-
 /* ─── D.3 · Ligne de route (ordinateur) ─────────────────────────────────────── */
 
 .roadLine {
   display: none;
 }
-@media (min-width: 1024px) {
+/* À partir de 1 360 px seulement (même seuil que `RAIL_MEDIA`, road-line.tsx) : en dessous, la
+   marge du contenu (32 à 72 px) ne laissait pas de place à la ligne (repères rognés au bord de
+   l'écran, collés aux titres) ; la progression de lecture est alors dans l'en-tête. */
+@media (min-width: 1360px) {
   .roadLine {
     display: block;
     position: fixed;
     z-index: 40;
     top: calc(var(--header-h, 5rem) + 1.5rem);
     bottom: 2rem;
-    left: max(8px, calc((100vw - 1280px) / 2 - 32px));
+    left: max(24px, calc((100vw - 1280px) / 2 - 32px));
     width: 2px;
     pointer-events: none;
   }

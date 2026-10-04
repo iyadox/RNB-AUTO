@@ -878,10 +878,12 @@
   font-size: 1.125rem;
   color: var(--color-signal-400);
   opacity: 0;
-  translate: 0 6px;
+  translate: 0 -6px;
+  /* Fondu enchaîné décalé : l'ancien nom sort en 120 ms, le nouveau entre ensuite (jamais deux
+     noms superposés). */
   transition:
-    opacity 400ms var(--ease-out-expo),
-    translate 400ms var(--ease-out-expo);
+    opacity 120ms var(--ease-accel),
+    translate 120ms var(--ease-accel);
 }
 .pips {
   display: flex;
@@ -963,6 +965,9 @@
 .stage[data-beat="4"] .stageCurrent span:nth-child(4) {
   opacity: 1;
   translate: 0 0;
+  transition:
+    opacity 400ms var(--ease-out-expo) 140ms,
+    translate 400ms var(--ease-out-expo) 140ms;
 }
 .stage:not([data-beat]) .pips span,
 .stage[data-beat="1"] .pips span:nth-child(-n + 1),

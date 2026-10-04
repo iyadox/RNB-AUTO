@@ -261,6 +261,11 @@
   transition: translate 1100ms var(--ease-brake) 150ms;
 }
 
+/* Sans JavaScript, la rue n'est pas montée : le rideau métallique reste baissé. */
+:global(html:not(.js)) .windowCurtain {
+  translate: 0 0;
+}
+
 /* Jour / nuit : fondus d'opacité, lampadaires en cascade (80 ms), puis les phares. */
 .dayOnly {
   opacity: 1;
@@ -617,6 +622,11 @@
 .relay {
   width: 100%;
 }
+/* Schéma vertical (téléphone ; grand écran sans JavaScript) : jamais plus large que 32 rem. */
+.relayNarrow {
+  max-width: 32rem;
+  margin-inline: auto;
+}
 .highwayLinks {
   display: grid;
   gap: 0.875rem;
@@ -694,8 +704,16 @@
   width: 100%;
   max-width: 35rem;
 }
+/* Cadre du plan, réservé avant son montage (`LazyScene`) : le plan régional est carré. */
+.zonePlanFrame {
+  aspect-ratio: 1;
+}
 .zonePlanSvg {
   width: 100%;
+}
+/* Sans JavaScript, le plan n'est pas monté : la figure est retirée (le texte dit tout). */
+:global(html:not(.js)) .zonePlan {
+  display: none;
 }
 .zoneCaption {
   margin-top: 0.75rem;

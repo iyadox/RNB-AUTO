@@ -15,7 +15,7 @@
  * Il porte aussi le petit cycle de page de la coque (voir `useShellCycle`).
  */
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { NAV_DESKTOP } from "@/content/site-map";
 import type { PhoneLink } from "@/core/contact";
@@ -23,6 +23,7 @@ import { LogoMark } from "@/components/brand/logo";
 import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
 import { CallLink, PrimaryLink } from "./actions";
+import { prefetchOnIntent } from "./prefetch-on-intent";
 import { MobileMenu } from "./mobile-menu";
 import styles from "./shell.module.css";
 
@@ -89,6 +90,7 @@ export function SiteHeader({
   announcement: string | null;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const scrolled = useSyncExternalStore(subscribeScroll, readScrolled, serverScrolled);
   const headerRef = useRef<HTMLElement>(null);
 
@@ -122,15 +124,25 @@ export function SiteHeader({
       ) : null}
 
       <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-20 lg:px-8 xl:gap-4">
-        <Link href="/" className={cn(styles.brand, "shrink-0")} aria-label="RNB AUTO, accueil">
+        {/* Zone de toucher de 48 px de haut (l'en-tête en fait 64). Pas de préchargement à l'affichage :
+            il chargeait toute la page d'accueil (scènes comprises) depuis chaque page ; il a lieu au survol
+            ou au focus (`prefetchOnIntent`). */}
+        <Link
+          href="/"
+          prefetch={false}
+          {...prefetchOnIntent(router, "/")}
+          className={cn(styles.brand, "min-h-12 shrink-0")}
+          aria-label="RNB AUTO, accueil"
+        >
           <span className={styles.brandMark}>
             <LogoMark className="h-9 w-9 lg:h-10 lg:w-10" />
           </span>
           {/* Entre 1 024 et 1 279 px, le losange seul : la navigation et les deux actions tiennent sur une ligne.
-              Sous 360 px, l'accroche se resserre : le bouton du menu restait coupé au bord droit. */}
+              L'accroche en 12 px (taille minimale des plaques) ; sous 360 px, elle ne tient plus à côté du
+              bouton du menu : masquée (le nom reste). */}
           <span className="leading-none lg:hidden xl:block">
             <span className="font-wide block text-[1.15rem] tracking-[0.06em] text-chalk">RNB AUTO</span>
-            <span className="mt-1 block text-[0.6rem] font-semibold uppercase tracking-[0.3em] text-signal-500 max-[359px]:tracking-[0.14em] lg:hidden">
+            <span className="mt-1 block text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-signal-500 max-[359px]:hidden lg:hidden">
               Dépannage · Remorquage
             </span>
           </span>

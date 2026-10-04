@@ -86,5 +86,7 @@ function init(root: HTMLElement, ctx: SceneContext): (() => void) | void {
   };
 }
 
-const scene: SceneModule = { needsGsap: true, init };
+// Le kit ne sert qu'au niveau `full` sur ordinateur : en `lite` (interpolation maison) et sur
+// mobile (rien ici), la page ne charge pas GSAP pour cette scène.
+const scene: SceneModule = { needsGsap: ({ level, desktop }) => desktop && level === "full", init };
 export default scene;

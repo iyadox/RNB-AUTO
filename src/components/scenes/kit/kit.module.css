@@ -577,10 +577,14 @@
   padding-bottom: 0.75rem;
   border-bottom: 1.5px dashed rgb(22 24 27 / 0.28);
 }
-/* Toujours sur une ligne : la taille suit la largeur du ticket (≈ 21 em de texte + le logo). */
+/* Plaque : jamais sous 12 px (A7). Sur un ticket étroit, l'interlettrage se resserre (21 signes
+   d'environ 0,8 em, plus l'espace) pour garder une ligne ; sous ≈ 300 px de ticket, le texte passe
+   sur deux lignes plutôt que de rapetisser. */
 .ticketHeadText {
-  white-space: nowrap;
-  font-size: min(var(--text-plate), calc((100cqi - 2.3rem) / 21));
+  min-width: 0;
+  font-size: var(--text-plate);
+  letter-spacing: clamp(0.06em, calc((100cqi - 2.3rem) / 21 - 0.8em), 0.2em);
+  text-wrap: balance;
 }
 .ticketLogo {
   width: 1.6rem;
@@ -758,6 +762,17 @@
 .stampRecue {
   color: var(--color-ink);
 }
+/* Contraste renforcé (A9) : ni grain ni encre usée, le tampon reste net et opaque. */
+@media (prefers-contrast: more) {
+  .ticket::before {
+    display: none;
+  }
+  .stamp {
+    -webkit-mask: none;
+    mask: none;
+    opacity: 1;
+  }
+}
 @media (forced-colors: active) {
   .ticket {
     border: 2px solid CanvasText;
@@ -887,6 +902,10 @@ li[data-leg="retour"] .legSwatch {
   }
   .planRegion .cityLabelMinor {
     font-size: 13px;
+  }
+  /* Nom qui gênerait un voisin à cette taille (calculé au rendu, plan-labels.ts). */
+  .planRegion .cityLabelHideMid {
+    display: none;
   }
 }
 .planSvg {
@@ -1022,19 +1041,33 @@ li[data-leg="retour"] .legSwatch {
 .relayCaptionsV li:nth-child(1) .relayStep {
   background: var(--color-asphalt-300);
 }
+/* Téléphone : schéma compact (pas de ruban de 600 unités de haut) ; légendes en liste serrée
+   sous le dessin, reliées aux pastilles 1, 2, 3 posées sur le tracé. */
+.relayAuto .relayV {
+  max-width: 32rem;
+  margin-inline: auto;
+}
+.relayCaptionsV ol {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
 .relayCaptionsV li {
-  position: absolute;
-  left: 0;
-  width: 44%;
+  align-items: center;
 }
-.relayCaptionsV li[data-step="1"] {
-  top: 27%;
+.relayCaptionsV .relayStep {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.875rem;
 }
-.relayCaptionsV li[data-step="2"] {
-  top: 44%;
+.relayPin rect {
+  fill: var(--color-chalk);
 }
-.relayCaptionsV li[data-step="3"] {
-  top: 76%;
+.relayPin[data-pin="1"] rect {
+  fill: var(--color-asphalt-300);
+}
+.relayPin[data-pin="3"] rect {
+  fill: var(--color-signal-500);
 }
 
 /* ═══ Séquence de chargement (LoadingSequence) ═══════════════════════════════════════════

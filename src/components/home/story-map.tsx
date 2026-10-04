@@ -212,41 +212,48 @@ export function StoryMap({ depot }: { depot: PublicSiteInfo["depot"] }): ReactEl
     <div className={styles.mapFrame}>
       <div className="tilt-cam-frame">
         <div data-tilt-cam="" className={styles.mapPlane}>
-          <PlanIdf
-            depot={depot}
-            variant="depot"
-            labels="all"
-            symbolId={STORY_SYMBOL}
-            points={[{ kind: "vous", lat: you.lat, lng: you.lng }]}
-            underlay={full ? routes : null}
-            className={styles.plan}
-          >
-            <defs>
-              <g id={G_TRUCK}>
-                <TruckTopGlyph headlights dynamic />
-              </g>
-              {/* Épingle des mini-cartes (téléphone) ; la grande carte a la sienne (`points`). */}
-              {desktop === true ? null : (
-                <g id={G_PIN}>
-                  <PinGlyph hazards />
+          <div className={styles.planBox}>
+            <PlanIdf
+              depot={depot}
+              variant="depot"
+              labels="all"
+              symbolId={STORY_SYMBOL}
+              points={[{ kind: "vous", lat: you.lat, lng: you.lng }]}
+              underlay={full ? routes : null}
+              className={styles.plan}
+            >
+              <defs>
+                <g id={G_TRUCK}>
+                  <TruckTopGlyph headlights dynamic />
                 </g>
-              )}
-              <g id={G_FLAG}>
-                <FlagGlyph />
-              </g>
-              <g id={G_DEPOT}>
-                <DepotGlyph />
-              </g>
-              <PriceTag />
-            </defs>
-            {known ? null : <use href={`#${G_DEPOT}`} x={DEPOT.x} y={DEPOT.y} />}
-            {full ? (
-              <>
-                <Flag scale={1.4} className={`${styles.flag} ${styles.towOnly}`} />
-                <use href={`#${G_TAG}`} className={styles.priceTag} />
-              </>
+                {/* Épingle des mini-cartes (téléphone) ; la grande carte a la sienne (`points`). */}
+                {desktop === true ? null : (
+                  <g id={G_PIN}>
+                    <PinGlyph hazards />
+                  </g>
+                )}
+                <g id={G_FLAG}>
+                  <FlagGlyph />
+                </g>
+                <g id={G_DEPOT}>
+                  <DepotGlyph />
+                </g>
+                <PriceTag />
+              </defs>
+              {known ? null : <use href={`#${G_DEPOT}`} x={DEPOT.x} y={DEPOT.y} />}
+              {full ? (
+                <>
+                  <Flag scale={1.4} className={`${styles.flag} ${styles.towOnly}`} />
+                  <use href={`#${G_TAG}`} className={styles.priceTag} />
+                </>
+              ) : null}
+            </PlanIdf>
+            {/* Onde du dépôt en calque HTML (seules l'échelle et l'opacité varient) : l'onde SVG du
+                kit repeignait tout le plan à chaque image (G.2). Le dépôt est au centre du plan. */}
+            {known ? (
+              <span className={`${styles.depotPulse} animate-pulse-ring`} data-pause-offscreen="" aria-hidden="true" />
             ) : null}
-          </PlanIdf>
+          </div>
           {full ? (
             <div className={styles.mapLegend} aria-hidden="true">
               <span className="text-small font-bold">

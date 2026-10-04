@@ -40,7 +40,7 @@ const STUDS = [6, 18, 30, 42, 54, 66, 78, 90];
 export function OpeningScene(): ReactElement {
   return (
     <div className={styles.openFrame} data-loops-nojs="" aria-hidden="true">
-      <div className={styles.openStage}>
+      <div className={styles.openStage} data-pause-offscreen="">
         <div className={styles.openWorldBox}>
           <div className={styles.openGlow} />
           <div className={styles.openSkylineWrap} data-parallax="" style={{ "--depth": 0.3 } as CSSProperties}>

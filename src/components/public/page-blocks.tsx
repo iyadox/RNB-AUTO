@@ -30,6 +30,10 @@ import { FaqAccordion } from "./faq-accordion";
 import { GroundText } from "./ground-text";
 import styles from "./blocks.module.css";
 
+// Marqueur « À COMPLÉTER » : dans son propre fichier (le pied de page, composant client, l'utilise
+// sans charger les blocs des pages) ; toujours exporté ici pour les pages.
+export { ToComplete } from "./to-complete";
+
 const CONTAINER = "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8";
 
 /** Typographie française : espace insécable avant « ? ! : ; » (le signe ne part jamais seul à la ligne). */
@@ -79,19 +83,22 @@ function plainText(node: ReactNode): string {
 /**
  * Longueur, en caractères, du plus long bloc insécable qui contient un mot composé (ponctuation
  * collée par l'espace insécable comprise : « INTERVENONS-NOUS ? » = 18). 0 s'il n'y en a pas.
+ * `anyWord` : le plus long bloc insécable, composé ou non (« MAINTENANT ? » = 12).
  */
-function longestJoined(node: ReactNode): number {
+function longestJoined(node: ReactNode, anyWord = false): number {
   const units = frenchSpacing(plainText(node)).split(/[ \t\n]+/);
-  return units.reduce((max, unit) => (HYPHENATED.test(unit) ? Math.max(max, unit.length) : max), 0);
+  return units.reduce((max, unit) => (anyWord || HYPHENATED.test(unit) ? Math.max(max, unit.length) : max), 0);
 }
 
 /**
  * Enveloppe d'un titre qui contient un mot composé : une boîte de requête de conteneur, pour que
  * le titre réduise sa taille juste assez pour que son plus long bloc insécable tienne dans la
  * colonne (`--joined`, voir `.fit` dans blocks.module.css). Sans mot composé : le titre seul.
+ * `anyWord` : tout mot compte (titres géants de l'aube, où « MAINTENANT ? » dépassait de l'écran
+ * à 320 px).
  */
-function HeadingFit({ text, children }: { text: ReactNode; children: ReactElement }) {
-  const joined = longestJoined(text);
+function HeadingFit({ text, anyWord = false, children }: { text: ReactNode; anyWord?: boolean; children: ReactElement }) {
+  const joined = longestJoined(text, anyWord);
   if (joined === 0) return children;
   return (
     <div className={styles.fit} style={{ "--joined": joined } as CSSProperties}>
@@ -158,54 +165,47 @@ export function Plate({
  * - `titleFit` : la taille du titre suit aussi la hauteur de l'écran sur ordinateur (12 vh) et la
  *   largeur de la colonne. Un titre de quatre lignes ne pousse plus le bouton hors du premier
  *   écran (1 024 × 768). Sous 1 024 px : 12,6 vw au plus (bouton au-dessus de 580 px à 390 × 664).
- * - `stage="tall"` : sous 1 024 px, scène haute de 60svh au plus (au lieu de 34svh).
  * - Sous 1 024 px, la scène peut déborder de 1,5rem de chaque côté : elle va jusqu'aux bords de
  *   l'écran avec une marge négative (`-mx-4`), sans être coupée à 16 px du bord.
+ * - Téléphone : la scène prend la place qui reste dans le premier écran AU-DESSUS de la barre
+ *   d'action (34svh au plus, 10rem au moins) ; son bas (véhicules, chaussée) reste visible, c'est
+ *   le haut (ciel) qui est rogné. Elle descendait sous la barre (véhicules coupés, constaté).
+ * - Ordinateur : texte à gauche, scène à droite.
  */
 export function OpeningShot({
   pk = "00",
   eyebrow,
   pictogram,
-  pictogramStyle = "auto",
   title,
   lead,
   actions,
   scene,
   sky = "minuit",
-  layout = "split",
   titleFit = false,
-  stage = "default",
   morphName,
   id = "ouverture",
 }: {
   pk?: string;
   eyebrow: string;
   pictogram?: IconName;
-  pictogramStyle?: "auto" | "solid" | "outline";
   title: ReactNode;
   lead?: ReactNode;
   actions?: ReactNode;
   scene?: ReactNode;
   sky?: SkyState;
-  layout?: "split" | "stacked" | "compact";
   titleFit?: boolean;
-  stage?: "default" | "tall";
   morphName?: MorphName;
   id?: string;
 }) {
   const plate = (
     <div className={styles.openingPlate}>
-      <Plate pk={pk} pictogram={pictogram} pictogramStyle={pictogramStyle}>
+      <Plate pk={pk} pictogram={pictogram}>
         {eyebrow}
       </Plate>
     </div>
   );
   return (
-    <section
-      id={id}
-      data-sky={sky}
-      className={cn(styles.opening, styles[`opening_${layout}`], stage === "tall" && styles.opening_tallStage)}
-    >
+    <section id={id} data-sky={sky} className={styles.opening}>
       <div className={cn(CONTAINER, styles.openingGrid)}>
         <div className={styles.openingText}>
           {morphName ? <SharedMorph name={morphName}>{plate}</SharedMorph> : plate}
@@ -215,7 +215,7 @@ export function OpeningShot({
           {lead ? <p className={styles.openingLead}>{lead}</p> : null}
           {actions ? <div className={styles.openingActions}>{actions}</div> : null}
         </div>
-        {scene && layout !== "compact" ? <div className={styles.openingScene}>{scene}</div> : null}
+        {scene ? <div className={styles.openingScene}>{scene}</div> : null}
       </div>
       <div className={styles.edgeLine} aria-hidden="true" />
     </section>
@@ -224,8 +224,6 @@ export function OpeningShot({
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
-const WIDTHS = { default: CONTAINER, wide: "w-full px-4 sm:px-6 lg:px-8", reading: "mx-auto w-full max-w-3xl px-4 sm:px-6" };
-
 export function Section({
   id,
   pk,
@@ -233,8 +231,6 @@ export function Section({
   sky = "nuit",
   title,
   split = false,
-  intro,
-  width = "default",
   children,
   className,
 }: {
@@ -247,14 +243,12 @@ export function Section({
   title?: ReactNode;
   /** Montée des lignes du titre (niveau `full` seulement). */
   split?: boolean;
-  intro?: ReactNode;
-  width?: "default" | "wide" | "reading";
   children: ReactNode;
   className?: string;
 }) {
   return (
     <section id={id} data-sky={sky} className={cn("relative py-section", className)}>
-      <div className={WIDTHS[width]}>
+      <div className={CONTAINER}>
         <div data-reveal>
           <Plate pk={pk}>{label}</Plate>
         </div>
@@ -264,11 +258,6 @@ export function Section({
               {headingText(title)}
             </h2>
           </HeadingFit>
-        ) : null}
-        {intro ? (
-          <p data-reveal className="text-lead mt-6 max-w-[60ch] text-pretty text-asphalt-200">
-            {intro}
-          </p>
         ) : null}
         <div className="mt-10 lg:mt-14">{children}</div>
       </div>
@@ -369,6 +358,13 @@ const DAWN_TEXT = "Votre estimation en moins d'une minute, confirmée avec vous 
  * L'aube de fin de page : titre en jaune (faisceau au défilement), texte, actions visibles dès
  * l'entrée, et la scène — route en perspective vers l'aube, texte peint au sol (`ground`),
  * dépanneuse qui arrive et freine. `calm` : ni dépanneuse ni texte peint (/panne-autoroute).
+ *
+ * C'est le SEUL horizon de la fin de page : le soleil s'y lève au défilement, et le pied de page
+ * qui suit (`data-dawn-cta`, voir shell.module.css) ne redessine ni ville, ni aube, ni soleil ; il
+ * reprend au pied de cette route, au dépôt. Deux couchers de soleil se suivaient (constaté).
+ *
+ * Titre : 7 rem au plus sur ordinateur (deux lignes) ; sur téléphone, sa taille s'ajuste pour que
+ * son plus long mot tienne dans la colonne (« MAINTENANT ? » sortait de l'écran à 320 px).
  */
 export function DawnCta({
   info,
@@ -387,9 +383,9 @@ export function DawnCta({
 }) {
   const showTruck = !calm && truck !== "none";
   return (
-    <section data-sky="aube" className={styles.dawnCta}>
+    <section data-sky="aube" data-dawn-cta="" className={styles.dawnCta}>
       <div className={cn(CONTAINER, "relative z-10")}>
-        <HeadingFit text={title}>
+        <HeadingFit text={title} anyWord>
           <h2 className={styles.dawnTitle}>
             <em data-beam="view" className="not-italic">
               {headingText(title)}
@@ -422,27 +418,9 @@ export function DawnCta({
   );
 }
 
-// ─── Texte long et marqueur ───────────────────────────────────────────────────
+// ─── Texte long ───────────────────────────────────────────────────────────────
 
 /** Texte long (pages légales) : titres et paragraphes lisibles, 68 caractères au plus par ligne. */
 export function Prose({ children }: { children: ReactNode }) {
   return <div className={styles.prose}>{children}</div>;
-}
-
-/**
- * Marqueur visible pour une information que RNB AUTO doit encore fournir : une zone de chantier,
- * bordure à chevrons orange et noirs (F.9), texte orange sur fond de nuit. Impossible à manquer,
- * jamais confondu avec une vraie donnée. Il laisse 0,5 em à la ponctuation qui le suit (le point
- * ne passe pas seul à la ligne).
- */
-export function ToComplete({ label }: { label?: string }) {
-  // Marqueur court (« À COMPLÉTER : email ») : jamais coupé. Dans un parent qui prend la largeur
-  // de son contenu (élément flex, cellule), la place gardée pour la ponctuation le faisait passer
-  // sur deux lignes (« À COMPLÉTER : / email »).
-  const short = (label?.length ?? 0) <= 12;
-  return (
-    <span className={cn(styles.toComplete, short && styles.toComplete_short)}>
-      <span className={styles.toCompleteFace}>À COMPLÉTER{label ? ` : ${label}` : ""}</span>
-    </span>
-  );
 }

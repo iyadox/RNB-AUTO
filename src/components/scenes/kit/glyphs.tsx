@@ -183,11 +183,13 @@ export function CarTopGlyph({ hazards = false }: CarTopGlyphProps): ReactElement
 type PinGlyphProps = {
   /** Texte sous la pointe, par exemple « Vous ». */
   label?: string;
+  /** Position du texte (défaut : sous la pointe) ; le plan la déplace si un autre nom gêne. */
+  labelAt?: { x: number; y: number; anchor: "start" | "middle" | "end" };
   /** Anneau de feux de détresse autour de la pointe (1 Hz). */
   hazards?: boolean;
 };
 
-export function PinGlyph({ label, hazards = false }: PinGlyphProps): ReactElement {
+export function PinGlyph({ label, labelAt = { x: 0, y: 17, anchor: "middle" }, hazards = false }: PinGlyphProps): ReactElement {
   const id = useSvgId("pin");
   return (
     <g>
@@ -216,9 +218,9 @@ export function PinGlyph({ label, hazards = false }: PinGlyphProps): ReactElemen
       <circle cx="0" cy="-17.5" r="3.9" fill="#05070d" />
       {label ? (
         <text
-          x="0"
-          y="17"
-          textAnchor="middle"
+          x={labelAt.x}
+          y={labelAt.y}
+          textAnchor={labelAt.anchor}
           fontSize="13"
           fontWeight="800"
           fill="#f5f3ee"

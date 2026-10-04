@@ -11,6 +11,12 @@
  *   avance et s'arrête juste derrière la voiture, le nez plonge, les feux stop s'allument. Il ne
  *   reste que les feux de détresse et le gyrophare, qui se répondent.
  * - `off` : image fixe, dépanneuse arrêtée derrière la voiture (CSS).
+ *
+ * Légèreté (C.1-7) : aucune boucle ne redessine la scène. Les tirets glissent en `transform`
+ * (calque plus large de 120 px), et les lumières qui clignotent (gyrophare, feux de détresse)
+ * sont des calques HTML en dégradé radial, posés en % du cadre du véhicule, dont seule
+ * l'opacité varie : les dessins SVG restent immobiles et ne sont jamais repeints. Sur
+ * téléphone, roues et suspension s'arrêtent à la fin de l'arrivée (CSS).
  */
 import { TowTruck } from "@/components/brand/tow-truck";
 import { Skyline } from "@/components/scenes/base/skyline";
@@ -37,8 +43,8 @@ export function NightRoad({ children }: { children?: ReactNode }) {
         {/* Les lampadaires se tiennent au bord de la route (30 % du bas de la scène). */}
         <StreetLamps count={3} loop className={styles.lamps} />
         <div className={styles.road}>
-          <div className={`${styles.roadDash} animate-road-x`} />
-          <div className={`${styles.roadDashReflect} animate-road-x`} />
+          <div className={styles.roadDash} />
+          <div className={styles.roadDashReflect} />
         </div>
 
         <div data-truck-rig className={styles.truckRig}>
@@ -50,12 +56,17 @@ export function NightRoad({ children }: { children?: ReactNode }) {
               className={`${styles.wet} ${styles.wetBeacon} animate-beacon-flash`}
             />
             <span className={`${styles.wet} ${styles.wetHead}`} />
-            <TowTruck moving headlights id="hero-truck" />
+            {/* Gyrophare : les deux feux alternent (le second décalé de 0,6 s). */}
+            <span className={`${styles.beaconLens} animate-beacon-flash`} />
+            <span className={`${styles.beaconLens} ${styles.beaconLensAlt} animate-beacon-flash`} />
+            <TowTruck moving headlights beacon={false} id="hero-truck" />
           </div>
         </div>
 
         <div className={styles.car}>
-          <CarSide id="hero-car" hazards />
+          <CarSide id="hero-car" />
+          {/* Feux de détresse (clignotants, halos et reflets au sol) : un seul calque, 1 Hz. */}
+          <span className={`${styles.carHazards} hazard`} />
         </div>
       </div>
       {children}

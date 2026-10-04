@@ -242,8 +242,10 @@ function init(root: HTMLElement, ctx: SceneContext): () => void {
 }
 
 const scene: SceneModule = {
-  // GSAP n'est utilisé qu'en mode `scrub` (ordinateur) ; le mode `once` passe par `helpers.tween`.
-  needsGsap: true,
+  // GSAP n'est utilisé qu'en mode `scrub`, sur ordinateur en niveau `full` (même condition que
+  // `init`) ; le mode `once` passe par `helpers.tween`. En `lite` ou sur téléphone, GSAP n'est
+  // donc jamais chargé pour cette scène (appareils modestes).
+  needsGsap: ({ level, desktop }) => desktop && level === "full",
   init,
 };
 

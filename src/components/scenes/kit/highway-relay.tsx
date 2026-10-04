@@ -9,8 +9,9 @@
  * la sortie. Le bleu autoroute n'est utilisé que pour le panneau.
  *
  * - `draw` : `scrub` (défilement, ordinateur), `view` (une fois à l'entrée), `static`.
- * - `orientation` : `horizontal`, `vertical` (autoroute en haut, sortie, rue en bas) ou `auto`
- *   (vertical sous 768 px). Légendes en vrai texte (`captions`).
+ * - `orientation` : `horizontal`, `vertical` (téléphone : schéma compact en S, autoroute en haut,
+ *   bretelle à droite, rue en bas ; pastilles 1, 2, 3 posées sur le dessin et légendes en liste
+ *   sous le dessin) ou `auto` (vertical sous 768 px). Légendes en vrai texte (`captions`).
  * - Sans JavaScript et en `off` : schéma complet fixe.
  * - En `auto`, le serveur rend les deux schémas (le CSS choisit, même sans JavaScript) ; après
  *   l'hydratation, seul celui qui correspond à l'écran reste dans la page (budget de nœuds, G.2).
@@ -52,6 +53,8 @@ type Layout = {
   label: { x: number; y: number; anchor: "start" | "middle" | "end"; stacked?: boolean };
   sign: { x: number; y: number };
   flag: { x: number; y: number };
+  /** Pastilles 1, 2, 3 posées sur le dessin (repères des légendes), facultatives. */
+  pins?: { x: number; y: number }[];
   legs: RouteLeg[];
   scale: number;
   truckScale: number;
@@ -79,23 +82,35 @@ const HORIZONTAL: Layout = {
   truckScale: 1,
 };
 
+/**
+ * Téléphone : schéma compact en S (environ 360 × 300 unités, soit 16:13 affiché sur 330-360 px)
+ * au lieu d'un long ruban vertical. L'autoroute file vers la droite en haut, la bretelle plonge
+ * vers le giratoire, la route ordinaire repart vers la gauche en bas : le dessin remplit le cadre.
+ * Les étapes 1, 2, 3 sont des pastilles posées sur le tracé (`pins`), reprises par les légendes
+ * en vrai texte sous le dessin (aucun chevauchement possible, même à 320 px).
+ */
 const VERTICAL: Layout = {
-  viewBox: "0 0 360 600",
-  highway: { x0: -20, x1: 380, top: 52, lanes: [74, 96], bau: 118, bottom: 134, rail: 140 },
-  gap: [224, 340],
-  opposite: { top: 0, bottom: 40 },
-  ramp: "M236 126C280 126 304 150 316 184S322 236 322 258",
-  roundabout: { x: 322, y: 280 },
-  street: "M322 302C322 356 300 396 284 436S258 520 260 600",
-  blocks: "M196 330h44v40h-44zM196 392h36v52h-36zM196 466h38v44h-38zM330 350h30v44h-30zM316 420h44v56h-44zM304 498h56v40h-56z",
-  car: { x: 62, y: 126 },
-  agreeParked: { x: 318, y: 232, angle: 88 },
-  label: { x: 302, y: 240, anchor: "end", stacked: true },
-  sign: { x: 214, y: 180 },
-  flag: { x: 264, y: 566 },
+  viewBox: "0 0 360 300",
+  highway: { x0: -20, x1: 380, top: 40, lanes: [60, 80], bau: 100, bottom: 114, rail: 120 },
+  gap: [206, 318],
+  opposite: { top: 0, bottom: 30 },
+  ramp: "M206 107C252 107 280 120 292 144S300 170 300 178",
+  roundabout: { x: 300, y: 200 },
+  street: "M300 222C300 250 278 262 244 262C200 262 160 256 120 260S60 268 -20 268",
+  blocks: "M18 140h40v40h-40zM22 196h46v38h-46zM84 204h38v32h-38zM138 200h50v36h-50zM206 186h40v44h-40zM110 282h42v18h-42zM212 280h44v20h-44zM330 240h30v48h-30z",
+  car: { x: 56, y: 107 },
+  agreeParked: { x: 298, y: 164, angle: 84 },
+  label: { x: 282, y: 150, anchor: "end", stacked: true },
+  sign: { x: 118, y: 150 },
+  flag: { x: 58, y: 250 },
+  pins: [
+    { x: 56, y: 72 },
+    { x: 334, y: 150 },
+    { x: 178, y: 286 },
+  ],
   legs: [
-    { key: "agree", style: "agree", d: "M62 126C108 126 128 107 172 107L230 107C274 107 302 134 312 168S318 210 318 222" },
-    { key: "transport", style: "transport", d: "M322 300C322 352 302 394 286 434S262 512 264 552" },
+    { key: "agree", style: "agree", d: "M56 107C96 107 114 90 150 90L196 90C240 90 270 104 284 128S296 150 296 156" },
+    { key: "transport", style: "transport", d: "M300 224C300 250 278 262 244 262C200 262 160 256 128 260S102 264 96 264" },
   ],
   scale: 1,
   truckScale: 0.92,
@@ -231,6 +246,16 @@ function RelaySvg({ layout, draw, prefix, className }: { layout: Layout; draw: N
         scrubEnd="bottom 45%"
       />
       </g>
+
+      {/* Repères des étapes, hors du fondu des bords (mêmes couleurs que les légendes) */}
+      {layout.pins?.map((pin, index) => (
+        <g key={index} data-pin={index + 1} transform={`translate(${pin.x} ${pin.y})`} className={cn(styles.relayPin, "font-figure")}>
+          <rect x="-11" y="-11" width="22" height="22" rx="4" stroke="#05070d" strokeWidth="2" />
+          <text y="5" textAnchor="middle" fontSize="14" fontWeight="800" fill="#05070d">
+            {index + 1}
+          </text>
+        </g>
+      ))}
     </svg>
   );
 }

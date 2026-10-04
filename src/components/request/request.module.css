@@ -371,24 +371,19 @@
     translate: -80% 0;
   }
 }
-/* 1 024 à 1 279 px : la colonne est étroite (84 px entre deux bornes, « Coordonnées » en fait
-   103) ; les noms des bornes paires descendent d'une ligne, en quinconce : aucun ne se touche. */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .stepRoad {
-    margin-bottom: 1.15rem;
-  }
-  .post:nth-child(2n) .postLabel {
-    top: calc(100% + 3px + var(--band-h) + 0.3rem + 1.2rem);
-  }
-}
 .post[data-state="current"] .postLabel {
   color: var(--color-signal-400);
 }
-/* Mobile : seul le nom de l'étape en cours est écrit (les autres bornes portent leur numéro). */
-@media (max-width: 1023px) {
+/* Sous 1 280 px, seul le nom de l'étape en cours est écrit (les autres bornes portent leur
+   numéro) : entre 1 024 et 1 279 px, la colonne est trop étroite pour six noms sur une ligne
+   (84 px entre deux bornes, « Coordonnées » en fait 103). */
+@media (max-width: 1279px) {
   .post:not([data-state="current"]) .postLabel {
     display: none;
   }
+}
+/* Téléphone et tablette : les noms des bornes 2 et 5 partent du bord de leur borne au lieu d'y être centrés. */
+@media (max-width: 1023px) {
   .post:nth-child(2) .postLabel {
     left: 0;
     translate: 0 0;
@@ -841,13 +836,6 @@
 .calcScreen :global(.animate-pulse-ring),
 .sheetPlan :global(.animate-pulse-ring) {
   display: none;
-}
-.scanLine {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-signal-500) 70%, transparent), transparent);
-  opacity: 0;
 }
 
 /* ─── Prix : imprimante et ticket ──────────────────────────────────────────── */

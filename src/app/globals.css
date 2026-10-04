@@ -9,7 +9,7 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 @theme {
-  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-archivo), "Archivo Fallback Text", "Archivo Fallback Text R", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --color-asphalt-50: #f4f5f7;
   --color-asphalt-100: #e6e9ed;
@@ -108,10 +108,8 @@
   --animate-chevrons: chevrons-move 1.6s linear infinite;
   --animate-road-dash: road-dash 0.55s linear infinite;
   --animate-fade-up: fade-up 0.7s var(--ease-out-expo) both;
-  --animate-rise: rise-in 1s var(--ease-out-expo) both;
   --animate-truck-in: truck-in 1.6s var(--ease-out-expo) both;
   --animate-truck-idle: truck-idle 0.9s ease-in-out infinite;
-  --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-pop: pop 0.5s var(--ease-out-back) both;
   --animate-road-x: road-dash-x 0.5s linear infinite;
   --animate-scroll-cue: scroll-cue 1.8s var(--ease-in-out-circ) infinite;
@@ -180,14 +178,6 @@
     transform: none;
   }
 }
-@keyframes rise-in {
-  from {
-    transform: translateY(105%) rotate(2deg);
-  }
-  to {
-    transform: none;
-  }
-}
 @keyframes truck-in {
   from {
     transform: translateX(-130%);
@@ -227,14 +217,6 @@
     transform: skewY(-4deg) scaleX(0.94);
   }
 }
-@keyframes shimmer {
-  from {
-    background-position: -200% 0;
-  }
-  to {
-    background-position: 200% 0;
-  }
-}
 @keyframes pop {
   from {
     opacity: 0;
@@ -252,6 +234,14 @@
     text-size-adjust: 100%;
     /* Les ancres s'arrêtent sous l'en-tête : sa hauteur réelle est écrite par la coque (--header-h). */
     scroll-padding-top: var(--header-h, 5rem);
+  }
+  /* Téléphone : le focus clavier et les ancres s'arrêtent au-dessus de la barre d'action fixe
+     (WCAG 2.4.11) : sa hauteur (3,5 rem de boutons, 0,625 rem de marge haute, marge basse sûre)
+     plus 0,75 rem d'air. La barre disparaît à partir de 768 px (`md:hidden`). */
+  @media (max-width: 767px) {
+    html {
+      scroll-padding-bottom: calc(3.5rem + 0.625rem + max(0.75rem, env(safe-area-inset-bottom)) + 0.75rem);
+    }
   }
   body {
     background: var(--color-asphalt-950);
@@ -289,8 +279,251 @@
   }
 }
 
+/* ─── Polices de repli mesurées (CLS ≤ 0,02, docs/09 G.2) ───────────────────
+   next/font ne déclare qu'un repli « Archivo Fallback » = local(Arial), réglé pour la largeur
+   100 : Arial manque sur Android et Linux (face en erreur, police système sans réglage), et les
+   titres en largeur 62 à 125 changeaient de nombre de lignes à l'arrivée d'Archivo (CLS de 0,05
+   à 0,21 sur téléphone, police retardée de 2,5 s).
+   - Une famille de repli par largeur, nommée avec la largeur : Arial gras (ou ses équivalents
+     métriques Liberation Sans, Arimo, Helvetica), puis Roboto (Android, familles « … R »).
+   - `size-adjust` = largeur d'Archivo ÷ largeur d'Arial, mesurée dans Chromium sur les textes
+     réels des pages, AUX TAILLES UTILISÉES (aux petites tailles, Archivo s'élargit de 2 à 8 % :
+     arrondi des chasses). Facteur Roboto / Arial : métriques de capsize fournies par Next
+     (Roboto 911, Medium 920, Bold 926, Black 933 ; Arial 913, Bold 983).
+   - `ascent-override` et `descent-override` redonnent la hauteur d'Archivo (0,878 et 0,210 em)
+     une fois la taille ajustée : même ligne de base. Faces de 100 à 900 : aucun gras synthétique.
+   - Texte courant : le repli de next/font reste premier quand Arial existe ; sinon « Archivo
+     Fallback Text » (Liberation Sans, Arimo) ou « … Text R » (Roboto), une face par plage de graisse.
+   - `unicode-range` = caractères couverts par Archivo (sous-ensembles latin, latin étendu,
+     vietnamien de next/font) : un signe absent d'Archivo (flèche →, etc.) garde la police
+     système, avant comme après l'arrivée d'Archivo (rendu de l'administration inchangé).
+   Archivo reste affiché dès son arrivée : aucun changement une fois la police chargée.
+   Le nom « Archivo » des utilitaires ci-dessous est celui que next/font donne à la police
+   (src/app/layout.tsx) : à garder identique si la police change. */
+@font-face {
+  font-family: "Archivo Fallback 62";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold"), local("Helvetica Bold"), local("Helvetica-Bold");
+  font-weight: 100 900;
+  size-adjust: 70.3%;
+  ascent-override: 124.89%;
+  descent-override: 29.87%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 62 R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 100 900;
+  size-adjust: 74.6%;
+  ascent-override: 117.69%;
+  descent-override: 28.15%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 75";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold"), local("Helvetica Bold"), local("Helvetica-Bold");
+  font-weight: 100 900;
+  size-adjust: 86%;
+  ascent-override: 102.09%;
+  descent-override: 24.42%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 75 R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 100 900;
+  size-adjust: 91.3%;
+  ascent-override: 96.17%;
+  descent-override: 23.00%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 88";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold"), local("Helvetica Bold"), local("Helvetica-Bold");
+  font-weight: 100 900;
+  size-adjust: 94%;
+  ascent-override: 93.40%;
+  descent-override: 22.34%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 88 R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 100 900;
+  size-adjust: 99.8%;
+  ascent-override: 87.98%;
+  descent-override: 21.04%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 112";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold"), local("Helvetica Bold"), local("Helvetica-Bold");
+  font-weight: 100 900;
+  size-adjust: 115.6%;
+  ascent-override: 75.95%;
+  descent-override: 18.17%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 112 R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 100 900;
+  size-adjust: 122.7%;
+  ascent-override: 71.55%;
+  descent-override: 17.11%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 116";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold"), local("Helvetica Bold"), local("Helvetica-Bold");
+  font-weight: 100 900;
+  size-adjust: 118.0%;
+  ascent-override: 74.41%;
+  descent-override: 17.80%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 116 R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 100 900;
+  size-adjust: 125.3%;
+  ascent-override: 70.09%;
+  descent-override: 16.76%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 125";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold"), local("Helvetica Bold"), local("Helvetica-Bold");
+  font-weight: 100 900;
+  size-adjust: 133.0%;
+  ascent-override: 66.02%;
+  descent-override: 15.79%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback 125 R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 100 900;
+  size-adjust: 141.2%;
+  ascent-override: 62.19%;
+  descent-override: 14.87%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Liberation Sans"), local("LiberationSans"), local("Arimo"), local("Arimo-Regular");
+  font-weight: 100 449;
+  size-adjust: 102.5%;
+  ascent-override: 85.66%;
+  descent-override: 20.49%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Liberation Sans"), local("LiberationSans"), local("Arimo"), local("Arimo-Regular");
+  font-weight: 450 549;
+  size-adjust: 103.5%;
+  ascent-override: 84.83%;
+  descent-override: 20.29%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold");
+  font-weight: 550 649;
+  size-adjust: 100.0%;
+  ascent-override: 87.80%;
+  descent-override: 21.00%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold");
+  font-weight: 650 749;
+  size-adjust: 101.5%;
+  ascent-override: 86.50%;
+  descent-override: 20.69%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Liberation Sans Bold"), local("LiberationSans-Bold"), local("Arimo Bold"), local("Arimo-Bold");
+  font-weight: 750 900;
+  size-adjust: 106%;
+  ascent-override: 82.83%;
+  descent-override: 19.81%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto"), local("Roboto-Regular");
+  font-weight: 100 449;
+  size-adjust: 102.7%;
+  ascent-override: 85.49%;
+  descent-override: 20.45%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Medium"), local("Roboto-Medium");
+  font-weight: 450 549;
+  size-adjust: 102.7%;
+  ascent-override: 85.49%;
+  descent-override: 20.45%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 550 649;
+  size-adjust: 106.2%;
+  ascent-override: 82.71%;
+  descent-override: 19.78%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 650 749;
+  size-adjust: 107.8%;
+  ascent-override: 81.45%;
+  descent-override: 19.48%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Archivo Fallback Text R";
+  unicode-range: U+0000-036F, U+1D00-1DBF, U+1E00-1EFF, U+2000-206F, U+20A0-20C0, U+2113, U+2122, U+2191, U+2193, U+2212, U+2215, U+2C60-2C7F, U+A720-A7FF, U+FEFF, U+FFFD;
+  src: local("Roboto Black"), local("Roboto-Black");
+  font-weight: 750 900;
+  size-adjust: 111.7%;
+  ascent-override: 78.60%;
+  descent-override: 18.80%;
+  line-gap-override: 0%;
+}
+
 /* Titres façon signalisation routière. */
 @utility font-display {
+  font-family: "Archivo", "Archivo Fallback 62", "Archivo Fallback 62 R", var(--font-sans);
   font-stretch: 62%;
   font-variation-settings: "wdth" 62;
   font-weight: 900;
@@ -304,6 +537,7 @@
   font-variation-settings: "wdth" 80;
 }
 @utility font-wide {
+  font-family: "Archivo", "Archivo Fallback 116", "Archivo Fallback 116 R", var(--font-sans);
   font-stretch: 116%;
   font-variation-settings: "wdth" 116;
   font-weight: 800;
@@ -340,17 +574,20 @@
 }
 /* Familles de la signalisation (docs/09, B.3). Les tailles viennent des jetons --text-*. */
 @utility font-sign {
+  font-family: "Archivo", "Archivo Fallback 112", "Archivo Fallback 112 R", var(--font-sans);
   font-stretch: 112%;
   font-variation-settings: "wdth" 112;
   font-weight: 800;
   text-transform: uppercase;
 }
 @utility font-step {
+  font-family: "Archivo", "Archivo Fallback 88", "Archivo Fallback 88 R", var(--font-sans);
   font-stretch: 88%;
   font-variation-settings: "wdth" 88;
   font-weight: 800;
 }
 @utility font-plate {
+  font-family: "Archivo", "Archivo Fallback 125", "Archivo Fallback 125 R", var(--font-sans);
   font-stretch: 125%;
   font-variation-settings: "wdth" 125;
   font-weight: 800;
@@ -358,6 +595,7 @@
   text-transform: uppercase;
 }
 @utility font-figure {
+  font-family: "Archivo", "Archivo Fallback 75", "Archivo Fallback 75 R", var(--font-sans);
   font-stretch: 75%;
   font-variation-settings: "wdth" 75;
   font-weight: 900;
@@ -390,54 +628,10 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
-/* Masque de texte pour les mots qui « montent » (animation d'entrée du titre). */
-.rise-line {
-  display: inline-block;
-  overflow: hidden;
-  vertical-align: top;
-  padding: 0.14em 0.04em 0.06em;
-  margin: -0.14em -0.04em -0.06em;
-}
-.rise-word {
-  display: inline-block;
-  animation: var(--animate-rise);
-  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
-}
-
-/* Masques des titres animés (GSAP SplitText) : laissent de la place aux accents. */
-.split-line-mask {
-  padding: 0.16em 0.05em 0.05em;
-  margin: -0.16em -0.05em -0.05em;
-}
-
-/* Apparition au défilement (ancien moteur `PageMotion`) : les éléments restent visibles si
-   JavaScript ne se charge pas. Dès que le nouveau moteur pose `data-motion` sur <html>, ce sont
-   les règles de src/styles/motion.css qui s'appliquent. */
-[data-reveal] {
-  transition:
-    opacity 0.9s var(--ease-out-expo),
-    transform 0.9s var(--ease-out-expo);
-  transition-delay: var(--reveal-delay, 0ms);
-}
-html:not([data-motion]).motion-ready [data-reveal]:not([data-revealed]) {
-  opacity: 0;
-  transform: translateY(28px);
-}
 /* Scènes animées en pause lorsqu'elles ne sont plus visibles (économie de batterie). */
 .scene-paused,
 .scene-paused * {
   animation-play-state: paused !important;
-}
-
-/* Squelette de chargement. */
-.skeleton {
-  background: linear-gradient(90deg, rgb(255 255 255 / 0.04) 25%, rgb(255 255 255 / 0.1) 50%, rgb(255 255 255 / 0.04) 75%);
-  background-size: 200% 100%;
-  animation: var(--animate-shimmer);
-}
-.theme-admin .skeleton {
-  background: linear-gradient(90deg, #eef0f3 25%, #f8f9fa 50%, #eef0f3 75%);
-  background-size: 200% 100%;
 }
 
 /* Respect de la préférence « moins d'animations » du téléphone ou de l'ordinateur. */

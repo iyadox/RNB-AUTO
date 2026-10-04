@@ -34,7 +34,7 @@ export async function PublicShell({ children }: { children: ReactNode }): Promis
       <main id="contenu" className="relative z-10 min-h-[60vh]">
         {children}
       </main>
-      <SiteFooter info={info} />
+      <SiteFooter info={info} year={new Date().getFullYear()} />
       <ActionBar phone={info.phone} whatsapp={info.whatsapp} />
       <MotionRuntime />
     </>

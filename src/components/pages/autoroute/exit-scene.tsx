@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * /panne-autoroute, PK 02 : la sortie (docs/09, F.4).
  *
@@ -8,7 +10,8 @@
  * RNB AUTO prend le relais (losange). Aucune dépanneuse sur l'autoroute.
  *
  * Seul mouvement : le trajet jaune se trace une fois à l'entrée (P10, mode `view`, sans GSAP).
- * Sans JavaScript et en `off` : tracé complet. Composant serveur, décoratif (`aria-hidden`).
+ * Sans JavaScript et en `off` : tracé complet. Composant client sans état (décision L9-F3-1 :
+ * la charge RSC ne porte qu'une référence) ; rendu serveur identique. Décoratif (`aria-hidden`).
  */
 import type { ReactElement } from "react";
 import { cn } from "@/components/ui/cn";

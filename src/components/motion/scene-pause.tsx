@@ -4,28 +4,37 @@
  * P20 · Bouton « Pause » / « Lecture » dans le coin d'une scène qui tourne en boucle
  * (WCAG 2.2.2). Il pose `.scene-paused` et `data-user-paused` sur la cible : le runtime ne
  * relance pas une scène mise en pause par le visiteur quand elle revient dans l'écran.
+ * Le choix est mémorisé dans le navigateur (`usePauseChoice`, une clé par scène) : après un
+ * rechargement ou un retour sur la page, la scène reste en pause (critère I).
  * Masqué sans JavaScript et en niveau `off` (la scène est déjà immobile).
  */
-import { useState } from "react";
+import { useEffect } from "react";
 import { cn } from "@/components/ui/cn";
+import { usePauseChoice } from "./pause-choice";
 
 export function ScenePause({ targetId, className }: { targetId: string; className?: string }) {
-  const [paused, setPaused] = useState(false);
-  const toggle = () => {
-    const next = !paused;
+  const [paused, setPaused] = usePauseChoice(targetId);
+
+  // Applique le choix à la scène (au montage aussi : pause mémorisée). La reprise ne retire la
+  // pause que si elle venait du visiteur : la pause « hors de l'écran » du runtime est gardée.
+  useEffect(() => {
     const target = document.getElementById(targetId);
-    if (target) {
-      target.classList.toggle("scene-paused", next);
-      target.toggleAttribute("data-user-paused", next);
+    if (!target) return;
+    if (paused) {
+      target.classList.add("scene-paused");
+      target.setAttribute("data-user-paused", "");
+    } else if (target.hasAttribute("data-user-paused")) {
+      target.classList.remove("scene-paused");
+      target.removeAttribute("data-user-paused");
     }
-    setPaused(next);
-  };
+  }, [paused, targetId]);
+
   return (
     <button
       type="button"
       data-scene-pause
       aria-controls={targetId}
-      onClick={toggle}
+      onClick={() => setPaused(!paused)}
       className={cn(
         "inline-flex min-h-12 items-center gap-2 rounded-full bg-night-950/70 px-3.5 text-small font-semibold text-asphalt-200 transition-colors hover:text-chalk",
         "shadow-[inset_0_0_0_1px_rgb(255_253_246_/_0.14)]",

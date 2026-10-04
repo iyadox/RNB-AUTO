@@ -7,6 +7,7 @@
  * son état final (`data-scene-failed`) en cas d'erreur.
  */
 import type { GsapKit, MotionLevel, SceneContext, SceneHelpers } from "../types";
+import type { SplitKit } from "./gsap-kit";
 import { onDomChange } from "./observers";
 import { getLoader, subscribe } from "./scene-registry";
 
@@ -16,8 +17,17 @@ type Cleanup = () => void;
 const clamp01 = (value: number) => (value < 0 ? 0 : value > 1 ? 1 : value);
 /** Équivalent de `expo.out` (C.2). */
 export const easeOutExpo = (t: number) => (t >= 1 ? 1 : 1 - 2 ** (-10 * t));
-/** Équivalent de `sine.inOut` (faisceaux, balayages). */
-export const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
+
+/**
+ * Rend la main au navigateur entre deux morceaux de travail (TBT, G.2) : aucune tâche du
+ * démarrage ne doit dépasser 50 ms. `scheduler.yield()` quand il existe (la suite reste
+ * prioritaire), sinon une tâche à part.
+ */
+export function yieldToMain(): Promise<void> {
+  const scheduler = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (typeof scheduler?.yield === "function") return scheduler.yield();
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 const safely = (fn: Cleanup) => {
   try {
@@ -92,56 +102,138 @@ export function prepareSplitText(text: string): string {
     .replace(/« /g, "«\u00a0");
 }
 
+/** Ligne de départ de la montée : le haut du titre passe à 86 % de la hauteur de l'écran (P5). */
+const SPLIT_PLAY_MARGIN = "0px 0px -14% 0px";
+/** Découpage préparé quand le titre approche (moins de 60 % d'écran sous le bas de l'écran). */
+const SPLIT_PREPARE_MARGIN = "0px 0px 60% 0px";
+
 /**
  * Découpe les titres `[data-split]` en lignes masquées qui montent une fois (top 86 %).
- * Un titre déjà dans l'écran n'est jamais découpé (il ne doit pas clignoter).
+ * Un titre déjà dans l'écran (ou au-dessus) n'est jamais découpé : il ne doit pas clignoter.
+ *
+ * Travail réparti pour ne bloquer ni le premier affichage ni le défilement (TBT, G.2) :
+ * - positions lues en un seul passage, avant tout découpage (aucune alternance lecture/écriture) ;
+ * - GSAP et SplitText ne sont chargés qu'à l'approche du premier titre (`loadSplitKit`, sans
+ *   ScrollTrigger : la montée part d'un IntersectionObserver à la même ligne de 86 %) ;
+ * - un titre par tâche, en rendant la main entre deux.
+ * Kit indisponible (réseau, blocage) : les titres restent tels quels, visibles.
  */
-export function initSplit(root: ParentNode, kit: GsapKit): Cleanup {
-  const { gsap, SplitText } = kit;
+export function initSplit(root: ParentNode, loadKit: () => Promise<SplitKit>): Cleanup {
   const splits: { revert(): void }[] = [];
+  const plays: IntersectionObserver[] = [];
+  const queue: HTMLElement[] = [];
   let disposed = false;
-  const ctx = gsap.context(() => {});
+  let draining = false;
+  let ctx: ReturnType<SplitKit["gsap"]["context"]> | null = null;
 
-  const run = () => {
-    if (disposed) return;
-    for (const title of Array.from(root.querySelectorAll<HTMLElement>("[data-split]"))) {
-      if (title.hasAttribute("data-split-done") || title.hasAttribute("data-beam")) continue;
-      title.setAttribute("data-split-done", "");
-      if (title.getBoundingClientRect().top < window.innerHeight) continue;
-      try {
-        ctx.add(() => {
-          const split = SplitText.create(title, {
-            type: "lines",
-            mask: "lines",
-            linesClass: "split-line",
-            autoSplit: true,
-            aria: "auto",
-            reduceWhiteSpace: false,
-            prepareText: prepareSplitText,
-            onSplit: (self: { lines: Element[] }) =>
-              gsap.from(self.lines, {
-                yPercent: 110,
-                rotate: 2,
-                duration: 0.8,
-                ease: "expo.out",
-                stagger: 0.07,
-                scrollTrigger: { trigger: title, start: "top 86%", once: true },
-              }),
-          });
-          splits.push(split);
+  const split = (kit: SplitKit, title: HTMLElement) => {
+    // Le visiteur a pu défiler vite : un titre déjà dans l'écran reste tel quel.
+    if (title.getBoundingClientRect().top < window.innerHeight) return;
+    const { gsap, SplitText } = kit;
+    ctx ??= gsap.context(() => {});
+    let played = false;
+    let tween: { play(): unknown; progress(value: number): unknown } | null = null;
+    try {
+      ctx.add(() => {
+        const instance = SplitText.create(title, {
+          type: "lines",
+          mask: "lines",
+          linesClass: "split-line",
+          autoSplit: true,
+          aria: "auto",
+          reduceWhiteSpace: false,
+          prepareText: prepareSplitText,
+          // Redécoupage (largeur, police) : la montée est recréée, à l'arrivée si elle a déjà joué.
+          onSplit: (self: { lines: Element[] }) => {
+            const animation = gsap.from(self.lines, {
+              yPercent: 110,
+              rotate: 2,
+              duration: 0.8,
+              ease: "expo.out",
+              stagger: 0.07,
+              paused: true,
+            });
+            if (played) animation.progress(1);
+            tween = animation;
+            return animation;
+          },
         });
-      } catch {
-        fail(title);
+        splits.push(instance);
+      });
+    } catch {
+      fail(title);
+      return;
+    }
+    // Montée quand le haut du titre franchit 86 % de l'écran ; un saut au-delà (ancre, retour
+    // en haut de page…) la joue aussi, pour qu'un titre ne reste jamais caché.
+    const play = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry || (!entry.isIntersecting && entry.boundingClientRect.top > 0)) return;
+        play.disconnect();
+        played = true;
+        tween?.play();
+      },
+      { rootMargin: SPLIT_PLAY_MARGIN },
+    );
+    play.observe(title);
+    plays.push(play);
+  };
+
+  const drain = async () => {
+    if (draining) return;
+    draining = true;
+    try {
+      const kit = await loadKit();
+      while (!disposed && queue.length > 0) {
+        const title = queue.shift();
+        if (title?.isConnected) split(kit, title);
+        await yieldToMain();
       }
+    } catch {
+      // GSAP indisponible : les titres gardent leur état final.
+      queue.length = 0;
+    } finally {
+      draining = false;
     }
   };
 
-  // Découpage après le chargement des polices (lignes justes du premier coup).
-  void document.fonts.ready.then(run, run);
+  const approach = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        approach.unobserve(entry.target);
+        queue.push(entry.target as HTMLElement);
+      }
+      if (queue.length > 0) void drain();
+    },
+    { rootMargin: SPLIT_PREPARE_MARGIN },
+  );
+
+  const scan = () => {
+    if (disposed) return;
+    const titles = Array.from(root.querySelectorAll<HTMLElement>("[data-split]")).filter(
+      (title) => !title.hasAttribute("data-split-done") && !title.hasAttribute("data-beam"),
+    );
+    // Toutes les lectures d'abord, puis les écritures.
+    const limit = window.innerHeight;
+    const tops = titles.map((title) => title.getBoundingClientRect().top);
+    titles.forEach((title, index) => {
+      title.setAttribute("data-split-done", "");
+      if ((tops[index] ?? 0) >= limit) approach.observe(title);
+    });
+  };
+
+  // Lignes justes du premier coup : rien n'est préparé avant le chargement des polices.
+  void document.fonts.ready.then(scan, scan);
+  const stopDom = onDomChange(scan);
   return () => {
     disposed = true;
-    for (const split of splits) safely(() => split.revert());
-    safely(() => ctx.revert());
+    stopDom();
+    approach.disconnect();
+    for (const play of plays) play.disconnect();
+    for (const instance of splits) safely(() => instance.revert());
+    if (ctx) safely(() => ctx?.revert());
     for (const title of Array.from(root.querySelectorAll("[data-split-done]"))) title.removeAttribute("data-split-done");
   };
 }
@@ -397,6 +489,8 @@ export function initScenes(root: ParentNode, ctx: ScenesContext): Cleanup {
       const wantsGsap =
         typeof scene.needsGsap === "function" ? scene.needsGsap({ level: ctx.level, desktop: ctx.desktop }) : scene.needsGsap === true;
       const kit = wantsGsap ? await ctx.loadKit() : null;
+      // Une scène par tâche : plusieurs scènes qui approchent ensemble ne font pas une longue tâche.
+      await yieldToMain();
       if (disposed || !el.isConnected) return;
       const sceneContext: SceneContext = { level: ctx.level, desktop: ctx.desktop, kit, helpers: ctx.helpers };
       let cleanup: void | Cleanup;

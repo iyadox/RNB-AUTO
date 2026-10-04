@@ -29,7 +29,7 @@ const SAFETY: { title: string; text: string; icon: IconName }[] = [
   },
   {
     title: "Appelez les secours",
-    text: "Utilisez une borne orange d'appel d'urgence (tous les 2 km) ou composez le 112. Ils envoient le dépanneur agréé.",
+    text: "Utilisez une borne orange d'appel d'urgence (tous les 2\u00a0km) ou composez le 112. Ils envoient le dépanneur agréé.",
     icon: "callbox",
   },
 ];

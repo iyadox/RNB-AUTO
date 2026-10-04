@@ -1,0 +1,42 @@
+/* Marqueur « À COMPLÉTER » (docs/09, F.9), partagé par les pages et le pied de page. */
+
+/* Zone de chantier (F.9) : bordure à chevrons orange et noirs, texte orange sur fond de nuit.
+   Impossible à manquer, jamais confondu avec une vraie donnée. 0,5 em de place pour la
+   ponctuation qui suit (le point ne passe pas seul à la ligne). */
+.toComplete {
+  display: inline-flex;
+  max-width: calc(100% - 0.5em);
+  padding: 3px;
+  vertical-align: middle;
+  border-radius: 6px;
+  font-size: 0.95em;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--color-beacon-400);
+  background: repeating-linear-gradient(-45deg, var(--color-beacon-500) 0 6px, var(--color-asphalt-950) 6px 12px);
+}
+.toCompleteFace {
+  max-width: 100%;
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  white-space: normal;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--color-beacon-500) 14%, transparent),
+      color-mix(in srgb, var(--color-beacon-500) 14%, transparent)
+    ),
+    var(--color-night-950);
+}
+.toComplete_short {
+  max-width: none;
+  white-space: nowrap;
+}
+.toComplete_short .toCompleteFace {
+  white-space: nowrap;
+}
+@media (forced-colors: active) {
+  .toComplete {
+    border: 2px solid CanvasText;
+  }
+}
+

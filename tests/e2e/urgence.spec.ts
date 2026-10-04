@@ -1,4 +1,5 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { DEV_NOISE, PAGES, chooseAddress, frames, idle, isMobile, scrollThrough, setReferenceViewport, statusOf } from "./helpers";
 
 /**
  * Recette « urgence » de la refonte immersive (docs/09, G.1 : U1 à U4, U6, U8, U10).
@@ -7,72 +8,15 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
  * Aucune temporisation arbitraire : on attend un état (expect.poll, événements du navigateur).
  */
 
-/** Toutes les pages publiques (la dernière est la page « Route barrée » d'une adresse inconnue). */
-const PAGES = [
-  "/",
-  "/depannage",
-  "/remorquage",
-  "/zones-d-intervention",
-  "/panne-autoroute",
-  "/questions-frequentes",
-  "/entreprise",
-  "/contact",
-  "/demande",
-  "/mentions-legales",
-  "/confidentialite",
-  "/conditions-d-intervention",
-  "/route-inconnue",
-] as const;
-
-const statusOf = (path: string) => (path === "/route-inconnue" ? 404 : 200);
-const isMobile = (testInfo: TestInfo) => testInfo.project.name !== "desktop";
-
 /** Pages dont l'ouverture a un bouton principal jaune (U4). /panne-autoroute : les réflexes d'abord. */
 const OPENING_BUTTON = ["/", "/depannage", "/remorquage", "/zones-d-intervention", "/questions-frequentes", "/entreprise", "/route-inconnue"];
 
 /** Morceaux chargés en différé : GSAP (et son chargeur) et Lenis. */
 const DEFERRED_CHUNK = /\/_next\/.*(gsap|lenis)/i;
 
-/**
- * Bruit du serveur de développement (Turbopack) : course au chargement d'une feuille CSS pendant
- * la compilation à la demande. N'existe pas dans un build de production (relevé par L1a et L6b).
- */
-const DEV_NOISE = /No link element found for chunk/;
-
-test.beforeEach(async ({ page }, testInfo) => {
-  // Largeur de référence du cahier pour le téléphone.
-  if (isMobile(testInfo)) await page.setViewportSize({ width: 390, height: 844 });
-});
+test.beforeEach(async ({ page }, testInfo) => setReferenceViewport(page, testInfo));
 
 // ─── Outils ─────────────────────────────────────────────────────────────────────
-
-async function frames(page: Page) {
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-}
-
-/** Attend le premier moment calme du navigateur (le runtime y lance son chargement différé). */
-async function idle(page: Page) {
-  await page.evaluate(
-    () => new Promise<void>((resolve) => (window.requestIdleCallback ? window.requestIdleCallback(() => resolve(), { timeout: 2000 }) : resolve())),
-  );
-}
-
-/** Parcourt la page de haut en bas (80 % d'écran par pas) puis revient en haut. */
-async function scrollThrough(page: Page, onStep?: (step: number) => Promise<void>) {
-  for (let step = 0; ; step += 1) {
-    const done = await page.evaluate((index) => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const y = Math.min(max, Math.round(index * window.innerHeight * 0.8));
-      window.scrollTo({ top: y, behavior: "instant" });
-      return y >= max;
-    }, step);
-    await frames(page);
-    if (onStep) await onStep(step);
-    if (done || step > 60) break;
-  }
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-  await frames(page);
-}
 
 /**
  * Textes cachés dans la zone visible : opacité effective (produit des ancêtres) sous 0,05 ou
@@ -424,11 +368,6 @@ test("U6 pendant une transition de page : les actions restent touchables", async
 
 // ─── U8 : /demande, aucune attente artificielle ────────────────────────────────
 
-async function chooseAddress(page: Page, label: string, query: string) {
-  await page.getByRole("combobox", { name: label }).fill(query);
-  await page.getByRole("option").first().click();
-}
-
 test("U8 /demande : calcul lent, message à 4 s, prix immédiat", async ({ page }, testInfo) => {
   test.setTimeout(150_000);
   await page.goto("/demande");
@@ -519,28 +458,24 @@ for (const path of PAGES) {
 test.describe("U10 · GSAP et Lenis bloqués", () => {
   for (const path of PAGES) {
     test(`U10 ${path} : la page reste complète sans GSAP ni Lenis`, async ({ page }) => {
-      const blocked: string[] = [];
       const pageErrors: string[] = [];
       page.on("pageerror", (error) => {
         if (!DEV_NOISE.test(error.message)) pageErrors.push(error.message);
       });
-      await page.route(DEFERRED_CHUNK, async (route) => {
-        blocked.push(route.request().url());
-        await route.abort("blockedbyclient");
-      });
+      // Le test « U10 contrôle » ci-dessous vérifie que ce blocage intercepte bien GSAP.
+      await page.route(DEFERRED_CHUNK, (route) => route.abort("blockedbyclient"));
       const response = await page.goto(path);
       expect(response?.status()).toBe(statusOf(path));
       await idle(page);
       await expect(page.locator("h1")).toBeVisible();
 
-      const hidden = new Set<string>();
+      // À chaque écran, tous les textes finissent par être visibles (même sans GSAP pour les
+      // révéler) et le restent : une deuxième lecture, juste après, ne doit rien trouver non plus.
       await scrollThrough(page, async (step) => {
-        await expect
-          .poll(() => hiddenTexts(page), { message: `${path}, écran ${step + 1} : textes cachés`, timeout: 6000 })
-          .toEqual([]);
-        (await hiddenTexts(page)).forEach((item) => hidden.add(item));
+        const message = `${path}, écran ${step + 1} : textes cachés`;
+        await expect.poll(() => hiddenTexts(page), { message, timeout: 6000 }).toEqual([]);
+        expect(await hiddenTexts(page), `${message} (deuxième lecture)`).toEqual([]);
       });
-      expect([...hidden]).toEqual([]);
       expect(pageErrors, "erreurs JavaScript").toEqual([]);
     });
   }
@@ -553,8 +488,10 @@ test.describe("U10 · GSAP et Lenis bloqués", () => {
     });
     await page.goto("/depannage");
     await idle(page);
-    await page.evaluate(() => window.scrollTo({ top: 400, behavior: "instant" }));
-    await expect.poll(() => blocked.length, { message: "requête GSAP interceptée" }).toBeGreaterThan(0);
+    // Sur téléphone, GSAP n'est demandé qu'à l'approche du premier titre animé ou d'une scène
+    // (rien au démarrage) : on parcourt toute la page pour déclencher ces chargements.
+    await scrollThrough(page);
+    await expect.poll(() => blocked.length, { message: "requête GSAP ou Lenis interceptée" }).toBeGreaterThan(0);
     // Le titre et les sections restent lisibles.
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.locator("#contenu h2").first()).toBeVisible();

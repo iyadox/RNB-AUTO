@@ -3,18 +3,30 @@
  * (`public/scenes/skyline-*.svg`, produits par scripts/generate-scene-assets.ts), répétés en
  * `repeat-x` et déplacés en `transform`. Le conteneur donne la hauteur (classe `className`) ;
  * la tuile garde ses proportions. `loop` : la ville défile (lent : loin, rapide : près).
+ *
+ * `preload` (vrai par défaut pour un horizon qui défile, réservé à la scène d'ouverture, au-dessus
+ * de la ligne de flottaison) : la tuile est annoncée dès le `<head>` (`<link rel="preload">`, priorité
+ * basse) au lieu d'être découverte après le CSS. Quand la police est en cache, le titre rétrécit et
+ * le calque d'horizon devient le plus grand élément affiché (LCP) : il ne doit pas arriver en retard.
  */
 import type { ReactElement } from "react";
+import { preload as preloadResource } from "react-dom";
 import { cn } from "@/components/ui/cn";
 import styles from "./base.module.css";
 
 type SkylineProps = {
   layer: "far" | "near";
   loop?: "slow" | "fast" | null;
+  /** Annonce la tuile dès le `<head>` (défaut : seulement si l'horizon défile). */
+  preload?: boolean;
   className?: string;
 };
 
-export function Skyline({ layer, loop = null, className }: SkylineProps): ReactElement {
+const TILE = { far: "/scenes/skyline-far.svg", near: "/scenes/skyline-near.svg" } as const;
+
+export function Skyline({ layer, loop = null, preload = loop !== null, className }: SkylineProps): ReactElement {
+  // Même adresse que le `background-image` de base.module.css : une seule requête.
+  if (preload) preloadResource(TILE[layer], { as: "image", fetchPriority: "low" });
   return (
     <div
       aria-hidden="true"

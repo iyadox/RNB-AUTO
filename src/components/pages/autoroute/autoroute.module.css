@@ -22,6 +22,10 @@
   position: relative;
   z-index: 1;
 }
+/* Plaque et titre : l'arrivée du panneau orange du carrefour (un seul bloc, jamais fragmenté). */
+.openingHead {
+  display: flow-root;
+}
 .title {
   @apply font-display;
   margin-top: 0.9rem;
@@ -403,11 +407,18 @@
 
 /* ─── PK 02 · La sortie ─────────────────────────────────────────────────────── */
 
+/* Marge basse courte : les questions liées qui suivent ont déjà leur marge haute (environ 350 px
+   de ciel vide entre « Demander le relais » et les questions sur ordinateur, constaté). */
 .exitSection {
   position: relative;
   padding-top: calc(var(--spacing-section) * 0.5);
-  padding-bottom: calc(var(--spacing-section) * 0.6);
+  padding-bottom: calc(var(--spacing-section) * 0.25);
   overflow-x: clip;
+}
+@media (min-width: 1024px) {
+  .exitSection {
+    padding-bottom: 0;
+  }
 }
 .exitGrid {
   @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;

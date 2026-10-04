@@ -4,7 +4,8 @@
  * P13 · Pmv : panneau à messages variables, matrice de LED ambre. Un message à la fois,
  * remplacé colonne par colonne toutes les 3,5 s. Contenu FACTUEL uniquement.
  * - Le visuel est `aria-hidden` ; une liste `sr-only` statique donne tous les messages.
- * - Pause au survol, au focus, hors de l'écran, et avec le bouton « Pause » (WCAG 2.2.2).
+ * - Pause au survol, au focus, hors de l'écran, et avec le bouton « Pause » (WCAG 2.2.2), dont le
+ *   choix est mémorisé (`usePauseChoice`).
  * - `off` et sans JavaScript : premier message affiché, fixe.
  * Mobile : deux lignes de 26 caractères au plus par message.
  * Taille des LED : celle qui fait tenir la plus longue ligne dans la largeur du panneau (20 px au
@@ -15,6 +16,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { cn } from "@/components/ui/cn";
 import { currentMotionLevel, subscribeMotionLevel } from "./level";
+import { usePauseChoice } from "./pause-choice";
 import { longestLedEm } from "./pmv-fit";
 import styles from "./pmv.module.css";
 
@@ -53,7 +55,8 @@ export function Pmv({ messages, label, size = "md", interval = 3500, joinFrom, c
   const animated = useSyncExternalStore(subscribeMotionLevel, motionAllowed, () => false);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<"idle" | "out" | "in">("idle");
-  const [paused, setPaused] = useState(false);
+  // Pause du visiteur, mémorisée par panneau (clé : son nom accessible).
+  const [paused, setPaused] = usePauseChoice(`pmv:${label}`);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [onScreen, setOnScreen] = useState(true);
@@ -134,7 +137,7 @@ export function Pmv({ messages, label, size = "md", interval = 3500, joinFrom, c
       {/* Rendu dès le serveur (aucun décalage de mise en page à l'hydratation) ; masqué en CSS
           sans JavaScript, en niveau `off` et avec la préférence « réduire » (motion.css, P20). */}
       {count > 1 ? (
-        <button type="button" data-scene-pause className={styles.pause} onClick={() => setPaused((value) => !value)}>
+        <button type="button" data-scene-pause className={styles.pause} onClick={() => setPaused(!paused)}>
           <svg viewBox="0 0 16 16" className={styles.pauseIcon} aria-hidden="true" fill="currentColor">
             {paused ? <path d="M4 2.5v11l9-5.5z" /> : <path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" />}
           </svg>

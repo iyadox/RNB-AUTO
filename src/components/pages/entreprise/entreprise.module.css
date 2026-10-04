@@ -736,21 +736,61 @@
   padding: 0;
   list-style: none;
 }
-/* Le mât : les six panneaux ronds y sont fixés, l'un sous l'autre. */
-.pledges::before {
-  content: "";
-  position: absolute;
-  top: 2.5rem;
-  bottom: 2.5rem;
-  left: calc(0.25rem + 1.875rem - 3px);
-  width: 6px;
-  border-radius: 3px;
-  background: linear-gradient(to right, var(--color-asphalt-600), var(--color-asphalt-800) 60%, var(--color-night-950));
-  pointer-events: none;
+/* La route des engagements : une chaussée verticale (bords craie) qui relie les six panneaux,
+   posés dessus comme des jalons ; sa ligne médiane jaune se trace au défilement (niveau `full`).
+   `--road-x` : axe des panneaux. */
+.pledges {
+  --road-x: calc(0.25rem + 1.875rem);
+  --road-w: 2.6rem;
 }
 @media (min-width: 1024px) {
-  .pledges::before {
-    left: calc(0.5rem + 2.75rem - 3px);
+  .pledges {
+    --road-x: calc(0.5rem + 2.75rem);
+    --road-w: 3.6rem;
+  }
+}
+.pledges::before,
+.pledges::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+.pledges::before {
+  left: calc(var(--road-x) - var(--road-w) / 2);
+  width: var(--road-w);
+  background:
+    linear-gradient(to right, color-mix(in srgb, var(--color-chalk) 34%, transparent) 0 2px, transparent 2px calc(100% - 2px), color-mix(in srgb, var(--color-chalk) 34%, transparent) calc(100% - 2px)),
+    linear-gradient(to right, var(--color-asphalt-850), var(--color-asphalt-800) 50%, var(--color-asphalt-850));
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+}
+.pledges::after {
+  left: calc(var(--road-x) - 1px);
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, var(--color-signal-500) 0 16px, transparent 16px 32px);
+  box-shadow: 0 0 8px rgb(255 196 0 / 0.35);
+  transform-origin: 50% 0;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+}
+@supports (animation-timeline: view()) {
+  .pledges {
+    view-timeline-name: --pledges;
+  }
+  :global(html[data-motion="full"]) .pledges::after {
+    animation: road-fill linear both;
+    animation-timeline: --pledges;
+    animation-range: entry 25% exit 55%;
+  }
+}
+@keyframes road-fill {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
   }
 }
 .pledge {
@@ -773,7 +813,8 @@
 .pledge::before {
   content: "";
   position: absolute;
-  left: 0;
+  /* Le marquage part du bord de la route, il ne la traverse pas. */
+  left: calc(var(--road-x) + var(--road-w) / 2 + 0.5rem);
   right: 0;
   bottom: 0;
   height: 2px;

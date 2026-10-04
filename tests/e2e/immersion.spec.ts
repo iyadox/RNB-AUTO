@@ -1,4 +1,5 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { DEV_NOISE, PAGES, chooseAddress, frames, idle, scrollThrough, setReferenceViewport, statusOf } from "./helpers";
 
 /**
  * Recette « immersion » de la refonte (docs/09, G.1 et G.3) : structure des pages (un seul h1,
@@ -8,63 +9,10 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
  * textes uniques protégés de /demande. Projets « mobile » (390 × 844) et « desktop » (1 440 × 900).
  */
 
-const PAGES = [
-  "/",
-  "/depannage",
-  "/remorquage",
-  "/zones-d-intervention",
-  "/panne-autoroute",
-  "/questions-frequentes",
-  "/entreprise",
-  "/contact",
-  "/demande",
-  "/mentions-legales",
-  "/confidentialite",
-  "/conditions-d-intervention",
-  "/route-inconnue",
-] as const;
-
 /** Pages qui ne chargent jamais GSAP (G.2). */
 const NO_GSAP = ["/contact", "/demande", "/panne-autoroute", "/mentions-legales", "/confidentialite", "/conditions-d-intervention", "/route-inconnue"];
 
-/**
- * Bruit du serveur de développement (Turbopack) : course au chargement d'une feuille CSS pendant
- * la compilation à la demande. N'existe pas dans un build de production (relevé par L1a et L6b).
- */
-const DEV_NOISE = /No link element found for chunk/;
-
-const statusOf = (path: string) => (path === "/route-inconnue" ? 404 : 200);
-const isMobile = (testInfo: TestInfo) => testInfo.project.name !== "desktop";
-
-test.beforeEach(async ({ page }, testInfo) => {
-  if (isMobile(testInfo)) await page.setViewportSize({ width: 390, height: 844 });
-});
-
-async function frames(page: Page) {
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-}
-
-async function idle(page: Page) {
-  await page.evaluate(
-    () => new Promise<void>((resolve) => (window.requestIdleCallback ? window.requestIdleCallback(() => resolve(), { timeout: 2000 }) : resolve())),
-  );
-}
-
-async function scrollThrough(page: Page, onStep?: (step: number) => Promise<void>) {
-  for (let step = 0; ; step += 1) {
-    const done = await page.evaluate((index) => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const y = Math.min(max, Math.round(index * window.innerHeight * 0.8));
-      window.scrollTo({ top: y, behavior: "instant" });
-      return y >= max;
-    }, step);
-    await frames(page);
-    if (onStep) await onStep(step);
-    if (done || step > 60) break;
-  }
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-  await frames(page);
-}
+test.beforeEach(async ({ page }, testInfo) => setReferenceViewport(page, testInfo));
 
 /** Largeur qui dépasse de l'écran (0 si aucun débordement horizontal). */
 async function overflowX(page: Page): Promise<number> {
@@ -268,11 +216,6 @@ test("A3 : le bouton « Arrêter les animations » coupe tout et reste mémoris�
 });
 
 // ─── G.1 : textes uniques protégés ─────────────────────────────────────────────
-
-async function chooseAddress(page: Page, label: string, query: string) {
-  await page.getByRole("combobox", { name: label }).fill(query);
-  await page.getByRole("option").first().click();
-}
 
 test("G.1 /contact : « À COMPLÉTER » visible tant que le numéro manque", async ({ page }) => {
   await page.goto("/contact");

@@ -1,8 +1,16 @@
+"use client";
+
 /**
  * Page « Route barrée » (docs/09, F.10) : ouverture (texte, issues, scène) puis la déviation,
  * un mât de jalonnement vers les pages du site (libellés et aides du menu, `MENU_ITEMS`).
  * Partagée par la 404 (composant serveur) et la page d'erreur (composant client) : aucun accès
  * serveur ici, les actions sont fournies par l'appelant.
+ *
+ * Composant client : la 404 racine et celle du groupe (public) sont recopiées dans la charge RSC
+ * de CHAQUE page (frontières `notFound` des layouts). En composant client, la charge ne contient
+ * plus qu'une référence et les textes passés en propriétés ; le balisage de la scène et de la
+ * déviation est dans le même fichier JavaScript que la page d'erreur (déjà client), mis en cache.
+ * Le rendu serveur (HTML) est inchangé : tout s'affiche et fonctionne sans JavaScript.
  *
  * Le titre, le texte et les actions sont visibles et immobiles dès la première image ; aucune
  * animation sur le texte. Seule la scène bouge (lumières, arrivée de la dépanneuse).

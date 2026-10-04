@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageTransition } from "@/components/motion/page-transition";
+import { PageTransition, SharedMorph } from "@/components/motion/page-transition";
 import { CallLink, PrimaryLink } from "@/components/public/actions";
 import { DawnCta, NextExit, OpeningShot, RelatedFaq, Section } from "@/components/public/page-blocks";
 import { RoadLine } from "@/components/public/road-line";
@@ -43,14 +43,17 @@ export default async function DepannagePage() {
         <OpeningShot
           eyebrow="Dépannage sur place"
           pictogram="wrench"
-          morphName="vt-sign-depannage"
+          // Le panneau du carrefour de l'accueil devient le titre principal (morph D.4) : un
+          // vrai en-tête lisible, pas la petite plaque PK 00.
           title={
-            <span className={styles.heroTitle}>
-              On vous remet{" "}
-              <em data-beam="load" className="not-italic">
-                sur la route.
-              </em>
-            </span>
+            <SharedMorph name="vt-sign-depannage">
+              <span className={styles.heroTitle}>
+                On vous remet{" "}
+                <em data-beam="load" className="not-italic">
+                  sur la route.
+                </em>
+              </span>
+            </SharedMorph>
           }
           lead="Batterie à plat, crevaison, petite panne : quand le problème peut se régler sur place, nous intervenons directement. Sinon, votre véhicule est remorqué là où vous le souhaitez."
           actions={
@@ -82,7 +85,7 @@ export default async function DepannagePage() {
           <TowFallback />
         </Section>
 
-        <RelatedFaq ids={["prix-sur-place", "presence", "sans-le-site"]} />
+        <RelatedFaq ids={["prix-sur-place", "presence", "sans-le-site"]} title="Vos questions sur le dépannage." />
         <NextExit from="/depannage" />
         <DawnCta info={info} title="Besoin d'une dépanneuse maintenant ?" truck="empty" />
       </PageTransition>

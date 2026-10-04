@@ -321,8 +321,8 @@
   :global(html.js:not([data-motion="off"])) .steps {
     grid-template-columns: minmax(0, 1fr);
     row-gap: 0;
-    /* La dernière situation au centre de l'écran : la scène reste centrée, elle ne remonte pas. */
-    padding-bottom: 10vh;
+    /* La dernière situation passe au centre de l'écran avant que la scène ne remonte. */
+    padding-bottom: 6vh;
   }
   :global(html.js:not([data-motion="off"])) .steps::before,
   :global(html.js:not([data-motion="off"])) .steps::after {
@@ -331,24 +331,67 @@
     top: 0;
     bottom: 0;
   }
+  /* Six temps de 58 vh (80 vh laissaient la colonne vide sur six écrans). La première situation
+     démarre sous le titre, pas au centre de son temps (environ 300 px vides sinon). */
   :global(html.js:not([data-motion="off"])) .step {
     display: flex;
     align-items: center;
-    min-height: 80vh;
+    min-height: 58vh;
+  }
+  :global(html.js:not([data-motion="off"])) .step:first-child {
+    align-items: flex-start;
+    min-height: 46vh;
   }
   :global(html.js:not([data-motion="off"])) .stepInner {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
     gap: 1.75rem;
+    align-items: center;
   }
   :global(html.js:not([data-motion="off"])) .stepVignette {
-    width: 72px;
-    height: 72px;
+    width: 96px;
+    height: 96px;
+  }
+  /* Faisceau du lampadaire au-dessus de la vignette de l'étape en cours. */
+  :global(html.js:not([data-motion="off"])) .stepVignette::before {
+    content: "";
+    position: absolute;
+    left: -30%;
+    right: -30%;
+    bottom: 55%;
+    height: 150%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgb(255 210 122 / 0), rgb(255 210 122 / 0.2));
+    clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+    opacity: 0;
+    transition: opacity var(--dur-scene) var(--ease-out-expo);
+  }
+  /* Grand numéro de l'étape, au trait ; il s'allume en jaune avec son temps. */
+  :global(html.js:not([data-motion="off"])) .stepNumber {
+    font-size: clamp(3.25rem, 2rem + 2.6vw, 4.75rem);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgb(255 253 246 / 0.3);
+    translate: 0 6px;
+    transition:
+      color var(--dur-ui) var(--ease-out-expo),
+      -webkit-text-stroke-color var(--dur-ui) var(--ease-out-expo),
+      text-shadow var(--dur-ui) var(--ease-out-expo),
+      translate var(--dur-scene) var(--ease-out-expo);
+  }
+  :global(html.js:not([data-motion="off"])) .stepTitle {
+    margin-top: 0.6rem;
+  }
+  .stage:not([data-beat]) .step:first-child .stepNumber,
+  .stage[data-beat] .step[data-active] .stepNumber {
+    color: var(--color-signal-500);
+    -webkit-text-stroke-color: var(--color-signal-500);
+    text-shadow: 0 0 28px rgb(255 196 0 / 0.35);
+    translate: 0 0;
   }
   /* Temps de la scène : l'étape au centre de l'écran s'allume, les autres restent lisibles. */
   .stage[data-beat] .step:not([data-active]) .stepTitle {
-    color: var(--color-asphalt-300);
-  }
-  .stage[data-beat] .step:not([data-active]) .stepNumber {
     color: var(--color-asphalt-300);
   }
   .stage[data-beat] .step[data-active] .stepVignette {
@@ -357,6 +400,10 @@
       inset 0 0 0 2px var(--color-signal-500),
       0 0 0 6px rgb(255 196 0 / 0.12),
       0 18px 40px -16px rgb(0 0 0 / 0.9);
+  }
+  .stage:not([data-beat]) .step:first-child .stepVignette::before,
+  .stage[data-beat] .step[data-active] .stepVignette::before {
+    opacity: 1;
   }
   :global(html.js:not([data-motion="off"])) .stageVisual {
     position: sticky;
@@ -407,28 +454,6 @@
   translate: calc(var(--stage-progress, 0) * -48px) 0;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
-}
-/* Grand numéro de l'étape, en contour, derrière la scène. */
-.artNumerals {
-  position: absolute;
-  right: 2%;
-  top: -2%;
-  z-index: -1;
-  height: 11rem;
-  overflow: clip;
-  pointer-events: none;
-}
-.artNumerals span {
-  @apply font-figure;
-  display: block;
-  font-size: 11rem;
-  line-height: 1;
-  color: transparent;
-  -webkit-text-stroke: 1.5px rgb(255 253 246 / 0.16);
-}
-.artNumerals span:not(:first-child) {
-  position: absolute;
-  inset: 0 0 auto auto;
 }
 .artTruckLoading,
 .artTruckDeliver,
@@ -483,9 +508,6 @@
 }
 .art g[data-show] {
   translate: 0 6px;
-}
-.artNumerals span[data-show] {
-  translate: 0 30%;
 }
 /* Coins de cadrage, façon viseur. */
 .artCorner {
@@ -562,6 +584,25 @@
 .artCaption span {
   position: absolute;
   inset: 0;
+}
+/* Fondu enchaîné décalé : l'ancienne légende sort en 120 ms (et monte de 6 px), la nouvelle
+   n'entre qu'ensuite. Les deux ne se superposent jamais (« 01 · 02 » illisible, constaté). */
+.art .artCaption [data-show] {
+  translate: 0 -6px;
+  transition:
+    opacity 120ms var(--ease-accel),
+    translate 120ms var(--ease-accel);
+}
+.stage:not([data-beat]) .art .artCaption [data-show~="1"],
+.stage[data-beat="1"] .art .artCaption [data-show~="1"],
+.stage[data-beat="2"] .art .artCaption [data-show~="2"],
+.stage[data-beat="3"] .art .artCaption [data-show~="3"],
+.stage[data-beat="4"] .art .artCaption [data-show~="4"],
+.stage[data-beat="5"] .art .artCaption [data-show~="5"],
+.stage[data-beat="6"] .art .artCaption [data-show~="6"] {
+  transition:
+    opacity var(--dur-ui) var(--ease-out-expo) 140ms,
+    translate var(--dur-ui) var(--ease-out-expo) 140ms;
 }
 
 /* ─── PK 02 · Le portique de gabarit ────────────────────────────────────────── */
@@ -863,6 +904,14 @@
     }
   }
 }
+@keyframes convoy-in-mobile {
+  from {
+    translate: calc(18vw + var(--lane-delay, 0) * 10vw) 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
 @keyframes convoy-in {
   from {
     translate: calc(26vw + var(--col, 0) * 5vw) 0;
@@ -871,9 +920,88 @@
     translate: 0 0;
   }
 }
+/* Légende des pastilles : téléphone seulement. */
+.gaugeKey {
+  display: none;
+}
 @media (max-width: 767px) {
   .gaugeYard {
     padding-top: 6.25rem;
+  }
+  .gaugeKey {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    /* Sous la plaque de la barre de hauteur (elle descend à environ 7 rem). */
+    margin-top: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .gaugeKey .badge {
+    margin-top: 0;
+  }
+  /* Grille compacte 2 × 5 : silhouette au-dessus, nom dessous. */
+  .convoy {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+    row-gap: 0.5rem;
+  }
+  .vehicle {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 0.4rem;
+    padding: 0.5rem 0 0.85rem 0.75rem;
+  }
+  .vehicleArt {
+    width: min(100%, 8rem);
+  }
+  .vehicleName {
+    display: inline;
+    font-size: 1.125rem;
+  }
+  /* « Prix en ligne » : une coche à côté du nom (le texte reste pour les lecteurs d'écran). */
+  .vehicle .badgeOnline {
+    width: 1.6rem;
+    height: 1.6rem;
+    margin: 0 0 0 0.4rem;
+    padding: 0;
+    justify-content: center;
+    vertical-align: -0.2rem;
+  }
+  .badgeText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .vehicle .badgeRequest {
+    display: flex;
+    width: fit-content;
+  }
+  /* « Sur demande » mis en évidence : la case du véhicule est balisée de jaune. */
+  .vehicle[data-acceptance]:not([data-acceptance="accepted"]) {
+    background:
+      linear-gradient(to right, rgb(255 196 0 / 0.1), transparent 85%),
+      repeating-linear-gradient(90deg, rgb(255 253 246 / 0.12) 0 18px, transparent 18px 36px) 0 100% / 100% 1px no-repeat;
+    box-shadow: inset 2px 0 0 var(--color-signal-500);
+  }
+  /* Passage sous le gabarit lié au défilement : chaque silhouette arrive de la droite (colonne
+     de droite un peu plus loin), comme une file qui avance. Niveau `full` seulement. */
+  @supports (animation-timeline: view()) {
+    :global(html[data-motion="full"]) .vehicleArt {
+      animation: convoy-in-mobile linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 38%;
+    }
+    :global(html[data-motion="full"]) .vehicle:nth-child(even) .vehicleArt {
+      --lane-delay: 1;
+    }
+    :global(html.js.motion-ready[data-motion="full"]) .vehicle:not([data-inview]) .vehicleArt {
+      opacity: 1;
+      translate: 0 0;
+    }
   }
   .gantryPost {
     display: none;

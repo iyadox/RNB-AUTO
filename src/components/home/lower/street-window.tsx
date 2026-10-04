@@ -15,10 +15,13 @@
  * Budget (G.2) : composant client (son dessin n'est pas répété dans la charge RSC de la page)
  * et formes regroupées en un tracé par couleur : environ 90 nœuds au lieu de 320. Les fenêtres
  * allumées sont regroupées par rang de cascade (même délai, même teinte) : la cascade est
- * identique à celle d'un dessin fenêtre par fenêtre.
+ * identique à celle d'un dessin fenêtre par fenêtre. Le dessin (SVG et dépanneuse) n'est monté
+ * qu'à l'approche (`useNearViewport`) : le cadre 16:9, la vitre et le rideau sont rendus tout de
+ * suite, rien ne bouge. Sans JavaScript, le rideau métallique reste baissé (CSS).
  */
 import type { CSSProperties, ReactElement } from "react";
 import { TowTruck } from "@/components/brand/tow-truck";
+import { useNearViewport } from "../lazy-scene";
 import styles from "../home-lower.module.css";
 
 const W = 640;
@@ -122,8 +125,21 @@ const stop = (color: string, opacity = 1): CSSProperties => ({ stopColor: color,
 
 export function StreetWindow({ id }: { id: string }): ReactElement {
   const p = (name: string) => `${id}-${name}`;
+  const [ref, near] = useNearViewport<HTMLDivElement>();
   return (
-    <div className={styles.windowScene} aria-hidden="true">
+    <div ref={ref} className={styles.windowScene} aria-hidden="true">
+      {near ? <StreetDrawing p={p} /> : null}
+      {/* Reflet de la vitre et rideau métallique qui se lève à l'entrée (décor). */}
+      <span className={styles.windowGlass} />
+      <span className={styles.windowCurtain} />
+    </div>
+  );
+}
+
+/** La rue et la dépanneuse garée (monté à l'approche). */
+function StreetDrawing({ p }: { p: (name: string) => string }): ReactElement {
+  return (
+    <>
       <svg viewBox={`0 0 ${W} ${H}`} className={styles.windowSvg} preserveAspectRatio="xMidYMax slice">
         <defs>
           <linearGradient id={p("sky-night")} x1="0" y1="0" x2="0" y2="1">
@@ -255,9 +271,6 @@ export function StreetWindow({ id }: { id: string }): ReactElement {
       <div className={styles.windowTruck}>
         <TowTruck id={p("truck")} headlights beacon={false} parts className="h-auto w-full" />
       </div>
-      {/* Reflet de la vitre et rideau métallique qui se lève à l'entrée (décor). */}
-      <span className={styles.windowGlass} />
-      <span className={styles.windowCurtain} />
-    </div>
+    </>
   );
 }

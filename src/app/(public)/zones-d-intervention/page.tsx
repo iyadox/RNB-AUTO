@@ -49,7 +49,7 @@ export default async function ZonesPage() {
           <CommuneSearch />
         </Section>
 
-        <Section id="secteurs" pk="02" label="Communes et secteurs" title="Où intervenons-nous ?" split className="pb-[calc(var(--spacing-section)*0.5)]">
+        <Section id="secteurs" pk="02" label="Communes et secteurs" title={"Où\u00a0intervenons-nous ?"} split className="pb-[calc(var(--spacing-section)*0.5)]">
           <AreasStage depot={info.depot} />
         </Section>
 
@@ -65,7 +65,7 @@ export default async function ZonesPage() {
           <Further />
         </Section>
 
-        <RelatedFaq ids={["position", "autoroute"]} />
+        <RelatedFaq ids={["position", "autoroute"]} title="Vos questions sur nos zones d'intervention." />
         <NextExit from="/zones-d-intervention" />
         <DawnCta info={info} title="Une panne en Île-de-France ?" />
       </PageTransition>

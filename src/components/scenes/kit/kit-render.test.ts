@@ -90,14 +90,14 @@ describe("HighwayRelay", () => {
   it("auto : les deux schémas au rendu serveur (le CSS choisit sans JavaScript)", () => {
     const html = render(h(HighwayRelay, {}));
     expect(html).toContain('viewBox="0 0 960 300"');
-    expect(html).toContain('viewBox="0 0 360 600"');
+    expect(html).toContain('viewBox="0 0 360 300"');
   });
 
   it("orientation fixe : un seul schéma ; l'étiquette verticale est sur deux lignes", () => {
     const vertical = render(h(HighwayRelay, { orientation: "vertical" }));
     expect(vertical).not.toContain('viewBox="0 0 960 300"');
     expect(vertical).toMatch(/DÉPANNEUR<tspan[^>]*>AGRÉÉ<\/tspan>/);
-    expect(render(h(HighwayRelay, { orientation: "horizontal" }))).not.toContain('viewBox="0 0 360 600"');
+    expect(render(h(HighwayRelay, { orientation: "horizontal" }))).not.toContain('viewBox="0 0 360 300"');
   });
 });
 

@@ -23,8 +23,10 @@
  *   exemple des `RoutePaths` dont les points viennent de `planPoint`.
  * - `symbolId` : le fond de carte est rendu dans un `<symbol>` réutilisable ailleurs dans la
  *   page (`<use href="#id" width="600" height="600">`), recadré par un autre `viewBox`.
- * - Noms des communes : jamais hors du cadre. Près d'un bord, le nom passe de l'autre côté du
- *   point ; s'il ne tient d'aucun côté aux grandes tailles (plan étroit), il est masqué.
+ * - Noms des communes : jamais hors du cadre, jamais sur un autre nom ni sur une marque (losange,
+ *   nom du dépôt, épingle et son étiquette, drapeau), par boîtes estimées (`plan-labels.ts`).
+ *   Un nom gênant passe de l'autre côté du point ; s'il ne tient d'aucun côté, il est masqué.
+ *   L'étiquette « Vous » et le nom du dépôt changent de côté si l'épingle les recouvre.
  * Décoratif (`aria-hidden`) : les informations sont données en texte par la page.
  *
  * Composant client : son balisage n'est pas répété dans la charge RSC de la page (G.2).
@@ -36,7 +38,8 @@ import { DepotGlyph, FlagGlyph, PinGlyph } from "../glyphs";
 import styles from "../kit.module.css";
 import { formatSvgNumber as f, smoothPath, type Point } from "../svg-path";
 import { CITIES, MARNE, OURCQ, PERIPHERIQUE, PETITE_COURONNE, ROADS, SEINE, findCity, type GeoPoint } from "./geo";
-import { estimateLabelWidth, PLAN_CENTER as CENTER, PLAN_RADIUS as RADIUS, PLAN_SIZE, planPoint, resolveDepotPosition } from "./plan-geometry";
+import { PLAN_CENTER as CENTER, PLAN_RADIUS as RADIUS, PLAN_SIZE, planPoint, resolveDepotPosition } from "./plan-geometry";
+import { layoutPlanLabels, type Anchor, type CityLabelPlan } from "./plan-labels";
 import { projectIdf, type PlanVariant } from "./projection";
 
 const SWEEP_SECONDS = 5;
@@ -61,39 +64,26 @@ export type PlanIdfProps = {
   className?: string;
 };
 
-/** Placement des noms sur le disque régional (les communes de la Seine-Saint-Denis sont serrées). */
-const REGION_LABELS: Record<string, [number, number, "start" | "end" | "middle"]> = {
+/**
+ * Placement préféré des noms sur le disque régional (les communes de la Seine-Saint-Denis sont
+ * serrées) : réglé pour que tous tiennent sans se toucher à 14 / 11,5 et 16 / 13 unités.
+ */
+const REGION_LABELS: Record<string, [number, number, Anchor]> = {
   Paris: [-9, 4, "end"],
-  "Saint-Denis": [-7, -5, "end"],
-  Montreuil: [8, 10, "start"],
+  "Saint-Denis": [-7, -7, "end"],
+  Montreuil: [8, 6, "start"],
   Pantin: [-9, -2, "end"],
-  Bondy: [9, 7, "start"],
-  "Aulnay-sous-Bois": [9, -3, "start"],
-  "Noisy-le-Grand": [8, 6, "start"],
+  Bondy: [10, 0, "start"],
+  "Aulnay-sous-Bois": [9, -9, "start"],
+  "Noisy-le-Grand": [8, 8, "start"],
   Roissy: [8, -5, "start"],
   Créteil: [8, 5, "start"],
-  Argenteuil: [-7, 4, "end"],
+  Argenteuil: [-7, 6, "end"],
   Versailles: [-8, 4, "end"],
   Cergy: [-8, -3, "end"],
   Évry: [8, 5, "start"],
   Meaux: [0, -11, "middle"],
 };
-
-/** Taille des noms quand le plan est étroit (requête de conteneur ≤ 520 px, kit.module.css). */
-const NARROW_SIZE: Record<PlanVariant, number> = { region: 22, depot: 20 };
-/** Marge intérieure du cadre pour les noms (unités du plan). */
-const LABEL_MARGIN = 6;
-
-type Anchor = "start" | "end" | "middle";
-
-/** Étendue horizontale d'un nom posé en `x` avec l'ancrage donné. */
-const extent = (x: number, anchor: Anchor, width: number): [number, number] =>
-  anchor === "start" ? [x, x + width] : anchor === "end" ? [x - width, x] : [x - width / 2, x + width / 2];
-
-/** Limites horizontales des noms : le carré du plan (un nom peut dépasser du disque, jamais du carré). */
-const BOUNDS: [number, number] = [LABEL_MARGIN, PLAN_SIZE - LABEL_MARGIN];
-
-const fits = (range: [number, number], bounds: [number, number]) => range[0] >= bounds[0] && range[1] <= bounds[1];
 
 const project = (points: readonly GeoPoint[], variant: PlanVariant, center: GeoPoint | undefined): Point[] =>
   points.map((p) => {
@@ -172,82 +162,31 @@ export function PlanIdf({
       : p.x > margin && p.x < PLAN_SIZE - margin && p.y > margin && p.y < PLAN_SIZE - margin;
   });
 
-  // Noms des communes : jamais hors du cadre. À la taille normale, un nom passe de l'autre
-  // côté du point si besoin. Aux grandes tailles (plan étroit, requête de conteneur), il est
-  // retourné s'il tient du côté opposé sans chevaucher un autre nom, sinon masqué.
-  const narrowSize = NARROW_SIZE[variant];
-  type LabelPlan = {
-    showLabel: boolean;
-    dx: number;
-    dy: number;
-    anchor: Anchor;
-    narrowClass?: string;
-    narrowShift: number;
-  };
-  const labelPlans = new Map<string, LabelPlan>();
-  type Box = { x0: number; x1: number; y0: number; y1: number };
-  const narrowBoxes: Box[] = [];
-  const boxAt = (x: number, y: number, a: Anchor, width: number): Box => {
-    const [x0, x1] = extent(x, a, width);
-    return { x0, x1, y0: y - narrowSize * 0.8, y1: y + narrowSize * 0.25 };
-  };
-  const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-  if (depotPoint && depot.city) {
-    // Nom du dépôt (« BOBIGNY ») sous le losange, agrandi lui aussi sur un plan étroit.
-    const width = depot.city.length * 14 * 0.9;
-    narrowBoxes.push({ x0: depotPoint.x - width / 2, x1: depotPoint.x + width / 2, y0: depotPoint.y + 18, y1: depotPoint.y + 50 });
-  }
-  const flip = (a: Anchor): Anchor => (a === "start" ? "end" : a === "end" ? "start" : a);
-  const flipDx = (a: Anchor) => (a === "middle" ? 0 : a === "start" ? 8 : -8);
-  const pending: { name: string; p: Point; plan: LabelPlan; width: number }[] = [];
-  for (const { city, p } of cities) {
-    const major = city.major === true;
-    const placement: readonly [number, number, Anchor] = region
-      ? (REGION_LABELS[city.name] ?? [8, 4, "start"])
-      : p.x > PLAN_SIZE - 120 ||
-          (depotPoint && p.x < depotPoint.x && p.x > depotPoint.x - 90 && p.y > depotPoint.y && p.y < depotPoint.y + 60)
-        ? ([-8, 4, "end"] as const)
-        : ([8, 4, "start"] as const);
-    let [dx, anchor] = [placement[0], placement[2]];
-    const dy = placement[1];
-    // Aucun nom sous une épingle ou un drapeau (l'étiquette « Vous » reste lisible).
-    const nearPoint = pointPositions.some(({ p: q }) => Math.hypot(q.x - p.x, q.y - p.y) < (region ? 34 : 56));
-    const showLabel = !nearPoint && (labels === "all" || (labels === "major" && (major || !region)));
-    const plan: LabelPlan = { showLabel, dx, dy, anchor, narrowShift: 0 };
-    labelPlans.set(city.name, plan);
-    if (!showLabel) continue;
-    const size = major ? 14 : region ? 11.5 : 13;
-    const normalWidth = estimateLabelWidth(city.name, size, major);
-    if (!fits(extent(p.x + dx, anchor, normalWidth), BOUNDS) && anchor !== "middle") {
-      const other = flip(anchor);
-      if (fits(extent(p.x + flipDx(other), other, normalWidth), BOUNDS)) {
-        anchor = other;
-        dx = flipDx(other);
-        Object.assign(plan, { anchor, dx });
-      }
-    }
-    // Sur le disque étroit, les communes secondaires sont déjà masquées (kit.module.css).
-    if (region && !major) continue;
-    const width = estimateLabelWidth(city.name, narrowSize, major);
-    const y = p.y + dy;
-    const inside = y - narrowSize * 0.75 >= LABEL_MARGIN && y <= PLAN_SIZE - LABEL_MARGIN;
-    if (inside && fits(extent(p.x + dx, anchor, width), BOUNDS)) narrowBoxes.push(boxAt(p.x + dx, y, anchor, width));
-    else if (!inside || anchor === "middle") plan.narrowClass = styles.cityLabelHideNarrow;
-    else pending.push({ name: city.name, p, plan, width });
-  }
-  // Noms à retourner : seulement s'ils tiennent de l'autre côté sans chevaucher un nom.
-  for (const { p, plan, width } of pending) {
-    const other = flip(plan.anchor);
-    const x = p.x + flipDx(other);
-    const box = boxAt(x, p.y + plan.dy, other, width);
-    if (fits(extent(x, other, width), BOUNDS) && !narrowBoxes.some((b) => overlaps(b, box))) {
-      narrowBoxes.push(box);
-      plan.narrowShift = flipDx(other) - plan.dx;
-      plan.narrowClass = other === "end" ? styles.cityLabelFlipEnd : styles.cityLabelFlipStart;
-    } else {
-      plan.narrowClass = styles.cityLabelHideNarrow;
-    }
-  }
+  // Noms : jamais hors du cadre, jamais l'un sur l'autre ni sur une marque (boîtes estimées,
+  // à la taille normale et sur un plan étroit) ; voir `plan-labels.ts`.
+  const layout = layoutPlanLabels({
+    region,
+    depot: depotPoint ? { p: depotPoint, name: depot.city } : null,
+    points: pointPositions,
+    cities: cities.map(({ city, p }) => {
+      const major = city.major === true;
+      const [dx, dy, anchor] = region
+        ? (REGION_LABELS[city.name] ?? [8, 4, "start"])
+        : p.x > PLAN_SIZE - 120 ||
+            (depotPoint && p.x < depotPoint.x && p.x > depotPoint.x - 90 && p.y > depotPoint.y && p.y < depotPoint.y + 60)
+          ? ([-8, 4, "end"] as const)
+          : ([8, 4, "start"] as const);
+      return { name: city.name, p, major, wanted: labels === "all" || (labels === "major" && (major || !region)), dx, dy, anchor };
+    }),
+  });
+  const narrowClass = (plan: CityLabelPlan) =>
+    plan.narrow === "hide"
+      ? styles.cityLabelHideNarrow
+      : plan.narrow === "flip"
+        ? plan.anchor === "start"
+          ? styles.cityLabelFlipEnd
+          : styles.cityLabelFlipStart
+        : undefined;
 
   const base = (
     <g>
@@ -435,7 +374,8 @@ export function PlanIdf({
         <g>
           {cities.map(({ city, p, index }) => {
             const major = city.major === true;
-            const { showLabel, dx, dy, anchor, narrowClass, narrowShift } = labelPlans.get(city.name)!;
+            const plan = layout.cities.get(city.name)!;
+            const { showLabel, dx, dy, anchor, narrowShift } = plan;
             const delay = depotPoint ? (bearing(depotPoint, p) / 360) * SWEEP_SECONDS - SWEEP_SECONDS : 0;
             const dot = (
               <>
@@ -450,7 +390,7 @@ export function PlanIdf({
                 />
                 {showLabel ? (
                   <text
-                    className={cn(styles.cityLabel, !major && styles.cityLabelMinor, narrowClass)}
+                    className={cn(styles.cityLabel, !major && styles.cityLabelMinor, narrowClass(plan), plan.hideMid && styles.cityLabelHideMid)}
                     x={f(p.x + dx)}
                     y={f(p.y + dy)}
                     textAnchor={anchor}
@@ -473,9 +413,7 @@ export function PlanIdf({
                 key={city.name}
                 className={styles.city}
                 style={
-                  (sweep
-                    ? { "--i": index, "--ping-delay": `${delay.toFixed(2)}s` }
-                    : { "--i": index }) as unknown as CSSProperties
+                  sweep ? ({ "--i": index, "--ping-delay": `${delay.toFixed(2)}s` } as CSSProperties) : ({ "--i": index } as CSSProperties)
                 }
               >
                 {/* Le passage du faisceau anime un groupe intérieur (l'apparition anime l'extérieur). */}
@@ -493,7 +431,7 @@ export function PlanIdf({
               {depot.city ? (
                 <text
                   className={styles.depotLabel}
-                  y="31"
+                  y={layout.depotName === "below" ? 31 : -22}
                   textAnchor="middle"
                   fontSize="12"
                   fontWeight="800"
@@ -512,10 +450,15 @@ export function PlanIdf({
         ) : null}
 
         {/* Vraies positions (/demande) */}
+        {/* `data-plan-point` : repère stable pour les scènes et le CSS des pages. */}
         {pointPositions.map((point, index) => (
-          <g key={`${point.kind}-${index}`} transform={`translate(${f(point.p.x)} ${f(point.p.y)})`}>
+          <g key={`${point.kind}-${index}`} data-plan-point={point.kind} transform={`translate(${f(point.p.x)} ${f(point.p.y)})`}>
             <g className={styles.mark}>
-              {point.kind === "vous" ? <PinGlyph label="Vous" hazards={!isStatic} /> : <FlagGlyph />}
+              {point.kind === "vous" ? (
+                <PinGlyph label="Vous" labelAt={layout.pointLabels[index] ?? undefined} hazards={!isStatic} />
+              ) : (
+                <FlagGlyph />
+              )}
             </g>
           </g>
         ))}

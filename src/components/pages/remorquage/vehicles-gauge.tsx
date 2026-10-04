@@ -6,7 +6,10 @@
  * - Badge « Prix en ligne » : contour craie et coche ; « Sur demande » : contour jaune et
  *   téléphone. Jamais de vert (le vert est réservé à WhatsApp).
  * - Ordinateur : chaque file glisse sous le portique avec le défilement (`view()`, CSS seul,
- *   sans épinglage) ; mobile : liste verticale, chaque silhouette glisse de 24 px à l'entrée.
+ *   sans épinglage). Téléphone : grille compacte de deux colonnes (silhouette, puis nom), légende
+ *   des pastilles une seule fois au-dessus, « Sur demande » en évidence ; les véhicules passent
+ *   sous la barre en glissant avec le défilement (`view()`, niveau `full`), sinon de 24 px à
+ *   leur entrée.
  * - Sans JavaScript et en `off` : tout est à sa place.
  */
 import type { CSSProperties, ReactElement } from "react";
@@ -43,6 +46,19 @@ export function VehiclesGauge({ vehicles }: { vehicles: Vehicle[] }): ReactEleme
           </span>
         </div>
 
+        {/* Téléphone : la légende des pastilles, une seule fois (chaque véhicule garde son texte
+            pour les lecteurs d'écran ; « Prix en ligne » n'y est plus qu'une coche). */}
+        <p className={styles.gaugeKey} aria-hidden="true">
+          <span className={`${styles.badge} ${styles.badgeOnline}`}>
+            <Icon name="check" size={16} strokeWidth={3} />
+            Prix en ligne
+          </span>
+          <span className={`${styles.badge} ${styles.badgeRequest}`}>
+            <Icon name="phone" size={15} strokeWidth={2.4} />
+            Sur demande
+          </span>
+        </p>
+
         <ul className={styles.convoy} style={{ "--lane": lane } as CSSProperties}>
           {vehicles.map((vehicle, index) => (
             <li
@@ -60,7 +76,7 @@ export function VehiclesGauge({ vehicles }: { vehicles: Vehicle[] }): ReactEleme
                 {vehicle.acceptance === "accepted" ? (
                   <span className={`${styles.badge} ${styles.badgeOnline}`}>
                     <Icon name="check" size={16} strokeWidth={3} aria-hidden="true" />
-                    Prix en ligne
+                    <span className={styles.badgeText}>Prix en ligne</span>
                   </span>
                 ) : (
                   <span className={`${styles.badge} ${styles.badgeRequest}`}>

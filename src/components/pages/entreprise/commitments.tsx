@@ -5,6 +5,8 @@
  * Chaque ligne est un panneau de bord de route : un panneau rond (pictogramme jaune, orange pour
  * la sécurité) qui s'éclaire quand la ligne traverse le milieu de l'écran, le reflet
  * rétroréfléchissant (P6) qui passe sur le panneau, et un marquage en tirets qui se trace dessous.
+ * Les six panneaux sont des jalons posés sur une route verticale, dont la ligne médiane jaune se
+ * trace au défilement (niveau `full`).
  * Les lignes montent à l'entrée (P2). Sans JavaScript et en `off` : tout est allumé et en place.
  */
 import type { ReactElement } from "react";

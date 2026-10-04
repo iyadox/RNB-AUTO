@@ -5,6 +5,7 @@
  * départements, « Plan schématique. » et lien vers les zones. Le Plan RNB régional : le
  * gyrophare du dépôt balaie, chaque ville s'éclaire à son passage. Aucune distance affichée.
  * « Au cœur de la Seine-Saint-Denis… » n'est écrit que si le dépôt y est (`depotInSeineSaintDenis`).
+ * Le plan est monté à l'approche (`LazyScene`) ; sans JavaScript, la figure est retirée (CSS).
  */
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -14,6 +15,8 @@ import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
 import type { PublicSiteInfo } from "@/server/site/public-info";
 import { depotInSeineSaintDenis } from "./home-geo";
+import { LazyScene } from "./lazy-scene";
+import { NoBreakHyphens } from "./no-break-hyphens";
 import styles from "./home-lower.module.css";
 
 const DEPARTMENTS = ["93", "75", "92", "94", "95", "77", "78", "91"];
@@ -42,15 +45,21 @@ export function ZoneSection({ info }: { info: PublicSiteInfo }) {
         </div>
 
         <p data-reveal="" className={cn(styles.lead, styles.zoneLead)}>
-          Notre dépanneuse part de {info.depotLabel}.{" "}
+          Notre dépanneuse part de <NoBreakHyphens text={info.depotLabel} />.{" "}
           {depotInSeineSaintDenis(info.depot)
-            ? "Au cœur de la Seine-Saint-Denis, à quelques minutes de Paris et des grands axes. "
+            ? <>
+                Au cœur de la <span className="whitespace-nowrap">Seine-Saint-Denis</span>, à quelques minutes de
+                Paris et des grands axes.{" "}
+              </>
             : null}
           Votre distance exacte est calculée dès que vous indiquez votre position.
         </p>
 
         <figure className={styles.zonePlan}>
-          <PlanIdf depot={info.depot} variant="region" sweep labels="major" className={styles.zonePlanSvg} />
+          {/* Monté à l'approche (budget du HTML, G.2) ; cadre carré réservé, aucun décalage. */}
+          <LazyScene className={styles.zonePlanFrame}>
+            <PlanIdf depot={info.depot} variant="region" sweep labels="major" className={styles.zonePlanSvg} />
+          </LazyScene>
           <figcaption className={styles.zoneCaption}>Plan schématique.</figcaption>
         </figure>
 

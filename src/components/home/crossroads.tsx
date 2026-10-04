@@ -93,6 +93,7 @@ export function Crossroads({ info }: { info: PublicSiteInfo }) {
                   pictogram={sign.pictogram}
                   tone={sign.tone}
                   morphName={sign.morph}
+                  className={styles.signRail}
                 />
               </li>
             ))}

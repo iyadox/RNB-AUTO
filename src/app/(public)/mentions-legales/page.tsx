@@ -7,6 +7,8 @@ import { getPublicSiteInfo } from "@/server/site/public-info";
 
 export const metadata: Metadata = {
   title: "Mentions légales",
+  description:
+    "Mentions légales du site RNB AUTO : éditeur du site, hébergement, propriété intellectuelle, données personnelles, estimations de prix et données cartographiques.",
   alternates: { canonical: "/mentions-legales" },
   robots: { index: true, follow: true },
 };

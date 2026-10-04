@@ -9,6 +9,7 @@ import { ScenePause } from "@/components/motion/scene-pause";
 import { CallLink, PrimaryLink, WhatsAppLink } from "@/components/public/actions";
 import { Icon } from "@/components/ui/icon";
 import { MediaGate } from "./media-gate";
+import { NoBreakHyphens } from "./no-break-hyphens";
 import { NightRoad, SCENE_ID } from "./night-road";
 import styles from "./home.module.css";
 
@@ -54,10 +55,14 @@ export function Hero({ info }: { info: PublicSiteInfo }) {
               {/* Requêtes en rem, comme les classes Tailwind `sm:`/`md:` qu'elles doublent : avec une
                   taille de police du navigateur agrandie, px et rem divergent (texte perdu). */}
               <MediaGate query="(min-width: 40rem)">
-                <span className="hidden sm:inline">Remorquage et assistance à {info.serviceArea}. </span>
+                <span className="hidden sm:inline">
+                  Remorquage et assistance à <NoBreakHyphens text={info.serviceArea} />.{" "}
+                </span>
               </MediaGate>
               <MediaGate query="not all and (min-width: 40rem)">
-                <span className="sm:hidden">Remorquage et assistance en Île-de-France. </span>
+                <span className="sm:hidden">
+                  Remorquage et assistance en <span className="whitespace-nowrap">Île-de-France.</span>{" "}
+                </span>
               </MediaGate>
               <strong>Votre prix estimé en moins d&apos;une minute</strong>, confirmé avant l&apos;intervention.
             </p>

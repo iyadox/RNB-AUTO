@@ -37,7 +37,7 @@ export default async function HighwayPage() {
         <HighwayOpening lead={info.regulatedRoads.message} />
         <RelaySection />
         <ExitSection />
-        <RelatedFaq ids={["autoroute", "prix-definitif"]} />
+        <RelatedFaq ids={["autoroute", "prix-definitif"]} title="Vos questions sur l'autoroute." />
         <NextExit from="/panne-autoroute" />
         <DawnCta info={info} title="Besoin d'un relais après l'autoroute ?" calm />
       </PageTransition>

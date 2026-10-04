@@ -6,9 +6,14 @@
  * - `<details data-menu>` natif : il s'ouvre et se ferme sans JavaScript ; aucune case à cocher.
  * - Panneau fixe sous l'en-tête, jusqu'en bas de l'écran ; la barre d'action (z 60) reste
  *   par-dessus et le panneau lui garde sa place. Défilement de la page bloqué en CSS (`:has`).
- * - Le bouton jaune et la rangée Appeler / WhatsApp sont toujours visibles sans faire défiler :
- *   sur un écran bas (790 px et moins), les lignes se resserrent (48 px, aide en 14 px) ; plus
- *   bas encore, seule la liste des liens défile, les actions restent en place.
+ * - « Demander un dépannage » et la rangée Appeler / WhatsApp sont toujours visibles sans faire
+ *   défiler : sur un écran bas (790 px et moins), les lignes se resserrent (48 px, aide en
+ *   14 px) ; plus bas encore, seule la liste des liens défile, les actions restent en place.
+ * - Sous 768 px, la barre d'action reste visible sous le panneau, avec Appeler et WhatsApp : la
+ *   rangée Appeler / WhatsApp du menu y est masquée (six boutons pour trois actions, constaté)
+ *   et « Demander un dépannage » passe au trait (un seul aplat jaune à l'écran : Appeler).
+ * - Le focus ne quitte jamais un menu ouvert pour la page cachée derrière : s'il sort du menu
+ *   (Tab après le dernier lien, Maj+Tab avant le bouton), le menu se ferme, comme avec Échap.
  * - Huit liens (`MENU_ITEMS`), chacun avec sa ligne d'aide, posés comme des arrêts sur une route
  *   de nuit ; la page en cours est le losange jaune allumé.
  * - Ouverture : un cercle de lumière part du bouton, puis les lignes arrivent en cascade (CSS).
@@ -90,6 +95,22 @@ export function MobileMenu({ phone, whatsapp }: { phone: PhoneLink | null; whats
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // Focus sorti du menu ouvert (Tab après le dernier lien) : il partait sur les liens de la page,
+  // cachés derrière le panneau fixe (focus invisible, page qui défile derrière). Le menu se ferme
+  // et le focus continue, visible, dans la page. `relatedTarget` nul (clic sur le fond du panneau,
+  // fenêtre quittée) : le menu reste ouvert.
+  useEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    const onFocusOut = (event: FocusEvent) => {
+      const next = event.relatedTarget;
+      if (!menu.open || !(next instanceof Node) || menu.contains(next)) return;
+      menu.open = false;
+    };
+    menu.addEventListener("focusout", onFocusOut);
+    return () => menu.removeEventListener("focusout", onFocusOut);
+  }, []);
+
   const close = () => {
     if (menuRef.current) menuRef.current.open = false;
   };
@@ -134,7 +155,7 @@ export function MobileMenu({ phone, whatsapp }: { phone: PhoneLink | null; whats
         </nav>
 
         <div className={styles.menuActions}>
-          <PrimaryLink href="/demande" size="md" className="w-full">
+          <PrimaryLink href="/demande" size="md" className={cn(styles.menuPrimary, "w-full")}>
             Demander un dépannage
           </PrimaryLink>
           <div className={cn(styles.menuCalls, "grid grid-cols-2 gap-3")}>

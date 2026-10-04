@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageTransition } from "@/components/motion/page-transition";
+import { PageTransition, SharedMorph } from "@/components/motion/page-transition";
 import { CallLink, PrimaryLink } from "@/components/public/actions";
 import { DawnCta, NextExit, OpeningShot, RelatedFaq, Section } from "@/components/public/page-blocks";
 import { RoadLine } from "@/components/public/road-line";
@@ -44,14 +44,17 @@ export default async function RemorquagePage() {
         <OpeningShot
           eyebrow="Remorquage"
           pictogram="truck"
-          morphName="vt-sign-remorquage"
+          // Le panneau du carrefour de l'accueil devient le titre principal (morph D.4) : un
+          // vrai en-tête lisible, pas la petite plaque PK 00.
           title={
-            <span className={styles.heroTitle}>
-              Votre véhicule,{" "}
-              <em data-beam="load" className="not-italic">
-                où vous voulez.
-              </em>
-            </span>
+            <SharedMorph name="vt-sign-remorquage">
+              <span className={styles.heroTitle}>
+                Votre véhicule,{" "}
+                <em data-beam="load" className="not-italic">
+                  où vous voulez.
+                </em>
+              </span>
+            </SharedMorph>
           }
           lead="Votre véhicule est chargé sur notre dépanneuse plateau et emmené au garage de votre choix, chez vous ou à toute autre adresse. Le prix tient compte du trajet réel."
           actions={
@@ -89,7 +92,7 @@ export default async function RemorquagePage() {
           <PriceLegs />
         </Section>
 
-        <RelatedFaq ids={["destination", "vehicules", "calcul-du-prix"]} />
+        <RelatedFaq ids={["destination", "vehicules", "calcul-du-prix"]} title="Vos questions sur le remorquage." />
         <NextExit from="/remorquage" />
         <DawnCta info={info} title="Un véhicule à déplacer ?" truck="loaded" />
       </PageTransition>

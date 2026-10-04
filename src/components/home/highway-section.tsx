@@ -9,11 +9,11 @@
  */
 import { Plate } from "@/components/public/page-blocks";
 import { DirectionSign } from "@/components/scenes/kit/direction-sign";
-import { HighwayRelay } from "@/components/scenes/kit/highway-relay";
 import { InfoPlaque } from "@/components/scenes/kit/info-plaque";
 import { cn } from "@/components/ui/cn";
 import type { IconName } from "@/components/ui/icon";
 import styles from "./home-lower.module.css";
+import { RelayResponsive } from "./relay-responsive";
 
 const REFLEXES: { icon: IconName; text: string }[] = [
   { icon: "hazard", text: "Allumez vos feux de détresse et enfilez votre gilet avant de sortir." },
@@ -75,7 +75,7 @@ export function HighwaySection() {
 
       <div className={cn(styles.container, "mt-10 lg:mt-20")}>
         <div className={styles.relayFrame}>
-          <HighwayRelay draw="scrub" className={styles.relay} />
+          <RelayResponsive className={styles.relay} />
         </div>
         <div className={styles.highwayLinks}>
           <DirectionSign

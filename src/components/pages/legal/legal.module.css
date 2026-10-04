@@ -816,10 +816,26 @@
   color: var(--color-chalk);
   font-weight: 650;
 }
+/* Téléphone et email de l'éditeur : une vraie cible de 48 px de haut (19 px auparavant). */
 .tareValue a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
   color: var(--color-signal-400);
   font-weight: 700;
   text-underline-offset: 4px;
+}
+.tareValue a[href^="tel:"] {
+  min-width: 11rem;
+}
+/* Liens dans le texte (confidentialité, conditions…) : la zone de toucher dépasse de la ligne
+   jusqu'à environ 48 px de haut (remplissage vertical d'un élément en ligne : la mise en page
+   ne bouge pas). */
+.article :where(p, li) a {
+  padding-block: 0.9em;
+}
+.article .tareValue a {
+  padding-block: 0;
 }
 .tareValue a:hover {
   text-decoration: underline;

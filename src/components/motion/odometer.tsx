@@ -5,8 +5,11 @@
  * Le serveur rend le VRAI texte (« 105 € ») ; pendant le roulement il reste dans l'arbre
  * d'accessibilité (simplement rendu transparent) et des colonnes décoratives `aria-hidden`
  * passent par-dessus, en chiffres de largeur fixe : aucun décalage de mise en page.
- * Quand la valeur change (choix du moment de l'accueil), le compteur roule de l'ANCIENNE valeur
- * vers la nouvelle en 700 ms (E.5), en avançant si elle monte, en reculant si elle baisse.
+ * Premier affichage : AUCUN faux montant, jamais « 000 € » ni chiffre intermédiaire. Chaque
+ * tambour part vide et le vrai chiffre monte dans le hublot puis se cale (léger dépassement),
+ * de droite à gauche. Quand la valeur change (choix du moment de l'accueil), le compteur roule
+ * de l'ANCIENNE valeur vers la nouvelle en 700 ms (E.5), en avançant si elle monte, en reculant
+ * si elle baisse : c'est le visiteur qui change le prix, le roulement montre le passage.
  * Chaque colonne est découpée à la hauteur des chiffres (hublot) : rien ne dépasse du prix.
  * Jamais sur un numéro de téléphone ni sur une référence de demande.
  * `off`, préférence « moins d'animations » et sans JavaScript : valeur fixe.
@@ -46,6 +49,10 @@ function cssDurationMs(value: string): number {
 const CHANGE_DURATION_MS = 700;
 /** Cascade de droite à gauche entre deux colonnes. */
 const STAGGER_MS = 60;
+/** Premier affichage : durée de la montée d'un chiffre dans son hublot (au plus). */
+const LAND_MS = 520;
+/** Courbe de la montée : arrive vite, dépasse à peine et se cale (pas de rebond). */
+const LAND_EASE = "cubic-bezier(0.3, 1.32, 0.5, 1)";
 
 /**
  * Ligne de base d'un texte, en px depuis le haut de `root` (boîte de mise en page, insensible aux
@@ -95,8 +102,9 @@ function digitsOf(text: string, count: number): number[] {
 const numericOf = (text: string) => Number(text.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
 
 /**
- * Construit les colonnes et lance le roulement de `fromText` (null : depuis 0, premier roulement)
- * vers `text`. Retourne l'arrêt (qui remet le vrai texte).
+ * Construit les colonnes et lance le roulement de `fromText` vers `text`. `fromText` null :
+ * premier affichage, chaque chiffre monte d'un tambour vide (aucune valeur fausse affichée).
+ * Retourne l'arrêt (qui remet le vrai texte).
  */
 function roll(root: HTMLElement, text: string, duration: number, fromText: string | null = null): () => void {
   const valueEl = root.querySelector<HTMLElement>(".odometer-value");
@@ -123,6 +131,8 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
   const sources = fromText === null ? null : digitsOf(fromText, digitCount);
   // Le compteur avance quand la valeur monte, recule quand elle baisse.
   const upward = fromText === null || numericOf(text) >= numericOf(fromText);
+  // Premier affichage : bande [vide, vrai chiffre] ; changement de valeur : bande 0-9 0-9.
+  const landing = sources === null;
 
   const overlay = document.createElement("span");
   overlay.className = "odometer-roll";
@@ -136,23 +146,25 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
       col.className = "odometer-col";
       const strip = document.createElement("span");
       strip.className = "odometer-strip";
-      for (let i = 0; i < 20; i++) {
+      const target = targets[digitIndex] ?? 0;
+      const source = sources ? (sources[digitIndex] ?? 0) : 0;
+      // Cellule vide (insécable, même hauteur) au-dessus du vrai chiffre pour la montée.
+      const labels = landing ? ["\u00a0", String(target)] : Array.from({ length: 20 }, (_, i) => String(i % 10));
+      for (const label of labels) {
         const cell = document.createElement("span");
-        cell.textContent = String(i % 10);
+        cell.textContent = label;
         cell.style.height = `${pitch}px`;
         cell.style.lineHeight = `${pitch}px`;
         strip.appendChild(cell);
       }
       col.appendChild(strip);
       overlay.appendChild(col);
-      const target = targets[digitIndex] ?? 0;
-      const source = sources ? (sources[digitIndex] ?? 0) : 0;
-      // Positions dans la bande 0-9 0-9 : départ et arrivée, toujours dans le sens du roulement.
+      // Positions dans la bande : départ et arrivée, toujours dans le sens du roulement.
       let start: number;
       let end: number;
-      if (!sources) {
+      if (landing) {
         start = 0;
-        end = 10 + target;
+        end = 1;
       } else if (upward) {
         start = source;
         end = target >= source ? target : target + 10;
@@ -211,11 +223,12 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
   const moving = strips.filter(({ start, end }) => start !== end);
   const count = moving.length;
   const lastDelay = Math.max(0, count - 1) * STAGGER_MS;
-  const each = Math.max(240, duration - lastDelay);
+  const each = landing ? Math.min(LAND_MS, Math.max(240, duration - lastDelay)) : Math.max(240, duration - lastDelay);
+  const ease = landing ? LAND_EASE : "cubic-bezier(0.16, 1, 0.3, 1)";
   const frame = requestAnimationFrame(() => {
     moving.forEach(({ strip, end }, index) => {
       const delay = (count - 1 - index) * STAGGER_MS;
-      strip.style.transition = `transform ${each}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`;
+      strip.style.transition = `transform ${each}ms ${ease} ${delay}ms`;
       strip.style.transform = `translateY(${-end * pitch}px)`;
     });
   });
@@ -240,8 +253,8 @@ export function Odometer({ value, unit = "€", trigger = "view", duration, clas
   const startedRef = useRef(false);
   const text = formatOdometer(value, unit);
 
-  // Avant la peinture : en `mount`, le vrai prix n'est jamais affiché une image avant de repartir
-  // de zéro (il l'était environ 50 ms sur mobile, entre le montage et l'effet).
+  // Avant la peinture : en `mount`, le vrai prix n'est jamais affiché une image avant que les
+  // tambours vides ne le remplacent (il l'était environ 50 ms sur mobile, entre montage et effet).
   useLayoutEffect(() => {
     const root = ref.current;
     const previous = lastTextRef.current;
@@ -265,6 +278,11 @@ export function Odometer({ value, unit = "€", trigger = "view", duration, clas
       start();
       return () => stop();
     }
+    // `view` : le hublot reste vide jusqu'au roulement. Sinon le vrai prix apparaissait avec le
+    // haut du ticket imprimé, disparaissait au départ des tambours vides, puis remontait (constaté).
+    // Le texte reste dans l'arbre d'accessibilité ; il n'est caché qu'avec le mouvement actif.
+    const valueEl = root.querySelector<HTMLElement>(".odometer-value");
+    if (valueEl) valueEl.style.color = "transparent";
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
@@ -277,6 +295,7 @@ export function Odometer({ value, unit = "€", trigger = "view", duration, clas
     return () => {
       io.disconnect();
       stop();
+      valueEl?.style.removeProperty("color");
     };
   }, [text, trigger, duration]);
 

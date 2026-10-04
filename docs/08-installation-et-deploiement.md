@@ -121,7 +121,20 @@ docker compose up -d --build
 ```
 
 - Au démarrage, le conteneur applique les migrations et les données de départ, puis lance le site sur le port 3000.
-- **HTTPS est indispensable en production** : la connexion à l'administration utilise un cookie sécurisé qui n'est pas accepté en HTTP (sauf sur `localhost`). Placez le site derrière un proxy HTTPS, par exemple [Caddy](https://caddyserver.com) : `votre-domaine.fr { reverse_proxy localhost:3000 }`.
+- **HTTPS est indispensable en production** : la connexion à l'administration utilise un cookie sécurisé qui n'est pas accepté en HTTP (sauf sur `localhost`). Placez le site derrière un proxy HTTPS, par exemple [Caddy](https://caddyserver.com) :
+
+  ```caddyfile
+  votre-domaine.fr {
+  	encode zstd gzip
+  	reverse_proxy localhost:3000 {
+  		header_up -Accept-Encoding
+  	}
+  }
+  ```
+
+  - `encode zstd gzip` : Caddy compresse les pages en zstd (ou en gzip pour les navigateurs qui ne lisent pas zstd).
+  - `header_up -Accept-Encoding` : le site ne compresse plus lui-même ce qu'il envoie à Caddy. Sans cette ligne, `next start` répond déjà en gzip au niveau par défaut, et Caddy ne recompresse jamais une réponse déjà compressée : la directive `encode` resterait sans effet.
+  - Pourquoi : le poids des pages (budget G.2 de [09 — Refonte immersive](09-refonte-immersive.md), 40 Ko compressés pour l'accueil) se mesure avec la compression du serveur de production. Sur Vercel, rien à faire : les pages sont compressées en brotli quand le navigateur l'accepte.
 - Compte administrateur en ligne de commande : `docker compose exec app node dist-scripts/create-admin.cjs --email vous@exemple.fr --name "Votre nom" --password "Votre mot de passe"`.
 - Entretien quotidien (facultatif) : `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://votre-domaine.fr/api/maintenance` dans une tâche cron.
 - Sauvegardes : `docker compose exec db pg_dump -U rnb rnb > sauvegarde.sql`.

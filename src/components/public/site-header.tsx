@@ -1,120 +1,182 @@
 "use client";
 
+/**
+ * En-tête « pare-brise » (docs/09, D.5). Jamais masqué au défilement, jamais capturé par la
+ * transition de page (aucun `viewTransitionName`).
+ *
+ * - Transparent en haut de page ; après 24 px : fond plein sur mobile (sans flou), fumé et flouté
+ *   sur ordinateur, reflet d'un pixel en haut et un reflet qui traverse la vitre une fois.
+ * - À partir de 1 024 px : navigation, puis Appeler (« Appeler » jusqu'à 1 279 px, le numéro
+ *   au-delà, rien sans numéro) et le bouton jaune ; tout sur une ligne.
+ * - Sous 1 024 px : ligne de progression de 2 px sous l'en-tête et menu « plan de nuit ».
+ * - Écrit `--header-h` sur <html> (ResizeObserver) : la transition de page ne recouvre jamais
+ *   l'en-tête, même quand l'annonce prend deux lignes.
+ *
+ * Il porte aussi le petit cycle de page de la coque (voir `useShellCycle`).
+ */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { NAV_DESKTOP } from "@/content/site-map";
 import type { PhoneLink } from "@/core/contact";
-import { Logo } from "@/components/brand/logo";
+import { LogoMark } from "@/components/brand/logo";
 import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
+import { CallLink, PrimaryLink } from "./actions";
+import { MobileMenu } from "./mobile-menu";
+import styles from "./shell.module.css";
 
-const NAV = [
-  { href: "/depannage", label: "Dépannage" },
-  { href: "/remorquage", label: "Remorquage" },
-  { href: "/zones-d-intervention", label: "Zones" },
-  { href: "/panne-autoroute", label: "Autoroute" },
-  { href: "/questions-frequentes", label: "Questions" },
-  { href: "/contact", label: "Contact" },
-];
+const SCROLLED_AT = 24;
 
-export function SiteHeader({ phone, announcement }: { phone: PhoneLink | null; announcement: string | null }) {
-  const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
-  const menuRef = useRef<HTMLDetailsElement>(null);
+const subscribeScroll = (onChange: () => void) => {
+  window.addEventListener("scroll", onChange, { passive: true });
+  return () => window.removeEventListener("scroll", onChange);
+};
+const readScrolled = () => window.scrollY > SCROLLED_AT;
+const serverScrolled = () => false;
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    if (menuRef.current) menuRef.current.open = false;
+/**
+ * Cycle de page de la coque.
+ * - Le ciel : le pied de page ne donne l'heure « aube » que si la page déclare ses heures
+ *   (`data-sky`) ; une page qui n'en a pas encore reste dans la nuit au lieu de commencer à
+ *   l'aube. Joué AVANT le cycle du runtime (l'en-tête précède MotionRuntime dans le layout, ses
+ *   effets de mise en page passent donc en premier) : le runtime lit le premier `data-sky`.
+ * - Le retour au dépôt : le pied de page appartient au layout, le runtime ne le rejoue pas. Ici,
+ *   à chaque page, ses scènes `[data-play-on-view]` sont réarmées puis reçoivent `data-play` en
+ *   entrant dans l'écran (92 %), après le retour en haut de page de la navigation.
+ */
+function useShellCycle(pathname: string) {
+  useLayoutEffect(() => {
+    const footer = document.querySelector<HTMLElement>("footer[data-depot-footer]");
+    if (!footer) return;
+    const pageHasSky = document.querySelector("#contenu [data-sky]") !== null;
+    if (pageHasSky) footer.setAttribute("data-sky", "aube");
+    else footer.removeAttribute("data-sky");
   }, [pathname]);
 
+  useEffect(() => {
+    const scenes = Array.from(document.querySelectorAll<HTMLElement>("footer[data-depot-footer] [data-play-on-view]"));
+    for (const scene of scenes) scene.removeAttribute("data-play");
+    let observer: IntersectionObserver | null = null;
+    const frame = requestAnimationFrame(() => {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.setAttribute("data-play", "");
+            io.unobserve(entry.target);
+          }
+        },
+        { rootMargin: "0px 0px -8% 0px" },
+      );
+      for (const scene of scenes) io.observe(scene);
+      observer = io;
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [pathname]);
+}
+
+export function SiteHeader({
+  phone,
+  whatsapp,
+  announcement,
+}: {
+  phone: PhoneLink | null;
+  whatsapp: PhoneLink | null;
+  announcement: string | null;
+}) {
+  const pathname = usePathname();
+  const scrolled = useSyncExternalStore(subscribeScroll, readScrolled, serverScrolled);
+  const headerRef = useRef<HTMLElement>(null);
+
+  useShellCycle(pathname);
+
+  // Hauteur réelle de l'en-tête (annonce comprise) pour la découpe de la transition de page.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const html = document.documentElement;
+    const write = () => html.style.setProperty("--header-h", `${Math.round(header.getBoundingClientRect().height)}px`);
+    write();
+    const observer = new ResizeObserver(write);
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      html.style.removeProperty("--header-h");
+    };
+  }, []);
+
   return (
-    <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300",
-        scrolled ? "border-b border-white/10 bg-asphalt-950/85 backdrop-blur-xl" : "border-b border-transparent bg-transparent",
-      )}
-    >
+    <header ref={headerRef} data-scrolled={scrolled ? "" : undefined} className={styles.header}>
+      <span className={styles.glare} aria-hidden="true" />
       {announcement ? (
-        <div className="bg-beacon-500 px-4 py-1.5 text-center text-sm font-bold text-asphalt-950">
-          <Icon name="info" size={15} className="mr-1.5 inline -translate-y-px" />
-          {announcement}
+        <div className={styles.announce}>
+          <p className="mx-auto flex max-w-7xl items-start justify-center gap-2 px-4 py-2 text-center sm:px-6">
+            <Icon name="info" size={16} strokeWidth={2.4} className="mt-[0.2em] shrink-0" />
+            <span>{announcement}</span>
+          </p>
         </div>
       ) : null}
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-20">
-        <Link href="/" className="shrink-0" aria-label="RNB AUTO, accueil">
-          <Logo />
+
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-20 lg:px-8 xl:gap-4">
+        <Link href="/" className={cn(styles.brand, "shrink-0")} aria-label="RNB AUTO, accueil">
+          <span className={styles.brandMark}>
+            <LogoMark className="h-9 w-9 lg:h-10 lg:w-10" />
+          </span>
+          {/* Entre 1 024 et 1 279 px, le losange seul : la navigation et les deux actions tiennent sur une ligne. */}
+          <span className="leading-none lg:hidden xl:block">
+            <span className="font-wide block text-[1.15rem] tracking-[0.06em] text-chalk">RNB AUTO</span>
+            <span className="mt-1 block text-[0.6rem] font-semibold uppercase tracking-[0.3em] text-signal-500 lg:hidden">
+              Dépannage · Remorquage
+            </span>
+          </span>
         </Link>
 
-        <nav aria-label="Navigation principale" className="hidden items-center gap-1 lg:flex">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "rounded-full px-3.5 py-2 text-sm font-semibold transition-colors",
-                pathname.startsWith(item.href) ? "bg-white/10 text-signal-400" : "text-asphalt-200 hover:text-chalk",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav aria-label="Navigation principale" className="hidden items-center lg:flex">
+          {NAV_DESKTOP.map((item) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={item.help}
+                aria-current={active ? "page" : undefined}
+                className={styles.navLink}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Tablette et ordinateur : la barre d'action n'existe plus à partir de 768 px.
+              « Appeler » jusqu'à 1 279 px, le numéro au-delà ; rien si le numéro manque. */}
           {phone ? (
-            <a
-              href={phone.href}
-              className="hidden items-center gap-2 rounded-full border border-white/15 px-4 py-2.5 text-sm font-bold tabular text-chalk transition-colors hover:border-signal-500 hover:text-signal-400 sm:flex"
-            >
-              <Icon name="phone" size={16} strokeWidth={2.4} />
-              {phone.display}
-            </a>
+            <>
+              <span className="hidden md:block xl:hidden">
+                <CallLink phone={phone} label="short" size="sm" />
+              </span>
+              <span className="hidden xl:block">
+                <CallLink phone={phone} label="number" size="sm" />
+              </span>
+            </>
           ) : null}
-          <Link
-            href="/demande"
-            className="hidden items-center gap-2 rounded-full bg-signal-500 px-5 py-2.5 text-sm font-extrabold text-asphalt-950 transition-transform hover:-translate-y-0.5 md:flex"
-          >
-            Demander un dépannage
-            <Icon name="arrowRight" size={16} strokeWidth={2.6} />
-          </Link>
-
-          <details ref={menuRef} className="group relative lg:hidden">
-            <summary
-              className="flex h-11 w-11 list-none items-center justify-center rounded-full border border-white/15 text-chalk [&::-webkit-details-marker]:hidden"
-              aria-label="Ouvrir le menu"
-            >
-              <Icon name="menu" size={20} className="group-open:hidden" />
-              <Icon name="x" size={20} className="hidden group-open:block" />
-            </summary>
-            <div className="fixed inset-x-3 top-[4.5rem] rounded-3xl border border-white/10 bg-asphalt-900/97 p-3 shadow-2xl backdrop-blur-xl">
-              <nav aria-label="Menu" className="grid">
-                {NAV.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex items-center justify-between rounded-2xl px-4 py-3.5 text-lg font-bold text-chalk active:bg-white/5"
-                  >
-                    {item.label}
-                    <Icon name="chevronRight" size={18} className="text-asphalt-400" />
-                  </Link>
-                ))}
-                <Link
-                  href="/demande"
-                  className="mt-2 flex items-center justify-center gap-2 rounded-2xl bg-signal-500 px-4 py-4 text-lg font-extrabold text-asphalt-950"
-                >
-                  Demander un dépannage
-                  <Icon name="arrowRight" size={18} strokeWidth={2.6} />
-                </Link>
-              </nav>
-            </div>
-          </details>
+          <span className="hidden md:block">
+            <PrimaryLink href="/demande" size="sm">
+              Demander un dépannage
+            </PrimaryLink>
+          </span>
+          <MobileMenu phone={phone} whatsapp={whatsapp} />
         </div>
+      </div>
+
+      {/* Progression de lecture (mobile et tablette) ; /demande a sa propre route d'étapes. */}
+      <div className={styles.progress} aria-hidden="true">
+        <span className="progress-x" />
       </div>
     </header>
   );

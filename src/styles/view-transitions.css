@@ -1,0 +1,105 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   P19 · Transitions de page « allumage des phares » (docs/09, D.4).
+
+   - Seule l'enveloppe <PageTransition> de chaque page est capturée : le document entier n'a
+     pas de nom, donc l'en-tête, la barre d'action et le ciel restent vivants et cliquables.
+   - L'incrustation ne recouvre jamais la bande de l'en-tête ni celle de la barre d'action.
+   - Durée totale : 400 ms au plus. `lite` : simple fondu. `off` : aucune animation.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  view-transition-name: none;
+  /* Hauteur de l'en-tête (écrite par l'en-tête via ResizeObserver) et de la barre d'action. */
+  --vt-top: var(--header-h, 4rem);
+  --vt-bottom: 0px;
+}
+@media (max-width: 767px) {
+  :root {
+    --vt-bottom: var(--actionbar-h, calc(3.5rem + 0.625rem + max(0.75rem, env(safe-area-inset-bottom))));
+  }
+}
+
+/* React réduit `::view-transition` à 0 × 0 (animation figée) quand la racine n'est pas capturée :
+   on lui rend la taille de l'écran (une déclaration !important l'emporte sur une animation),
+   sinon la découpe ci-dessous masquerait toute la transition. Les clics passent au travers. */
+::view-transition {
+  inset: 0;
+  width: auto !important;
+  height: auto !important;
+  pointer-events: none;
+  clip-path: inset(var(--vt-top) 0 var(--vt-bottom) 0);
+}
+
+/* L'ancienne page s'éteint (140 ms, −12 px). */
+::view-transition-old(.page-out) {
+  animation: vt-page-out var(--dur-page-out) var(--ease-accel) both;
+}
+/* La nouvelle page apparaît dans un cercle de lumière ouvert depuis le point touché (360 ms).
+   Courbe « out-cubic » plutôt qu'« out-expo » : avec expo, le cercle couvre l'écran en 30 ms
+   et l'allumage ne se voit pas. */
+::view-transition-new(.page-in) {
+  animation: vt-page-in var(--dur-page) cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+@keyframes vt-page-out {
+  to {
+    opacity: 0;
+    translate: 0 -12px;
+  }
+}
+@keyframes vt-page-in {
+  from {
+    clip-path: circle(0 at var(--vt-x) var(--vt-y));
+  }
+  to {
+    clip-path: circle(125vmax at var(--vt-x) var(--vt-y));
+  }
+}
+
+/* Morph partagé entre un panneau du carrefour et la plaque d'ouverture de la page d'arrivée. */
+::view-transition-group(.morph) {
+  animation-duration: 380ms;
+  animation-timing-function: var(--ease-out-expo);
+}
+::view-transition-image-pair(.morph) {
+  animation-name: vt-via-blur;
+  animation-duration: 380ms;
+}
+@keyframes vt-via-blur {
+  40% {
+    filter: blur(3px);
+  }
+}
+
+/* Niveau `lite` : fondu de 150 ms. */
+:root[data-motion="lite"]::view-transition-old(.page-out) {
+  animation: vt-fade-out 150ms ease-out both;
+}
+:root[data-motion="lite"]::view-transition-new(.page-in) {
+  animation: vt-fade-in 150ms ease-out both;
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Niveau `off` et préférence système : aucune animation de transition. */
+:root[data-motion="off"]::view-transition-group(*),
+:root[data-motion="off"]::view-transition-image-pair(*),
+:root[data-motion="off"]::view-transition-old(*),
+:root[data-motion="off"]::view-transition-new(*) {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

@@ -5,6 +5,7 @@
 import { cache } from "react";
 import { phoneLink, type PhoneLink } from "@/core/contact";
 import { computeQuote } from "@/core/pricing";
+import { clientIncludedLabels } from "@/core/quotes/client-view";
 import { scenarioToEngineInput } from "@/core/quotes/types";
 import { initialSettingsValues, type SettingsValues } from "@/core/settings/registry";
 import { getDb } from "@/server/db/client";
@@ -21,6 +22,8 @@ export type PublicSiteInfo = {
   serviceArea: string;
   announcement: string | null;
   depotLabel: string;
+  /** Dépôt (réglage `company.depot`) : libellé, ville et position, si elle est connue. */
+  depot: { label: string; city: string | null; lat: number | null; lng: number | null };
   regulatedRoads: { enabled: boolean; message: string };
   estimateEnabled: boolean;
   legal: {
@@ -33,7 +36,8 @@ export type PublicSiteInfo = {
     host: string | null;
     insurance: string | null;
   };
-  examplePrice: { priceTtcCents: number } | null;
+  /** Exemple calculé par le moteur avec les tarifs en vigueur, et ce qu'il comprend (sans montant). */
+  examplePrice: { priceTtcCents: number; includedLabels: string[] } | null;
   /** « defaults » : la base n'a pas pu être lue, valeurs de départ affichées. */
   source: "database" | "defaults";
 };
@@ -52,6 +56,12 @@ function toInfo(v: SettingsValues, source: PublicSiteInfo["source"], examplePric
     serviceArea: v["company.serviceArea"],
     announcement: v["site.announcement.enabled"] ? blankToNull(v["site.announcement.text"]) : null,
     depotLabel: v["company.depot"].label,
+    depot: {
+      label: v["company.depot"].label,
+      city: blankToNull(v["company.depot"].city ?? ""),
+      lat: v["company.depot"].lat,
+      lng: v["company.depot"].lng,
+    },
     regulatedRoads: { enabled: v["zone.regulatedRoads.enabled"], message: v["zone.regulatedRoads.message"] },
     estimateEnabled: v["estimate.enabled"],
     legal: {
@@ -80,7 +90,12 @@ export const getPublicSiteInfo = cache(async (): Promise<PublicSiteInfo> => {
         scenarioToEngineInput(HOME_EXAMPLE_SCENARIO, snapshot.fuel.manualPriceMillis, "online"),
         snapshot.pricing,
       );
-      if (result.client.priceTtcCents !== null) examplePrice = { priceTtcCents: result.client.priceTtcCents };
+      if (result.client.priceTtcCents !== null) {
+        examplePrice = {
+          priceTtcCents: result.client.priceTtcCents,
+          includedLabels: clientIncludedLabels(result, values["estimate.showSupplementLabels"]),
+        };
+      }
     }
     return toInfo(values, "database", examplePrice);
   } catch (error) {

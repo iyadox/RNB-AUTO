@@ -1,0 +1,891 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   PLEINS PHARES : système de motion (docs/09-refonte-immersive.md, partie C).
+
+   Trois règles tiennent tout ce fichier :
+   1. État de base = état final. Sans JavaScript, tout est visible, allumé, tracé, garé.
+   2. Les états « cachés avant l'animation » n'existent que sous `html.motion-ready[data-motion]`,
+      classe posée par le runtime (MotionRuntime) après une initialisation réussie.
+   3. `html[data-motion="off"]` (préférence système ou bouton) : aucun mouvement, aucune boucle,
+      aucune animation liée au défilement.
+
+   Le niveau `data-motion` est posé avant le premier affichage par MotionHeadScript.
+   Les pages encore servies par l'ancien moteur (sans `data-motion`) ne sont pas concernées.
+
+   Les valeurs par défaut que l'appelant peut vouloir changer (position, affichage, perspective)
+   sont dans `@layer components` : une classe Tailwind (couche `utilities`) les remplace.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Propriétés enregistrées (interpolables) ─────────────────────────────── */
+
+@property --sky-top {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #05070d;
+}
+@property --sky-mid {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0b1222;
+}
+@property --sky-low {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #141a2a;
+}
+@property --city-glow {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.1;
+}
+@property --stars {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+/* Tracé d'un chemin `pathLength="1"` : 1 = dessiné (état de base), 0 = effacé. */
+@property --draw {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+/* Progression de la lecture de la page (0 → 1), écrite par le runtime si `scroll()` manque. */
+@property --scroll-progress {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+/* ─── Jetons de référence (C.2) ───────────────────────────────────────────── */
+
+:root {
+  --dur-tap: 120ms;
+  --dur-ui: 220ms;
+  --dur-reveal: 500ms;
+  --dur-title: 800ms;
+  --dur-beam: 900ms;
+  --dur-scene: 900ms;
+  --dur-sky: 900ms;
+  --dur-page-out: 140ms;
+  --dur-page: 360ms;
+  --dur-print: 900ms;
+  --dur-odometer: 1100ms;
+
+  --stagger: 60ms;
+  --stagger-group: 40ms;
+
+  /* Amplitudes : mobile d'abord, doublées sur ordinateur. */
+  --reveal-dy: 16px;
+  --parallax-amp: 4vh;
+  --tilt-from: 55deg;
+
+  /* Éclat du faisceau de phare (P4), toujours sur un texte déjà allumé. */
+  --beam-glint: #fff8dc;
+
+  /* Origine de la transition de page (P19), réécrite au clic par le runtime. */
+  --vt-x: 50vw;
+  --vt-y: 40vh;
+}
+@media (min-width: 1024px) {
+  :root {
+    --reveal-dy: 24px;
+    --parallax-amp: 8vh;
+    --tilt-from: 60deg;
+  }
+}
+/* /demande : impression et compteur plus vifs (le vrai prix est attendu). */
+[data-page="demande"] {
+  --dur-print: 450ms;
+  --dur-odometer: 700ms;
+}
+html[data-motion="lite"] {
+  --dur-sky: 400ms;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P1 · NightSky : un ciel fixe derrière tout le site, de minuit à l'aube.
+   La repeinte n'a lieu que pendant un changement d'heure (--dur-sky), jamais au défilement.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.night-sky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* 100lvh : la hauteur ne bouge jamais quand la barre d'adresse d'iOS apparaît. */
+  height: 100lvh;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+
+  --sky-top: #05070d;
+  --sky-mid: #0b1222;
+  --sky-low: #141a2a;
+  --city-glow: 0.1;
+  --stars: 1;
+
+  background-color: var(--sky-top);
+  background-image:
+    /* Nappe froide du zénith : donne de la profondeur au noir. */
+    radial-gradient(120% 70% at 18% -12%, rgb(64 92 168 / 0.16), transparent 62%),
+    radial-gradient(90% 55% at 92% 4%, rgb(98 74 160 / 0.1), transparent 60%),
+    /* Dégradé principal du ciel. */
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 56%, var(--sky-low) 100%);
+  transition:
+    --sky-top var(--dur-sky) var(--ease-beam),
+    --sky-mid var(--dur-sky) var(--ease-beam),
+    --sky-low var(--dur-sky) var(--ease-beam),
+    --city-glow var(--dur-sky) var(--ease-beam),
+    --stars var(--dur-sky) var(--ease-beam);
+}
+html[data-sky="nuit"] .night-sky {
+  --sky-top: #070a12;
+  --sky-mid: #0b1222;
+  --sky-low: #121a2e;
+  --city-glow: 0.06;
+  --stars: 0.8;
+}
+html[data-sky="bleue"] .night-sky {
+  --sky-top: #0b1222;
+  --sky-mid: #18294a;
+  --sky-low: #1f3157;
+  --city-glow: 0;
+  --stars: 0.4;
+}
+html[data-sky="aube"] .night-sky {
+  --sky-top: #121a2e;
+  --sky-mid: #241f3d;
+  --sky-low: #3a3358;
+  --city-glow: 0;
+  --stars: 0.15;
+}
+
+/* Nappes de nuages bas, éclairées par-dessous par la ville (source : les lampadaires au sodium).
+   Elles s'éteignent avec la ville ; à l'aube, d'autres nappes prennent une teinte froide. */
+.night-sky__clouds {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(34% 6% at 20% 61%, rgb(255 178 108 / calc(var(--city-glow) * 0.75)), transparent 72%),
+    radial-gradient(26% 4.5% at 64% 55%, rgb(255 178 108 / calc(var(--city-glow) * 0.6)), transparent 72%),
+    radial-gradient(42% 7% at 78% 68%, rgb(255 168 100 / calc(var(--city-glow) * 0.7)), transparent 72%),
+    radial-gradient(30% 5% at 40% 72%, rgb(255 160 96 / calc(var(--city-glow) * 0.55)), transparent 72%),
+    radial-gradient(38% 5% at 28% 58%, rgb(150 132 205 / calc((1 - var(--stars)) * 0.14)), transparent 72%),
+    radial-gradient(30% 4% at 72% 50%, rgb(150 132 205 / calc((1 - var(--stars)) * 0.1)), transparent 72%);
+}
+/* Lueur de la ville sur l'horizon : ambre au ras du sol, puis une transition rose violacé. */
+.night-sky__glow {
+  position: absolute;
+  inset: 38% -12% 0;
+  background:
+    radial-gradient(58% 46% at 50% 100%, rgb(255 190 116 / calc(var(--city-glow) * 2.1)), transparent 72%),
+    radial-gradient(85% 62% at 50% 100%, rgb(255 140 70 / calc(var(--city-glow) * 1.1)), transparent 72%),
+    radial-gradient(140% 72% at 50% 100%, rgb(176 92 140 / calc(var(--city-glow) * 0.9)), transparent 74%);
+}
+/* Voile de brume basse : sépare le ciel du sol, plus présente à l'heure bleue et à l'aube. */
+.night-sky__haze {
+  position: absolute;
+  inset: auto 0 0;
+  height: 38%;
+  background: linear-gradient(to top, color-mix(in srgb, var(--sky-low) 70%, rgb(150 160 210 / 0.12)), transparent);
+  opacity: calc(0.35 + (1 - var(--stars)) * 0.5);
+}
+
+.night-sky__stars {
+  position: absolute;
+  inset: 0 0 46% 0;
+  opacity: var(--stars);
+  background-repeat: no-repeat;
+  will-change: opacity;
+}
+.night-sky__stars--dust {
+  inset: 0 0 38% 0;
+}
+.night-sky__stars--more {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .night-sky__stars--more {
+    display: block;
+  }
+}
+/* Six étoiles scintillent, sur ordinateur et en niveau `full` seulement. */
+.night-sky__twinkle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(227 236 255 / 0.95) 0 22%, rgb(227 236 255 / 0.25) 42%, transparent 70%);
+  opacity: calc(var(--stars) * 0.7);
+  display: none;
+}
+@media (min-width: 1024px) and (pointer: fine) {
+  .night-sky__twinkle {
+    display: block;
+  }
+  html[data-motion="full"] .night-sky__twinkle {
+    animation: sky-twinkle var(--tw-dur, 4s) ease-in-out var(--tw-delay, 0s) infinite alternate;
+  }
+}
+@keyframes sky-twinkle {
+  0%,
+  30% {
+    opacity: calc(var(--stars) * 0.75);
+  }
+  65% {
+    opacity: calc(var(--stars) * 0.15);
+  }
+  100% {
+    opacity: calc(var(--stars) * 0.9);
+  }
+}
+
+/* Grain de bitume statique (B.5), sous le contenu. */
+.night-sky__grain {
+  position: absolute;
+  inset: 0;
+  background: url("/textures/grain.png") 0 0 / 128px 128px repeat;
+  opacity: 0.05;
+}
+
+/* P21 · Halo des phares : suit le pointeur sur ordinateur (runtime/halo.ts). */
+.night-sky__halo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 560px;
+  height: 560px;
+  margin: -280px 0 0 -280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 236 200 / 0.06), transparent 60%);
+  opacity: 0;
+  transition: opacity 600ms var(--ease-beam);
+  will-change: transform;
+}
+.night-sky__halo[data-on] {
+  opacity: 1;
+}
+
+@media (prefers-contrast: more) {
+  .night-sky__grain,
+  .night-sky__haze {
+    display: none;
+  }
+}
+@media (forced-colors: active) {
+  .night-sky {
+    display: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P2 · Reveal : paragraphes, plaques et illustrations montent de 16 px (24 px sur ordinateur).
+   Interdit sur toute action (tel:, wa.me, /demande, bouton) et sur les titres principaux.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+html[data-motion] [data-reveal] {
+  transition:
+    opacity var(--dur-reveal) var(--ease-out-expo),
+    translate var(--dur-reveal) var(--ease-out-expo);
+  transition-delay: calc((var(--reveal-step, 1) - 1) * var(--stagger));
+}
+[data-reveal-step="2"] {
+  --reveal-step: 2;
+}
+[data-reveal-step="3"] {
+  --reveal-step: 3;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-reveal]:not([data-inview]) {
+  opacity: 0;
+  translate: 0 var(--reveal-dy);
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P4 · BeamSweep : une bande de lumière passe sur un mot déjà allumé.
+   `load` : une fois au chargement. `view` : liée au défilement (repli : une fois à l'entrée).
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  html[data-motion="full"] [data-beam],
+  html[data-motion="lite"] [data-beam] {
+    background-image: linear-gradient(
+      100deg,
+      currentColor 0 40%,
+      var(--beam-glint) 48%,
+      currentColor 56% 100%
+    );
+    background-size: 260% 100%;
+    background-position: 0% 0;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  html[data-motion="full"] [data-beam="load"],
+  html[data-motion="lite"] [data-beam="load"] {
+    animation: beam-sweep var(--dur-beam) var(--ease-beam) 200ms both;
+  }
+  /* `lite`, ou navigateur sans timeline de défilement : la lumière passe une fois à l'entrée
+     dans l'écran. (Hors `@supports not`, cette règle plus précise écraserait la version liée
+     au défilement du niveau `full` dès que le runtime pose `data-inview`.) */
+  html.motion-ready[data-motion="lite"] [data-beam="view"][data-inview] {
+    animation: beam-sweep var(--dur-beam) var(--ease-beam) both;
+  }
+  @supports not (animation-timeline: view()) {
+    html.motion-ready[data-motion="full"] [data-beam="view"][data-inview] {
+      animation: beam-sweep var(--dur-beam) var(--ease-beam) both;
+    }
+  }
+  @supports (animation-timeline: view()) {
+    html[data-motion="full"] [data-beam="view"] {
+      /* Piège connu : `animation-timeline` APRÈS le raccourci `animation`. */
+      animation: beam-sweep linear both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 45%;
+    }
+  }
+}
+@keyframes beam-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+@media (forced-colors: active) {
+  [data-beam] {
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P5 · LineRise (GSAP SplitText, runtime/helpers.ts) : seul le masque est ici.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.split-line {
+  display: block;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P6 · Retroreflect : une bande blanche traverse la plaque au milieu de l'écran.
+   CSS seul (timeline de vue) ; repli : une fois quand le runtime pose `data-inview`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  [data-retro] {
+    position: relative;
+    overflow: clip;
+    isolation: isolate;
+  }
+}
+[data-retro]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  /* Bande de reflet et microprismes à 60° et 120°, visibles seulement dans la bande. */
+  background:
+    linear-gradient(105deg, transparent 40%, color-mix(in srgb, var(--color-reflect) 62%, transparent) 50%, transparent 60%),
+    repeating-linear-gradient(60deg, rgb(255 255 255 / 0.04) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(120deg, rgb(255 255 255 / 0.04) 0 2px, transparent 2px 6px);
+  -webkit-mask-image: linear-gradient(105deg, transparent 34%, #000 50%, transparent 66%);
+  mask-image: linear-gradient(105deg, transparent 34%, #000 50%, transparent 66%);
+  translate: -110% 0;
+}
+@supports not (animation-timeline: view()) {
+  html.motion-ready[data-motion]:not([data-motion="off"]) [data-retro][data-inview]::after {
+    animation: retro-sweep 900ms var(--ease-beam) both;
+  }
+}
+/* `prefers-reduced-motion` : utile sans JavaScript (aucun `data-motion` posé), où la règle
+   globale de globals.css ne neutralise pas une animation liée au défilement. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="off"]) [data-retro]::after {
+      animation: retro-sweep linear both;
+      animation-timeline: view();
+      animation-range: cover 35% cover 65%;
+    }
+  }
+}
+/* Sur ordinateur, le reflet se rejoue au survol et au focus. */
+@media (hover: hover) and (pointer: fine) {
+  html:not([data-motion="off"]) [data-retro]:hover::after,
+  html:not([data-motion="off"]) [data-retro]:focus-visible::after,
+  html:not([data-motion="off"]) [data-retro]:has(:focus-visible)::after {
+    animation: retro-sweep-hover 900ms var(--ease-beam) both;
+  }
+}
+@keyframes retro-sweep {
+  from {
+    translate: -110% 0;
+  }
+  to {
+    translate: 110% 0;
+  }
+}
+@keyframes retro-sweep-hover {
+  from {
+    translate: -110% 0;
+  }
+  to {
+    translate: 110% 0;
+  }
+}
+@media (forced-colors: active) {
+  [data-retro]::after {
+    display: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P7 · Parallax : `data-parallax` + `style="--depth: .1 à .6"`. CSS seul, niveau `full`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+@supports (animation-timeline: view()) {
+  html[data-motion="full"] [data-parallax] {
+    animation: parallax-drift linear both;
+    animation-timeline: view();
+    animation-range: cover;
+  }
+}
+@keyframes parallax-drift {
+  from {
+    translate: 0 calc(var(--depth, 0.3) * var(--parallax-amp));
+  }
+  to {
+    translate: 0 calc(var(--depth, 0.3) * var(--parallax-amp) * -1);
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P8 · CameraTilt : la route se redresse et devient la carte (plan grue), dans un cadre.
+   Ordinateur : timeline nommée d'une section `[data-tilt-scope]` ; sinon `view()` du plan.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .tilt-cam-frame {
+    perspective: 900px;
+    perspective-origin: 50% 0%;
+  }
+}
+[data-tilt-scope] {
+  view-timeline-name: --tilt-story;
+}
+@supports (animation-timeline: view()) {
+  html[data-motion="full"] [data-tilt-cam] {
+    transform-origin: 50% 100%;
+    animation: tilt-cam linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 45%;
+  }
+  @media (min-width: 1024px) {
+    html[data-motion="full"] [data-tilt-scope] [data-tilt-cam] {
+      animation: tilt-cam linear both;
+      animation-timeline: --tilt-story;
+      animation-range: contain 0% contain 15%;
+    }
+  }
+}
+@keyframes tilt-cam {
+  from {
+    transform: rotateX(var(--tilt-from)) scale(1.2);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P10 · RouteDraw : tout tracé `pathLength="1"` qui porte la classe `draw` suit `--draw`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.draw {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: calc(1 - var(--draw));
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P12 · TicketPrint : le ticket sort ligne par ligne, prix en haut (visible dès la 1re ligne).
+   `data-print="mount"` : au montage. `data-print="view"` : à l'entrée dans l'écran.
+   `--print-lines` (6 par défaut) règle le nombre de crans. `[data-stamp]` frappe à la fin.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-print="view"]:not([data-inview]) {
+  clip-path: inset(0 0 100% 0);
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-print="mount"],
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-print="view"][data-inview] {
+  animation:
+    print-feed var(--dur-print) steps(var(--print-lines, 6), jump-start) both,
+    print-jolt var(--dur-print) linear both;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-print="mount"] [data-stamp],
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-print="view"][data-inview] [data-stamp] {
+  animation: stamp-hit 180ms var(--ease-out-back) var(--dur-print) both;
+}
+@keyframes print-feed {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+/* Deux petites secousses du papier pendant l'impression. */
+@keyframes print-jolt {
+  0%,
+  28%,
+  34%,
+  70%,
+  76%,
+  100% {
+    translate: 0 0;
+  }
+  31% {
+    translate: 0 2px;
+  }
+  73% {
+    translate: 0 1.5px;
+  }
+}
+@keyframes stamp-hit {
+  from {
+    scale: 1.4;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P14 · Lights : boucles de lumière. Toujours dans une scène `data-pause-offscreen`,
+   deux boucles visibles au plus. L'état de base est « allumé ».
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* Feux de détresse : 1 Hz (500 ms allumé, 500 ms éteint), petites surfaces. */
+.hazard {
+  animation: hazard-blink 1s steps(1, end) infinite;
+}
+@keyframes hazard-blink {
+  50% {
+    opacity: 0.12;
+  }
+}
+/* Gyrophare : halos alternés, pulsation douce de 1,2 s (période ≈ 2 × celle des feux de détresse). */
+.beacon-glow {
+  animation: beacon-flash 1.2s ease-in-out infinite;
+}
+.beacon-glow--alt {
+  animation-delay: -0.6s;
+}
+/* Lampadaire : cône et flaque statiques. */
+.lamp {
+  animation: none;
+}
+/* Lampadaire qui « respire » (404 seulement) : jamais un flash. */
+.lamp-breathe {
+  animation: lamp-breathe 4s ease-in-out infinite alternate;
+}
+@keyframes lamp-breathe {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P15 · DashLight : les voyants d'un groupe `[data-ignite]` s'allument comme au contact.
+   Chaque partie lumineuse porte `data-light` ; la cascade suit l'ordre des enfants (40 ms).
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+[data-ignite] > :nth-child(2) {
+  --ignite-i: 1;
+}
+[data-ignite] > :nth-child(3) {
+  --ignite-i: 2;
+}
+[data-ignite] > :nth-child(4) {
+  --ignite-i: 3;
+}
+[data-ignite] > :nth-child(5) {
+  --ignite-i: 4;
+}
+[data-ignite] > :nth-child(6) {
+  --ignite-i: 5;
+}
+[data-ignite] > :nth-child(7) {
+  --ignite-i: 6;
+}
+[data-ignite] > :nth-child(n + 8) {
+  --ignite-i: 7;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-ignite]:not([data-inview]) [data-light] {
+  opacity: 0.14;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-ignite][data-inview] [data-light] {
+  animation: ignite 260ms linear calc(var(--ignite-i, 0) * var(--stagger-group)) both;
+}
+@keyframes ignite {
+  0% {
+    opacity: 0.14;
+  }
+  18% {
+    opacity: 1;
+  }
+  32% {
+    opacity: 0.3;
+  }
+  52% {
+    opacity: 1;
+  }
+  66% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P16 · Arrive & Brake : le véhicule entre, freine, le nez plonge puis la caisse se replace.
+   `data-arrive` (depuis la gauche) ou `data-arrive="right"` (depuis la droite).
+   La caisse porte la classe `truck-body` ; les roues `data-wheel` (TowTruck).
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-arrive]:not([data-inview]) {
+  translate: -110% 0;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-arrive="right"]:not([data-inview]) {
+  translate: 110% 0;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-arrive][data-inview] {
+  animation: arrive-left 1.4s var(--ease-brake) var(--arrive-delay, 0s) both;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-arrive="right"][data-inview] {
+  animation-name: arrive-right;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-arrive][data-inview] .truck-body {
+  transform-box: fill-box;
+  transform-origin: 80% 100%;
+  animation: brake-dip 340ms var(--ease-out-expo) calc(var(--arrive-delay, 0s) + 1.18s) both;
+}
+html.motion-ready[data-motion]:not([data-motion="off"]) [data-arrive][data-inview] [data-wheel] {
+  animation: wheel-brake 1.4s var(--ease-brake) var(--arrive-delay, 0s) both;
+}
+@keyframes arrive-left {
+  from {
+    translate: -110% 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes arrive-right {
+  from {
+    translate: 110% 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes brake-dip {
+  0% {
+    rotate: 0deg;
+  }
+  38% {
+    rotate: 1.2deg;
+  }
+  72% {
+    rotate: -0.35deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+@keyframes wheel-brake {
+  from {
+    rotate: -1080deg;
+  }
+  to {
+    rotate: 0deg;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P17 · GroundText : lettres peintes sur la chaussée, la caméra « roule » dessus.
+   Cadre `.ground-frame` ; couche `[data-ground]` (une seule, aria-hidden).
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .ground-frame {
+    perspective: 520px;
+    perspective-origin: 50% 0%;
+    overflow: clip;
+  }
+  [data-ground] {
+    transform-origin: 50% 0%;
+    transform: rotateX(70deg) scaleY(2.4);
+  }
+}
+@supports (animation-timeline: view()) {
+  html[data-motion="full"] [data-ground] {
+    animation: ground-roll linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 30%;
+  }
+}
+@keyframes ground-roll {
+  from {
+    translate: 0 -18%;
+  }
+  to {
+    translate: 0 12%;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P20 · Pause : scènes en pause hors de l'écran ou par le bouton « Pause ».
+   (`.scene-paused` est défini dans globals.css et suspend toutes les animations.)
+   Boutons de commande masqués sans JavaScript et en niveau `off`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+html:not(.js) [data-scene-pause],
+html[data-motion="off"] [data-scene-pause],
+html:not(.js) [data-motion-toggle] {
+  display: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-motion-toggle],
+  [data-scene-pause] {
+    display: none !important;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   D.3 · Progression de lecture : `.progress-x` (barre horizontale) et `.progress-y` (verticale).
+   CSS `scroll(root)` quand il existe, sinon `--scroll-progress` écrit par le runtime.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.progress-x {
+  transform-origin: 0 50%;
+  scale: var(--scroll-progress) 1;
+}
+.progress-y {
+  transform-origin: 50% 0;
+  scale: 1 var(--scroll-progress);
+}
+@supports (animation-timeline: scroll()) {
+  .progress-x {
+    animation: progress-x linear both;
+    animation-timeline: scroll(root);
+  }
+  .progress-y {
+    animation: progress-y linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes progress-x {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes progress-y {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   P11 · Odometer : colonnes décoratives posées par le composant pendant le roulement.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  [data-odometer] {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+}
+.odometer-roll {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  white-space: pre;
+  pointer-events: none;
+}
+.odometer-col {
+  display: inline-block;
+  overflow: hidden;
+  height: 100%;
+}
+.odometer-strip {
+  display: block;
+  will-change: transform;
+}
+.odometer-strip > span {
+  display: block;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   Lenis (défilement doux sur ordinateur) : règles recommandées par la bibliothèque.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   Niveau `off` (C.3) : aucun mouvement. États finaux, ni boucle, ni défilement lié,
+   ni transition de page. Le ciel change sans transition.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+html[data-motion="off"],
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+/* Animations liées au défilement : coupées explicitement (leur durée ne dépend pas du temps).
+   La progression de lecture reste juste : le runtime écrit alors `--scroll-progress`. */
+html[data-motion="off"] [data-beam],
+html[data-motion="off"] [data-parallax],
+html[data-motion="off"] [data-tilt-cam],
+html[data-motion="off"] [data-ground],
+html[data-motion="off"] [data-retro]::after,
+html[data-motion="off"] .progress-x,
+html[data-motion="off"] .progress-y {
+  animation: none !important;
+}

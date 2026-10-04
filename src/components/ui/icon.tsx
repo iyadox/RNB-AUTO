@@ -369,6 +369,92 @@ const PATHS = {
       <path d="M19 15l.8 2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
     </>
   ),
+  // ─── Ajouts PLEINS PHARES (docs/09, H.3) : même grille de 24, trait de 2 px ───
+  /** Feux de détresse : deux triangles imbriqués. */
+  hazard: (
+    <>
+      <path d="M10.3 3.9 2.2 18.2A2 2 0 0 0 3.9 21h16.2a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9.5 8 16.5h8Z" />
+    </>
+  ),
+  /** Gilet de haute visibilité. */
+  vest: (
+    <>
+      <path d="M8 3 5 5.5V21h5v-6.5L12 12l2 2.5V21h5V5.5L16 3l-4 5Z" />
+      <path d="M5 15h5M14 15h5" />
+    </>
+  ),
+  /** Glissière de sécurité. */
+  guardrail: (
+    <>
+      <path d="M2 8.5h20v5H2z" />
+      <path d="M5 13.5V20M12 13.5V20M19 13.5V20" />
+    </>
+  ),
+  /** Borne d'appel d'urgence. */
+  callbox: (
+    <>
+      <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" />
+      <path d="M5 21h14" />
+      <rect x="9.5" y="6" width="5" height="5" rx="1" />
+      <path d="M10 14.5h4" />
+    </>
+  ),
+  /** Cône de signalisation. */
+  cone: (
+    <>
+      <path d="M10.5 3h3l4.5 15H6Z" />
+      <path d="M8.4 10h7.2M7.3 14h9.4" />
+      <path d="M4 21h16" />
+    </>
+  ),
+  /** Barrière de chantier, route barrée. */
+  barrier: (
+    <>
+      <rect x="2" y="7" width="20" height="6" rx="1" />
+      <path d="M7 7l-4 6M13 7l-4 6M19 7l-4 6" />
+      <path d="M5 13v8M19 13v8" />
+    </>
+  ),
+  /** Barre de hauteur (parking, sous-sol). */
+  heightBar: (
+    <>
+      <path d="M3 21V4M21 21V4" />
+      <path d="M3 6h18" />
+      <path d="M12 10v8M9.5 12.5 12 10l2.5 2.5M9.5 15.5 12 18l2.5-2.5" />
+    </>
+  ),
+  /** Câbles de démarrage (booster). */
+  booster: (
+    <>
+      <path d="M4 3v5M8 3v5" />
+      <path d="M4 8c0 7 6 4 8 9M8 8c0 5 6 5 8 9" />
+      <path d="M10 17h4v4h-4zM14 17h4v4h-4z" />
+    </>
+  ),
+  /** Ticket d'estimation (bord perforé). */
+  ticket: (
+    <>
+      <path d="M5 2h14v19l-2.3-1.5L14.3 21 12 19.5 9.7 21l-2.4-1.5L5 21Z" />
+      <path d="M9 7h6M9 11h6M9 15h3" />
+    </>
+  ),
+  /** Losange RNB AUTO. */
+  losange: (
+    <>
+      <path d="M12 2 22 12 12 22 2 12Z" />
+      <path d="M12 7.5 16.5 12 12 16.5 7.5 12Z" />
+    </>
+  ),
+  /** Compteur de tableau de bord. */
+  gauge: (
+    <>
+      <path d="M3.5 17a9 9 0 1 1 17 0" />
+      <path d="M12 13.5 16 9" />
+      <circle cx="12" cy="14" r="1.5" />
+      <path d="M6.3 10.5 5 9.8M12 6.5V5M17.7 10.5l1.3-.7" />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof PATHS;

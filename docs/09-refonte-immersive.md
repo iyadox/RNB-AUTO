@@ -1882,3 +1882,33 @@ S1 Fondations ──► S2a Coque ─┐
 - [ ] Planches de captures à 390 et 1 440, en normal et `--reduced`, pour toutes les pages : aucun débordement horizontal, aucune erreur de console.
 - [ ] Rendu de l'administration inchangé (`/admin/tester`, `/admin/parametres`).
 - [ ] `docs/09-refonte-immersive.md` à jour. Fichiers morts supprimés (`sections.tsx`, `home-motion.tsx`, `page-motion.tsx`, exports dépréciés).
+
+---
+
+## J. Journal des écarts
+
+Chaque écart au cahier est noté ici avec sa raison. Les lots suivants ajoutent leurs propres entrées à la suite.
+
+### J.1 Lot S1 (fondations)
+
+| # | Écart | Raison |
+|---|---|---|
+| S1-1 | Dans un module CSS, `@reference "@/app/globals.css"` (H.0-3) ne se résout pas : il faut un chemin relatif, par exemple `@reference "../../app/globals.css";`. | L'alias `@/` de TypeScript n'est pas connu du compilateur CSS de Tailwind (erreur « Can't resolve »). |
+| S1-2 | Les valeurs par défaut que l'appelant peut vouloir changer (`position`, `display`, `perspective`…) sont dans `@layer components`, dans `motion.css` comme dans les modules CSS du socle. | Une règle de module CSS est hors couche : elle bat toujours les utilitaires Tailwind (couche `utilities`). Sans cela, `className="absolute"` ou `hidden` passé à `Skyline`, `Depot`, `Pmv` ou à un élément `[data-retro]` restait sans effet. **Règle pour les lots :** dans un `*.module.css`, mettre sous `@layer components { … }` toute propriété qu'une classe Tailwind de l'appelant doit pouvoir remplacer. |
+| S1-3 | `::view-transition` reçoit `width: auto !important; height: auto !important`. | React réduit ce pseudo-élément à 0 × 0 par une animation figée quand la racine n'est pas capturée ; la découpe `clip-path: inset(...)` de D.4 masquait alors toute la transition. Une déclaration `!important` l'emporte sur une animation ; `pointer-events: none` laisse passer les clics. |
+| S1-4 | Cercle de la page entrante : courbe `cubic-bezier(.33, 1, .68, 1)` (out-cubic) et rayon final `125vmax`, au lieu de `--ease-out-expo` et `150vmax`. Durée inchangée (360 ms). | Avec expo et 150vmax, le cercle couvre l'écran en 30 ms : l'« allumage » ne se voyait pas. 125vmax couvre encore la diagonale de tout écran. |
+| S1-5 | Masque à points des LED (`led-mask`, `Pmv`) : points de 1,45 px (bord 1,8 px) au lieu de 1,25 px (1,6 px) ; texte du panneau en graisse 900. | Aux tailles de B.3, le texte du panneau était trop pâle et peu lisible (vérifié en capture). |
+| S1-6 | `MotionToggle` : libellé fixe « Arrêter les animations », état donné par `aria-pressed` et par un interrupteur visuel (allumé = animations arrêtées). | Un bouton bascule dont le libellé change ET qui annonce `aria-pressed` donne un double état contradictoire aux lecteurs d'écran (« Relancer les animations, enfoncé »). |
+| S1-7 | `MotionHeadScript` est un composant client : il rend le `<script>` dans le HTML du serveur et ne rend rien quand le layout est construit dans le navigateur (navigation depuis /admin). | Un script créé côté client ne s'exécute jamais et React affiche une erreur de console. Dans ce cas, `MotionRuntime` pose lui-même `html.js` et `data-motion`. |
+| S1-8 | Contrat P10 précisé : classe `draw` sur tout tracé `pathLength="1"` à dessiner ; `data-draw-mask="<id>"` sur un tronçon en pointillés (l'aide recopie `--draw` sur le tracé plein du masque) ; bornes facultatives `data-route-start` / `data-route-end` en mode `scrub` ; la racine reçoit `data-route-current="<tronçon>"`. | Le cahier ne fixait pas ces noms ; S2b en a besoin pour `RoutePaths`. |
+| S1-9 | P16 : variante `data-arrive="right"` (entrée par la droite) et variable `--arrive-delay` ; `Depot` accepte `--depot-delay`. | Le pied de page enchaîne arrivée, extinction et rideau (D.8). |
+| S1-10 | Ciel (P1) : en plus des 12 / 24 étoiles, une poussière d'étoiles très fines (ordinateur seulement), des nappes de nuages éclairées par la ville (elles s'éteignent avec `--city-glow`) et une brume basse. | Le ciel est l'atmosphère de tout le site ; ces couches sont statiques (aucune repeinte au défilement). |
+| S1-11 | Apparition (P2) : propriété CSS `translate`, pas `transform`. | Ne détruit pas un `transform` posé par la page sur le même élément. Conséquence : ne pas mettre d'utilitaire `translate-*` sur un élément `[data-reveal]` ou `[data-arrive]`. |
+| S1-12 | `MotionRuntime` lance le cycle de page dans `useLayoutEffect`, et Lenis est recréé à chaque page (pas de `scrollTo(0)`). | La nouvelle page n'est jamais peinte avec des éléments visibles cachés ; Next gère déjà le retour en haut et les ancres. |
+| S1-13 | `runtime/helpers.ts` ne référence jamais GSAP : le runtime lui passe le chargeur. | Turbopack chargeait le morceau GSAP avec `helpers.ts` ; si GSAP était bloqué, les scènes sans GSAP échouaient aussi. |
+| S1-14 | `ScenePause` pose aussi `data-user-paused` sur la cible. | Sinon l'observateur « hors écran » relançait une scène mise en pause par le visiteur dès son retour dans l'écran. |
+| S1-15 | L'alias `asphalt-grain` pointe déjà vers la tuile PNG. | Il n'est utilisé par aucune page : aucun changement visible. |
+| S1-16 | `scripts/review-shots.mjs` lit l'adresse du serveur dans `REVIEW_BASE_URL` (par défaut `http://localhost:3000`) ; sortie par défaut : `<tmp>/rnb-review`. | Utilisable contre le serveur de test séparé. |
+| S1-17 | Les dossiers de démonstration ignorés par Git (`src/app/motion-lab/`, `src/app/kit-demo/`) ne sont pas lus par Tailwind : le laboratoire importe sa propre feuille (`@reference "../globals.css"; @source "./"; @import "tailwindcss/utilities" layer(utilities);`). | Détection automatique des sources de Tailwind v4 : les fichiers ignorés par Git sont exclus. |
+| S1-18 | Lenis ne s'arrête plus quand un champ a le focus : il rend seulement la molette au défilement natif (`smoothWheel: false`) tant que le champ est actif. Il s'arrête toujours quand le menu est ouvert. | Un Lenis arrêté annule la molette (`preventDefault`) et pose `overflow: clip` sur `<html>` : toute la page était figée tant que le curseur restait dans un champ (recherche de commune, par exemple). |
+| S1-19 | `.motion-ready` reste posée d'une page à l'autre (le runtime la retire seulement en niveau `off` ou au démontage). | La retirer puis la remettre à chaque navigation relançait les animations des éléments du layout (pied de page). **Pour S2a :** un élément du layout qui a déjà reçu `data-inview` garde son état final sur les pages suivantes (il n'est pas réarmé). |

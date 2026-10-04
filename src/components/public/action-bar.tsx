@@ -1,30 +1,32 @@
 /**
- * Barre d'action fixe en bas de l'écran du téléphone : Appeler · WhatsApp · Demande.
- * Ce sont de simples liens : ils fonctionnent même sans JavaScript et même si la base est en panne.
+ * Barre d'action fixe en bas de l'écran du téléphone : Appeler · WhatsApp · Demande (docs/09, D.7).
+ * Ce sont de simples liens rendus par le serveur : ils fonctionnent sans JavaScript et même si la
+ * base est en panne. Toujours au-dessus de tout (z 60), jamais masquée, jamais animée toute seule,
+ * jamais nommée pour une transition de page. Sur /demande, « Demande » disparaît et la grille
+ * passe à deux colonnes (CSS `:has`, voir shell.module.css).
  */
 import Link from "next/link";
 import { whatsappHref, whatsappRequestMessage, type PhoneLink } from "@/core/contact";
+import { cn } from "@/components/ui/cn";
 import { Icon, WhatsAppIcon } from "@/components/ui/icon";
+import styles from "./shell.module.css";
+
+const BUTTON = "flex h-14 items-center justify-center gap-2 rounded-2xl font-bold";
 
 export function ActionBar({ phone, whatsapp }: { phone: PhoneLink | null; whatsapp: PhoneLink | null }) {
   return (
-    <nav
-      aria-label="Actions rapides"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-asphalt-950/92 px-3 pt-2.5 backdrop-blur-xl md:hidden"
-    >
-      <div className="mx-auto grid max-w-md grid-cols-[1.15fr_1fr_1fr] gap-2">
+    <nav aria-label="Actions rapides" className={cn(styles.actionBar, "safe-bottom md:hidden")}>
+      <div className={cn(styles.actionGrid, "mx-auto grid max-w-md gap-2")}>
         {phone ? (
-          <a
-            href={phone.href}
-            className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-signal-500 font-bold text-asphalt-950 shadow-[0_8px_30px_-8px_rgb(255_196_0_/_0.6)] active:scale-[0.98]"
-          >
+          <a href={phone.href} data-action="call" className={cn(BUTTON, styles.actionTap, "bg-signal-500 text-asphalt-950")}>
             <Icon name="phone" size={20} strokeWidth={2.4} />
             Appeler
           </a>
         ) : (
           <Link
             href="/contact"
-            className="flex h-14 flex-col items-center justify-center rounded-2xl bg-signal-500 text-asphalt-950"
+            data-action="call"
+            className={cn(styles.actionTap, "flex h-14 flex-col items-center justify-center rounded-2xl bg-signal-500 text-asphalt-950")}
           >
             <span className="flex items-center gap-1.5 font-bold">
               <Icon name="phone" size={18} strokeWidth={2.4} />
@@ -36,23 +38,29 @@ export function ActionBar({ phone, whatsapp }: { phone: PhoneLink | null; whatsa
         {whatsapp ? (
           <a
             href={whatsappHref(whatsapp.e164, whatsappRequestMessage({}))}
-            className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-whatsapp font-bold text-asphalt-950 active:scale-[0.98]"
+            data-action="whatsapp"
+            className={cn(BUTTON, styles.actionTap, "bg-whatsapp text-asphalt-950")}
           >
             <WhatsAppIcon size={20} />
             WhatsApp
           </a>
         ) : (
-          <Link href="/contact" className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-whatsapp/80 font-bold text-asphalt-950">
+          <Link href="/contact" data-action="whatsapp" className={cn(BUTTON, styles.actionTap, "bg-whatsapp/80 text-asphalt-950")}>
             <WhatsAppIcon size={20} />
             WhatsApp
           </Link>
         )}
         <Link
           href="/demande"
-          className="flex h-14 items-center justify-center gap-1.5 rounded-2xl border border-white/20 bg-white/5 font-bold text-chalk active:scale-[0.98]"
+          data-action="request"
+          className={cn(
+            BUTTON,
+            styles.actionTap,
+            "gap-1.5 bg-night-900/80 text-chalk shadow-[inset_0_0_0_1.5px_rgb(255_253_246_/_0.22)]",
+          )}
         >
           Demande
-          <Icon name="arrowRight" size={18} strokeWidth={2.4} />
+          <Icon name="arrowRight" size={18} strokeWidth={2.4} className="text-signal-500" />
         </Link>
       </div>
     </nav>

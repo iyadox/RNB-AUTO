@@ -1,0 +1,139 @@
+/* P13 · Panneau à messages variables : matrice de LED ambre (docs/09, B.5 et C.5). */
+
+/* Valeurs par défaut remplaçables par une classe Tailwind de l'appelant. */
+@layer components {
+  .pmv {
+    position: relative;
+    display: grid;
+    gap: 0.625rem;
+    justify-items: stretch;
+  }
+}
+
+/* Le caisson : liseré métallique, rivets, fond noir profond. */
+.housing {
+  position: relative;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #1b1f26, #0c0e12);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 253 246 / 0.1),
+    inset 0 1px 0 rgb(255 253 246 / 0.12),
+    0 18px 40px -18px rgb(0 0 0 / 0.9);
+}
+.housing::before,
+.housing::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: var(--color-asphalt-500);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+.housing::before {
+  left: 0.2rem;
+}
+.housing::after {
+  right: 0.2rem;
+}
+
+/* La matrice : points éteints sur une trame de 4 px, lueur ambre statique sur le parent. */
+.matrix {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: calc(2 * 1.15em + 1.5rem);
+  padding: 0.75rem 1rem;
+  border-radius: 3px;
+  background-color: var(--color-night-950);
+  background-image: radial-gradient(circle, var(--color-led-off) 1.25px, transparent 1.6px);
+  background-size: 4px 4px;
+  overflow: clip;
+  filter: drop-shadow(0 0 6px rgb(255 178 26 / 0.55));
+}
+.md .matrix {
+  font-size: var(--text-led);
+}
+.lg .matrix {
+  font-size: clamp(1.75rem, 1.1rem + 2.6vw, 3.25rem);
+}
+
+.message {
+  display: grid;
+  justify-items: center;
+  color: var(--color-led);
+  font-weight: 900;
+  text-align: center;
+  white-space: nowrap;
+}
+.line {
+  display: block;
+  line-height: 1.15;
+  /* Points allumés : le texte n'est visible qu'à travers la trame (≥ 20 px seulement). */
+  -webkit-mask: radial-gradient(circle, #000 1.45px, transparent 1.8px) 0 0 / 4px 4px;
+  mask: radial-gradient(circle, #000 1.45px, transparent 1.8px) 0 0 / 4px 4px;
+}
+
+/* Effacement puis écriture, colonne par colonne (steps(10), 280 ms chacun). */
+.out {
+  animation: pmv-wipe-out 280ms steps(10, end) both;
+}
+.in {
+  animation: pmv-wipe-in 280ms steps(10, end) both;
+}
+@keyframes pmv-wipe-out {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+@keyframes pmv-wipe-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Bouton « Pause » (WCAG 2.2.2) : discret, mais 48 px de zone de toucher (A7). */
+.pause {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  color: var(--color-asphalt-200);
+  font-size: var(--text-small);
+  font-weight: 600;
+  background: rgb(255 253 246 / 0.04);
+  box-shadow: inset 0 0 0 1px rgb(255 253 246 / 0.12);
+  transition:
+    color var(--dur-ui) ease,
+    box-shadow var(--dur-ui) ease;
+}
+.pause:hover {
+  color: var(--color-chalk);
+  box-shadow: inset 0 0 0 1px rgb(255 178 26 / 0.5);
+}
+.pauseIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+@media (forced-colors: active) {
+  .matrix {
+    filter: none;
+  }
+  .line {
+    -webkit-mask: none;
+    mask: none;
+  }
+}

@@ -1,0 +1,1069 @@
+@reference "../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   Blocs des pages publiques (docs/09, B.8, C.5 P17-P18, D.3, D.8, F).
+   Sections transparentes sur le ciel ; plaques au lieu de cartes ; séparateurs en tirets.
+   Ce qu'une classe Tailwind de l'appelant doit pouvoir remplacer est dans `@layer components`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Plaque PK ─────────────────────────────────────────────────────────────── */
+
+.plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-wrap: balance;
+}
+/* Sous 640 px, espacement des capitales réduit : « PK 00 · DÉPANNAGE SUR PLACE » tient sur une
+   ligne à 390 px (le dernier mot partait seul à la ligne). */
+@media (max-width: 639px) {
+  .plate > span:last-child {
+    letter-spacing: 0.14em;
+  }
+}
+.plate_signal {
+  color: var(--color-signal-500);
+}
+.plate_beacon {
+  color: var(--color-beacon-400);
+}
+.plate_chalk {
+  color: var(--color-chalk);
+}
+/* Petite borne : tête de la couleur de la plaque, fût craie. */
+.platePost {
+  width: 8px;
+  height: 15px;
+  flex: none;
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(to bottom, currentColor 0 38%, var(--color-chalk) 38% 100%);
+  box-shadow: 0 0 10px color-mix(in srgb, currentColor 35%, transparent);
+}
+.platePicto {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 6px;
+  color: var(--color-asphalt-950);
+  background: var(--color-signal-500);
+  box-shadow: 0 10px 30px -12px rgb(255 196 0 / 0.6);
+}
+.plate_beacon .platePicto {
+  background: var(--color-beacon-500);
+}
+
+/* ─── Ouverture ─────────────────────────────────────────────────────────────── */
+
+.opening {
+  position: relative;
+  padding-top: calc(var(--header-h, 4rem) + 1.75rem);
+  padding-bottom: 3rem;
+}
+@media (min-width: 1024px) {
+  .opening {
+    padding-top: calc(var(--header-h, 5rem) + 3.5rem);
+    padding-bottom: 5rem;
+  }
+}
+.openingText {
+  position: relative;
+  z-index: 1;
+}
+.openingTitle {
+  @apply font-display text-hero;
+  margin-top: 1.15rem;
+  /* 0,95 plutôt que 0,92 : l'accent d'une capitale (É) ne touche jamais la ligne du dessus. */
+  line-height: 0.95;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.openingTitle em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+.openingLead {
+  @apply text-lead;
+  margin-top: 1.15rem;
+  max-width: 56ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+.openingActions {
+  margin-top: 1.75rem;
+}
+.openingScene {
+  position: relative;
+  margin-top: 2.25rem;
+}
+@media (max-width: 1023px) {
+  .openingScene {
+    max-height: 34svh;
+    overflow: clip;
+  }
+}
+@media (min-width: 1024px) {
+  .opening_split .openingGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    align-items: center;
+    gap: 3rem;
+    min-height: min(calc(88vh - var(--header-h, 5rem) - 8.5rem), 46rem);
+  }
+  .opening_split .openingScene {
+    margin-top: 0;
+  }
+}
+.opening_compact {
+  max-height: none;
+}
+.opening_compact .openingTitle {
+  @apply text-display;
+}
+
+/* Ancienne ouverture : une rue de nuit en fond, sous le texte. */
+.opening_legacy {
+  padding-bottom: 9.5rem;
+  overflow: clip;
+}
+@media (min-width: 1024px) {
+  .opening_legacy {
+    padding-bottom: 13rem;
+  }
+}
+.legacyStreet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: min(26rem, 52%);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 82%, transparent);
+}
+.opening_legacy .edgeLine {
+  display: none;
+}
+.legacySkyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22%;
+  height: 46%;
+  opacity: 0.8;
+}
+.legacyLamps {
+  position: absolute;
+  inset: 0;
+}
+.legacyStreet::after {
+  /* Chaussée mouillée et ligne de rive. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22%;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 253 246 / 0.22) 0 30px, transparent 30px 60px) 0 55% / 100% 2px no-repeat,
+    linear-gradient(to bottom, rgb(255 253 246 / 0.22), transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-sodium) 6%, var(--color-night-900)), var(--color-night-950));
+}
+
+/* Ligne de rive en tirets, au bas de l'ouverture (60/60). */
+.edgeLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 60px, transparent 60px 120px);
+}
+
+/* ─── Sections ──────────────────────────────────────────────────────────────── */
+
+.sectionTitle {
+  @apply font-display text-display;
+  max-width: 15em;
+  line-height: 0.96;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.sectionTitle em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+.relatedTitle {
+  @apply font-display;
+  font-size: clamp(2.5rem, 1.6rem + 3.4vw, 4.25rem);
+  line-height: 0.96;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  font-weight: 800;
+  color: var(--color-signal-400);
+  text-underline-offset: 6px;
+  transition: gap var(--dur-ui) var(--ease-out-expo);
+}
+.textLink:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+/* ─── P18 · Questions ───────────────────────────────────────────────────────── */
+
+.faq {
+  display: grid;
+  /* Dans une grille parente, les lignes « auto » s'étiraient jusqu'à la hauteur de la colonne
+     du titre : questions espacées de 124 px au lieu de 77 (constaté). */
+  align-content: start;
+  align-self: start;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 24px, transparent 24px 48px) 0 0 / 100% 1px no-repeat;
+}
+.faqItem {
+  position: relative;
+  interpolate-size: allow-keywords;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 24px, transparent 24px 48px) 0 100% / 100% 1px no-repeat;
+}
+.faqQuestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-height: 3.5rem;
+  padding: 1.15rem 0;
+  list-style: none;
+  cursor: pointer;
+  font-size: clamp(1.125rem, 1rem + 0.45vw, 1.375rem);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-chalk);
+  transition: color var(--dur-ui) var(--ease-out-expo);
+}
+.faqQuestion::-webkit-details-marker {
+  display: none;
+}
+.faqQuestion::marker {
+  content: "";
+}
+.faqQuestion:hover {
+  color: var(--color-signal-400);
+}
+/* Le « + » tourne en « × ». */
+.faqToggle {
+  position: relative;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  color: var(--color-chalk);
+  box-shadow: inset 0 0 0 1.5px rgb(255 253 246 / 0.24);
+  transition:
+    rotate var(--dur-ui) var(--ease-out-expo),
+    background-color var(--dur-ui) var(--ease-out-expo),
+    color var(--dur-ui) var(--ease-out-expo);
+}
+.faqToggle::before,
+.faqToggle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 2px;
+  margin: -1px 0 0 -6.5px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.faqToggle::after {
+  rotate: 90deg;
+}
+.faqItem[open] .faqToggle {
+  rotate: 45deg;
+  color: var(--color-asphalt-950);
+  background-color: var(--color-signal-500);
+  box-shadow: none;
+}
+.faqAnswer {
+  position: relative;
+  max-width: 64ch;
+  padding: 0 3.5rem 1.6rem 1.35rem;
+  font-size: var(--text-body);
+  line-height: 1.65;
+  color: var(--color-asphalt-200);
+}
+/* Le trait jaune s'allume à gauche de la réponse ouverte. */
+.faqAnswer::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  bottom: 1.75rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--color-signal-500);
+  box-shadow: 0 0 12px rgb(255 196 0 / 0.55);
+  transform-origin: 50% 0;
+}
+.faqItem[open] .faqAnswer::before {
+  animation: faq-line 480ms var(--ease-out-expo) 60ms both;
+}
+@keyframes faq-line {
+  from {
+    scale: 1 0;
+  }
+}
+@supports selector(::details-content) {
+  .faqItem::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 260ms var(--ease-out-expo),
+      content-visibility 260ms allow-discrete;
+  }
+  .faqItem[open]::details-content {
+    block-size: auto;
+  }
+}
+
+/* ─── Prochaine sortie ──────────────────────────────────────────────────────── */
+
+.exitSign {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-height: 14rem;
+  padding: 2rem 1.35rem 1.75rem;
+  border-radius: 6px;
+  color: var(--color-chalk);
+  background:
+    /* Microprismes du film rétroréfléchissant (B.5) : seulement devinés. */
+    repeating-linear-gradient(60deg, rgb(255 253 246 / 0.04) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(120deg, rgb(255 253 246 / 0.04) 0 1px, transparent 1px 7px),
+    radial-gradient(90% 120% at 100% 0%, rgb(255 253 246 / 0.06), transparent 60%),
+    linear-gradient(to bottom, rgb(18 26 46 / 0.96), rgb(5 7 13 / 0.97));
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.14),
+    0 40px 80px -40px rgb(0 0 0 / 0.9);
+  transition: translate var(--dur-ui) var(--ease-out-expo);
+}
+@media (min-width: 1024px) {
+  .exitSign {
+    min-height: 18rem;
+    padding: 2.75rem 3rem 2.6rem;
+  }
+}
+/* Liseré blanc intérieur des panneaux de direction. */
+.exitFrame {
+  position: absolute;
+  inset: 9px;
+  border: 2px solid rgb(255 253 246 / 0.78);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.exitBody {
+  position: relative;
+  min-width: 0;
+}
+.exitTab {
+  @apply font-plate text-plate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: var(--color-asphalt-950);
+  background: var(--color-signal-500);
+}
+@media (max-width: 639px) {
+  .exitTab {
+    letter-spacing: 0.14em;
+  }
+}
+.exitTitle {
+  @apply font-sign;
+  display: block;
+  margin-top: 1.1rem;
+  font-size: clamp(1.75rem, 1rem + 4vw, 5.5rem);
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+.exitHelp {
+  @apply text-lead;
+  display: block;
+  margin-top: 0.6rem;
+  color: var(--color-asphalt-200);
+}
+.exitArrow {
+  position: relative;
+  align-self: flex-start;
+  flex: none;
+  width: clamp(3rem, 1.8rem + 5vw, 6.5rem);
+  aspect-ratio: 1;
+  color: var(--color-chalk);
+  transition:
+    translate var(--dur-ui) var(--ease-out-expo),
+    color var(--dur-ui) var(--ease-out-expo);
+}
+.exitSign:hover .exitArrow,
+.exitSign:focus-visible .exitArrow {
+  translate: 6px -6px;
+  color: var(--color-signal-400);
+}
+.exitGore {
+  display: block;
+  width: 100%;
+  height: 4.5rem;
+  margin-top: 1.25rem;
+}
+/* Le panneau est planté au bord de la bretelle : deux poteaux galvanisés, derrière lui, qui
+   descendent jusqu'à la ligne de rive. Sans eux, on lisait une carte posée sur la nuit. */
+.exitMount {
+  position: relative;
+  isolation: isolate;
+}
+.exitPosts {
+  position: absolute;
+  z-index: -1;
+  inset: 40% 0 1px;
+  pointer-events: none;
+}
+.exitPosts::before,
+.exitPosts::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(90deg, var(--color-asphalt-700), var(--color-asphalt-500) 35%, var(--color-asphalt-800));
+  box-shadow: 0 6px 6px -2px rgb(0 0 0 / 0.6);
+}
+.exitPosts::before {
+  left: 16%;
+}
+.exitPosts::after {
+  right: 16%;
+}
+
+/* ─── Aube de fin de page ───────────────────────────────────────────────────── */
+
+.dawnCta {
+  position: relative;
+  padding-top: var(--spacing-section);
+  overflow: clip;
+}
+.dawnTitle {
+  @apply font-display text-dawn;
+  max-width: 13ch;
+  /* Interligne un peu plus large : les accents des capitales ne touchent pas la ligne du dessus. */
+  line-height: 0.96;
+  text-wrap: balance;
+  color: var(--color-signal-500);
+}
+.dawnText {
+  @apply text-lead;
+  margin-top: 1.25rem;
+  max-width: 50ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+.dawnScene {
+  position: relative;
+  height: max(15rem, 38svh);
+  margin-top: 2.75rem;
+  container-type: inline-size;
+  pointer-events: none;
+  --horizon: 40%;
+}
+@media (min-width: 1024px) {
+  .dawnScene {
+    height: max(20rem, 52vh);
+    margin-top: 3.5rem;
+  }
+}
+/* Bande d'aube locale : violet, rose, or. Aucun texte dessus. */
+.dawnSky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--horizon);
+  background: linear-gradient(
+    to bottom,
+    rgb(58 51 88 / 0) 0%,
+    rgb(58 51 88 / 0.75) 30%,
+    color-mix(in srgb, var(--color-dawn-rose) 55%, var(--color-dusk-500)) 62%,
+    var(--color-dawn-rose) 82%,
+    var(--color-dawn-gold) 100%
+  );
+}
+.dawnSun {
+  position: absolute;
+  left: 50%;
+  top: var(--horizon);
+  width: min(32cqi, 270px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  translate: -50% -56%;
+  background: radial-gradient(
+    circle,
+    var(--beam-glint) 0 16%,
+    color-mix(in srgb, var(--color-dawn-gold) 70%, var(--beam-glint)) 21%,
+    rgb(234 168 104 / 0.5) 30%,
+    rgb(234 168 104 / 0.14) 48%,
+    transparent 70%
+  );
+}
+.dawnSkyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--horizon) - 18%);
+  height: 18%;
+  opacity: 0.75;
+}
+/* Le sol au-delà de la route, éclairé par l'aube au loin. */
+.dawnScene::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--horizon);
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-dawn-gold) 22%, var(--color-night-900)) 0%,
+    color-mix(in srgb, var(--color-dawn-rose) 8%, var(--color-night-900)) 18%,
+    var(--color-night-900) 60%,
+    var(--color-night-950) 100%
+  );
+}
+/* La route qui croise à l'horizon : la dépanneuse y arrive. */
+.dawnCrossRoad {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: var(--horizon);
+  height: 6%;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-dawn-gold) 20%, var(--color-asphalt-850)), var(--color-asphalt-850));
+  box-shadow:
+    inset 0 1px 0 rgb(255 253 246 / 0.35),
+    inset 0 -1px 0 rgb(255 253 246 / 0.18);
+}
+.dawnCrossDash {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.5px;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.32) 0 16px, transparent 16px 34px);
+}
+.dawnGround {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: calc(var(--horizon) + 6%);
+  bottom: 0;
+}
+.dawnTruckLane {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  width: calc(50% + min(13cqi, 120px));
+  top: 0;
+  bottom: calc(100% - var(--horizon) - 4.4%);
+}
+/* Arrivée et freinage (P16) : le couloir reste immobile pour être « vu » par le runtime ;
+   la dépanneuse entre par la gauche, freine, le nez plonge puis la caisse se replace. */
+.dawnTruckMover {
+  position: absolute;
+  inset: 0;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .dawnTruckLane:not([data-inview]) .dawnTruckMover {
+  translate: -110% 0;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .dawnTruckLane[data-inview] .dawnTruckMover {
+  animation: dawn-arrive 1.6s var(--ease-brake) 0.15s both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .dawnTruckLane[data-inview] :global([data-wheel]) {
+  animation: dawn-wheel 1.6s var(--ease-brake) 0.15s both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .dawnTruckLane[data-inview] :global(.truck-body) {
+  transform-box: fill-box;
+  transform-origin: 80% 100%;
+  animation: dawn-dip 340ms var(--ease-out-expo) 1.55s both;
+}
+@keyframes dawn-arrive {
+  from {
+    translate: -110% 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes dawn-wheel {
+  from {
+    rotate: -1080deg;
+  }
+  to {
+    rotate: 0deg;
+  }
+}
+@keyframes dawn-dip {
+  0% {
+    rotate: 0deg;
+  }
+  38% {
+    rotate: 1.2deg;
+  }
+  72% {
+    rotate: -0.35deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+.dawnTruck {
+  position: absolute;
+  right: 0;
+  bottom: calc(min(26cqi, 240px) * -14 / 360);
+  width: min(26cqi, 240px);
+}
+
+/* ─── P17 · Route en perspective et texte peint ─────────────────────────────── */
+
+@layer components {
+  .groundWrap {
+    position: relative;
+  }
+}
+.groundWrap {
+  overflow: clip;
+  container-type: size;
+  pointer-events: none;
+}
+.groundFrame {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  perspective: 62cqh;
+  perspective-origin: 50% 0%;
+}
+/* Le plan de la route : il pivote autour de son bord proche (en bas) ; son bout lointain
+   touche exactement le haut du cadre (longueur = hauteur / cos 80°). */
+.groundPlane {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 130cqi;
+  height: 576cqh;
+  margin-left: -65cqi;
+  transform-origin: 50% 100%;
+  transform: rotateX(80deg);
+  background:
+    /* Plots rétroréfléchissants le long des lignes de rive : ils prennent la lumière de l'aube. */
+    radial-gradient(circle, rgb(255 253 246 / 0.75) 0 0.55cqi, transparent 0.75cqi) 15.2% 0 / 2cqi 30cqh repeat-y,
+    radial-gradient(circle, rgb(255 253 246 / 0.75) 0 0.55cqi, transparent 0.75cqi) 84.8% 0 / 2cqi 30cqh repeat-y,
+    /* Lignes de rive */
+    linear-gradient(90deg, transparent 13%, rgb(255 253 246 / 0.6) 13% 13.8%, transparent 13.8% 86.2%, rgb(255 253 246 / 0.6) 86.2% 87%, transparent 87%),
+    /* Reflet de l'aube sur la chaussée mouillée, au loin */
+    linear-gradient(to bottom, rgb(234 168 104 / 0.38), rgb(185 103 90 / 0.12) 30%, transparent 55%),
+    linear-gradient(to bottom, var(--color-asphalt-800), var(--color-asphalt-850) 70%, var(--color-asphalt-900));
+  -webkit-mask-image: linear-gradient(90deg, transparent 12%, #000 12.4% 87.6%, transparent 88%);
+  mask-image: linear-gradient(90deg, transparent 12%, #000 12.4% 87.6%, transparent 88%);
+}
+/* Grain du bitume, atténué : à pleine opacité, la perspective l'agrandissait en neige
+   d'écran au premier plan (constaté). */
+.groundPlane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/textures/grain.png") 0 0 / 64px 64px repeat;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.groundDash {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.1cqi;
+  margin-left: -0.55cqi;
+  background: repeating-linear-gradient(to bottom, rgb(255 253 246 / 0.55) 0 22cqh, transparent 22cqh 44cqh);
+}
+.groundText {
+  @apply font-display;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 13cqh;
+  text-align: center;
+  font-size: 13.5cqi;
+  line-height: 0.82;
+  white-space: nowrap;
+  color: rgb(245 243 238 / 0.82);
+  transform-origin: 50% 100%;
+  transform: scaleY(2.6);
+  /* Peinture usée : le grain mange une partie des lettres. */
+  -webkit-mask-image: url("/textures/grain.png"), linear-gradient(#000, #000);
+  -webkit-mask-composite: xor;
+  mask-image: url("/textures/grain.png"), linear-gradient(#000, #000);
+  mask-composite: exclude;
+}
+/* La caméra roule : lettres et tirets avancent avec le défilement (niveau `full`). */
+@supports (animation-timeline: view()) {
+  html[data-motion="full"] .groundText[data-ground] {
+    animation: ground-advance linear both;
+    animation-timeline: view();
+    animation-range: entry 10% exit 20%;
+  }
+  html[data-motion="full"] .groundDash {
+    animation: dash-advance linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 0%;
+  }
+}
+@keyframes ground-advance {
+  from {
+    translate: 0 -38cqh;
+  }
+  to {
+    translate: 0 6cqh;
+  }
+}
+@keyframes dash-advance {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 176cqh;
+  }
+}
+html[data-motion="off"] .groundDash,
+html[data-motion="off"] .groundText {
+  animation: none !important;
+}
+@media (forced-colors: active) {
+  .groundWrap {
+    display: none;
+  }
+}
+
+/* ─── Texte long et « À COMPLÉTER » ─────────────────────────────────────────── */
+
+.prose {
+  max-width: 68ch;
+  font-size: var(--text-body);
+  line-height: 1.7;
+  color: var(--color-asphalt-200);
+}
+.prose > * + * {
+  margin-top: 1.25rem;
+}
+.prose h2 {
+  @apply font-step;
+  margin-top: 3.25rem;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  line-height: 1.15;
+  color: var(--color-chalk);
+}
+.prose h2:first-child {
+  margin-top: 0;
+}
+.prose h3 {
+  margin-top: 2rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-chalk);
+}
+.prose a {
+  font-weight: 700;
+  color: var(--color-signal-400);
+  text-underline-offset: 4px;
+}
+.prose a:hover {
+  text-decoration: underline;
+}
+.prose strong {
+  color: var(--color-chalk);
+}
+.prose ul {
+  display: grid;
+  gap: 0.6rem;
+}
+.prose li {
+  position: relative;
+  padding-left: 1.4rem;
+}
+.prose li::before {
+  content: "";
+  position: absolute;
+  left: 0.15rem;
+  top: 0.68em;
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  rotate: 45deg;
+  background: var(--color-signal-500);
+}
+
+/* Style chantier : impossible à manquer, jamais confondu avec une vraie donnée. */
+.toComplete {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: 4px;
+  font-size: 0.95em;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--color-beacon-400);
+  background: rgb(255 122 26 / 0.1);
+  box-shadow: inset 0 0 0 1.5px rgb(255 122 26 / 0.55);
+}
+.toComplete > span:last-child {
+  padding: 0.2rem 0.6rem;
+}
+.toCompleteStripe {
+  flex: none;
+  width: 0.75rem;
+  background: repeating-linear-gradient(-45deg, var(--color-beacon-500) 0 4px, var(--color-asphalt-950) 4px 8px);
+}
+
+/* ─── Anciens blocs (pages pas encore migrées) ──────────────────────────────── */
+
+.legacyGrid {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .legacyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .legacyGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+.legacyPlaque {
+  border-radius: 6px;
+  padding: 1.6rem 1.5rem 1.75rem;
+  background:
+    linear-gradient(to bottom, rgb(255 253 246 / 0.04), rgb(255 253 246 / 0.01)),
+    rgb(5 7 13 / 0.55);
+  box-shadow: inset 0 0 0 1.5px rgb(255 253 246 / 0.1);
+}
+.legacyIcon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 6px;
+  color: var(--color-signal-400);
+  background: rgb(255 196 0 / 0.1);
+  box-shadow: inset 0 0 0 1.5px rgb(255 196 0 / 0.35);
+}
+
+.legacySteps {
+  position: relative;
+  display: grid;
+  gap: 2rem;
+}
+/* La route qui relie les bornes : verticale sur mobile, horizontale sur ordinateur. */
+.legacySteps::before {
+  content: "";
+  position: absolute;
+  left: 1.75rem;
+  top: 2rem;
+  bottom: 2rem;
+  width: 2px;
+  margin-left: -1px;
+  background: repeating-linear-gradient(to bottom, rgb(255 253 246 / 0.22) 0 10px, transparent 10px 20px);
+}
+@media (min-width: 1024px) {
+  .legacySteps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2.5rem;
+  }
+  .legacySteps::before {
+    left: 1.75rem;
+    right: 1.75rem;
+    top: 2.1rem;
+    bottom: auto;
+    width: auto;
+    height: 2px;
+    margin: -1px 0 0;
+    background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.22) 0 30px, transparent 30px 60px);
+  }
+}
+.legacyStep {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .legacyStep {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Borne : tête jaune arrondie, fût craie, numéro en chiffres fixes. */
+.borne {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  width: 3.5rem;
+  height: 4.25rem;
+  padding-bottom: 0.45rem;
+  border-radius: 1.75rem 1.75rem 4px 4px;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-asphalt-950);
+  background: linear-gradient(to bottom, var(--color-signal-500) 0 36%, var(--color-chalk) 36%);
+  box-shadow:
+    inset 0 -3px 0 rgb(0 0 0 / 0.12),
+    0 12px 28px -14px rgb(255 196 0 / 0.55);
+}
+
+/* ─── D.3 · Ligne de route (ordinateur) ─────────────────────────────────────── */
+
+.roadLine {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .roadLine {
+    display: block;
+    position: fixed;
+    z-index: 40;
+    top: calc(var(--header-h, 5rem) + 1.5rem);
+    bottom: 2rem;
+    left: max(8px, calc((100vw - 1280px) / 2 - 32px));
+    width: 2px;
+    pointer-events: none;
+  }
+}
+:global(body:has([data-page="demande"])) .roadLine {
+  display: none;
+}
+.roadTrack {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, rgb(255 253 246 / 0.1) 0 14px, transparent 14px 28px);
+  clip-path: inset(0 -16px);
+}
+.roadFill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, var(--color-signal-700), var(--color-signal-500));
+  box-shadow: 0 0 10px rgb(255 196 0 / 0.4);
+  translate: 0 calc((var(--scroll-progress) - 1) * 100%);
+}
+@supports (animation-timeline: scroll()) {
+  html:not([data-motion="off"]) .roadFill {
+    animation: road-fill linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes road-fill {
+  from {
+    translate: 0 -100%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+.roadHead {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  border-radius: 1.5px;
+  rotate: 45deg;
+  background: var(--color-signal-500);
+  box-shadow:
+    0 0 0 3px rgb(5 7 13 / 0.9),
+    0 0 16px rgb(255 196 0 / 0.85);
+}
+.roadMarkers {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.roadMarkerItem {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--pos) * 100%);
+}
+.roadMarker {
+  position: absolute;
+  left: -15px;
+  top: -15px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  pointer-events: auto;
+}
+.roadMarkerDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 1.5px;
+  rotate: 45deg;
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 1.5px rgb(255 253 246 / 0.6);
+  transition:
+    scale var(--dur-ui) var(--ease-out-expo),
+    background-color var(--dur-ui) var(--ease-out-expo);
+}
+.roadMarker:hover .roadMarkerDot,
+.roadMarker[aria-current] .roadMarkerDot {
+  scale: 1.3;
+  background: var(--color-signal-500);
+  box-shadow: 0 0 12px rgb(255 196 0 / 0.75);
+}
+.roadMarkerLabel {
+  @apply font-plate text-plate;
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  translate: -6px -50%;
+  opacity: 0;
+  white-space: nowrap;
+  padding: 0.45rem 0.7rem;
+  border-radius: 4px;
+  color: var(--color-chalk);
+  background: rgb(5 7 13 / 0.92);
+  box-shadow: inset 0 0 0 1px rgb(255 253 246 / 0.16);
+  pointer-events: none;
+  transition:
+    opacity var(--dur-ui) var(--ease-out-expo),
+    translate var(--dur-ui) var(--ease-out-expo);
+}
+.roadMarker:hover .roadMarkerLabel,
+.roadMarker:focus-visible .roadMarkerLabel {
+  opacity: 1;
+  translate: 0 -50%;
+}
+html[data-motion="off"] .roadFill {
+  animation: none !important;
+}

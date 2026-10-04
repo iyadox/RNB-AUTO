@@ -1,0 +1,859 @@
+/* Kit d'illustrations PLEINS PHARES (docs/09, H.3).
+   État de base = état final : tout est allumé, tracé, chargé, garé. Les états « avant » n'existent
+   que sous `html.motion-ready[data-motion]` (jamais en `off`). Les valeurs qu'une classe Tailwind
+   de l'appelant doit pouvoir remplacer sont dans `@layer components` (S1-2). */
+@reference "../../../app/globals.css";
+
+/* ═══ Trajets (RoutePaths) ═══════════════════════════════════════════════════════════════ */
+
+.route {
+  pointer-events: none;
+}
+.truckEmpty,
+.truckLoaded,
+.truckAgree {
+  display: none;
+}
+/* Sans JavaScript : l'allure du dernier tronçon. */
+.truckIsEmpty .truckEmpty,
+.truckIsLoaded .truckLoaded,
+.truckIsAgree .truckAgree {
+  display: inline;
+}
+/* Pendant l'animation, le tronçon en cours décide (règles plus précises). */
+.route[data-route-current] .routeTruck .truckEmpty,
+.route[data-route-current] .routeTruck .truckLoaded,
+.route[data-route-current] .routeTruck .truckAgree {
+  display: none;
+}
+.route[data-route-current="aller"] .routeTruck .truckEmpty,
+.route[data-route-current="retour"] .routeTruck .truckEmpty,
+.route[data-route-current="transport"] .routeTruck .truckLoaded,
+.route[data-route-current="agree"] .routeTruck .truckAgree {
+  display: inline;
+}
+
+/* ═══ Voyants (Voyant, VoyantGroup) ═══════════════════════════════════════════════════════ */
+
+@layer components {
+  .voyant {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+.voyant {
+  --voyant-color: var(--color-beacon-400);
+  --voyant-size: 56px;
+}
+.voyantRed {
+  --voyant-color: var(--color-brake);
+}
+.voyantCell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--voyant-size);
+  height: var(--voyant-size);
+  border-radius: calc(var(--voyant-size) * 0.22);
+  overflow: hidden;
+  background: radial-gradient(120% 95% at 50% 0%, color-mix(in srgb, var(--color-night-800) 85%, white 3%), var(--color-night-950) 72%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 253 246 / 0.09),
+    inset 0 -12px 18px rgb(0 0 0 / 0.55),
+    0 1px 0 rgb(255 253 246 / 0.05);
+}
+/* Verre du cadran : reflet fixe en haut à gauche. */
+.voyantCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(155deg, rgb(255 255 255 / 0.09), transparent 38%);
+  pointer-events: none;
+}
+.voyantGlow {
+  position: absolute;
+  inset: -10%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--voyant-color) 42%, transparent), transparent 78%);
+}
+.voyant:not([data-lit]) .voyantGlow {
+  display: none;
+}
+.voyantSvg {
+  position: relative;
+  width: 58%;
+  height: 58%;
+  overflow: visible;
+}
+.voyantOff {
+  stroke: color-mix(in srgb, var(--color-led-off) 40%, var(--color-asphalt-600));
+}
+.voyantOn {
+  stroke: var(--voyant-color);
+}
+.voyantBloom {
+  stroke-opacity: 0.24;
+}
+.voyantLabel {
+  max-width: calc(var(--voyant-size) * 2.2);
+  text-align: center;
+  font-size: var(--text-small);
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--color-asphalt-200);
+  text-wrap: balance;
+}
+/* Allumage seul (hors groupe) : le témoin s'allume en 220 ms quand il passe à `lit`.
+   Jamais dans un groupe `[data-ignite]` : son animation (remplissage `both`, opacité finale 1)
+   écraserait l'état éteint d'avant la mise du contact (P15), qui clignoterait alors à l'envers.
+   Seulement une fois le runtime prêt : sans JavaScript, le voyant est allumé et fixe. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .voyant[data-lit]:not(:global([data-ignite]) .voyant) .voyantOn,
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .voyant[data-lit]:not(:global([data-ignite]) .voyant) .voyantGlow {
+  animation: voyant-on var(--dur-ui) linear both;
+}
+@keyframes voyant-on {
+  0% {
+    opacity: 0.1;
+  }
+  25% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@media (forced-colors: active) {
+  .voyantOn {
+    stroke: CanvasText;
+  }
+  .voyantGlow {
+    display: none;
+  }
+}
+
+/* ═══ Plaques (InfoPlaque, DirectionSign) ════════════════════════════════════════════════ */
+
+/* Rivets de fixation aux quatre coins : un détail de vraie plaque. */
+.rivets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --rivet: radial-gradient(circle, rgb(255 253 246 / 0.32) 0 1.1px, rgb(0 0 0 / 0.5) 1.6px, transparent 2.2px);
+  background:
+    var(--rivet) 9px 9px / 6px 6px no-repeat,
+    var(--rivet) calc(100% - 9px) 9px / 6px 6px no-repeat,
+    var(--rivet) 9px calc(100% - 9px) / 6px 6px no-repeat,
+    var(--rivet) calc(100% - 9px) calc(100% - 9px) / 6px 6px no-repeat;
+}
+
+@layer components {
+  .infoPlaque {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.5rem 1.5rem 1.65rem;
+  }
+}
+.infoPlaque {
+  --plaque-accent: var(--color-signal-500);
+  border-radius: 6px;
+  color: var(--color-chalk);
+  background:
+    linear-gradient(180deg, rgb(255 253 246 / 0.035), transparent 40%),
+    linear-gradient(180deg, rgb(14 20 36 / 0.94), rgb(5 7 13 / 0.96));
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.14),
+    inset 0 1px 0 2px rgb(255 253 246 / 0.06),
+    0 28px 48px -30px rgb(0 0 0 / 0.9);
+}
+/* Filet intérieur, comme le liseré d'un panneau. */
+.infoPlaque::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 3px;
+  border: 1px solid rgb(255 253 246 / 0.07);
+  pointer-events: none;
+}
+.infoHead {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+.infoNumber {
+  font-size: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+  line-height: 0.9;
+  color: var(--plaque-accent);
+}
+.infoPicto {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 6px;
+  color: var(--plaque-accent);
+  background: rgb(255 253 246 / 0.04);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--plaque-accent) 45%, transparent);
+}
+.infoTitle {
+  font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.625rem);
+  line-height: 1.15;
+}
+.infoText {
+  color: var(--color-asphalt-300);
+}
+.infoBeacon {
+  --plaque-accent: var(--color-beacon-400);
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.14),
+    inset 4px 0 0 0 var(--color-beacon-500),
+    0 28px 48px -30px rgb(0 0 0 / 0.9);
+}
+.infoMotorway {
+  --plaque-accent: var(--color-chalk);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-motorway-600), white 9%), var(--color-motorway-600) 45%, color-mix(in srgb, var(--color-motorway-600), black 20%));
+  box-shadow:
+    inset 0 0 0 2px rgb(255 255 255 / 0.85),
+    inset 0 0 0 6px var(--color-motorway-600),
+    0 28px 48px -30px rgb(0 0 0 / 0.9);
+}
+.infoMotorway::before {
+  border-color: transparent;
+}
+.infoMotorway .infoText {
+  color: rgb(245 243 238 / 0.92);
+}
+@media (forced-colors: active) {
+  .infoPlaque {
+    border: 2px solid CanvasText;
+  }
+}
+
+@layer components {
+  .sign {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 5rem;
+    padding: 0.875rem 1.25rem 0.875rem 0.875rem;
+  }
+}
+.sign {
+  --sign-accent: var(--color-signal-500);
+  border-radius: 6px;
+  color: var(--color-chalk);
+  text-decoration: none;
+  background:
+    linear-gradient(180deg, rgb(255 253 246 / 0.05), transparent 46%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-night-900), var(--color-night-800) 60%), color-mix(in srgb, var(--color-night-950) 70%, var(--color-night-900)));
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.16),
+    0 1px 0 rgb(255 253 246 / 0.06),
+    0 26px 44px -28px rgb(0 0 0 / 0.95);
+  transition: scale var(--dur-tap) var(--ease-out-expo);
+  -webkit-tap-highlight-color: transparent;
+}
+.sign::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 3px;
+  border: 1px solid rgb(255 253 246 / 0.09);
+  pointer-events: none;
+}
+.sign:active {
+  scale: 0.98;
+}
+.sign:hover {
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.3),
+    0 1px 0 rgb(255 253 246 / 0.08),
+    0 26px 44px -28px rgb(0 0 0 / 0.95);
+}
+.signFace {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+}
+.signPicto {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 5px;
+  color: var(--color-night-950);
+  background: linear-gradient(180deg, var(--color-reflect), color-mix(in srgb, var(--color-paper), black 4%));
+  box-shadow: inset 0 0 0 1.5px rgb(5 7 13 / 0.85), inset 0 0 0 3px var(--color-reflect);
+}
+.signText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.signTitle {
+  font-size: var(--text-sign);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+.signSubtitle {
+  font-size: var(--text-small);
+  line-height: 1.35;
+  font-weight: 500;
+  color: var(--color-asphalt-200);
+  text-wrap: pretty;
+}
+.signArrow {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: auto;
+  color: var(--sign-accent);
+  transition: translate var(--dur-ui) var(--ease-out-expo);
+}
+.signArrow svg {
+  width: 100%;
+  height: 100%;
+}
+.signArrowFirst .signArrow {
+  order: -1;
+  margin-left: 0;
+  margin-right: -0.25rem;
+}
+@media (hover: hover) {
+  :global(html:not([data-motion="off"])) .sign:hover .signArrow[data-arrow="right"] {
+    translate: 8px 0;
+  }
+  :global(html:not([data-motion="off"])) .sign:hover .signArrow[data-arrow="left"] {
+    translate: -8px 0;
+  }
+  :global(html:not([data-motion="off"])) .sign:hover .signArrow[data-arrow="up"] {
+    translate: 0 -8px;
+  }
+  :global(html:not([data-motion="off"])) .sign:hover .signArrow[data-arrow="up-right"] {
+    translate: 5.7px -5.7px;
+  }
+  :global(html:not([data-motion="off"])) .sign:hover .signArrow[data-arrow="down"] {
+    translate: 0 8px;
+  }
+}
+/* Le seul panneau jaune de l'écran : l'action principale. */
+.sign[data-tone="signal"] {
+  --sign-accent: var(--color-night-950);
+  color: var(--color-asphalt-950);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-signal-500), white 18%), var(--color-signal-500) 55%, color-mix(in srgb, var(--color-signal-500), black 5%));
+  box-shadow:
+    inset 0 0 0 5px var(--color-signal-500),
+    inset 0 0 0 7px rgb(8 9 11 / 0.88),
+    0 22px 50px -24px rgb(255 196 0 / 0.45);
+}
+.sign[data-tone="signal"]::before {
+  border-color: transparent;
+}
+.sign[data-tone="signal"] .signSubtitle {
+  color: rgb(8 9 11 / 0.8);
+}
+.sign[data-tone="signal"] .signPicto {
+  color: var(--color-signal-500);
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 1.5px rgb(255 196 0 / 0.5);
+}
+.sign[data-tone="signal"]:hover {
+  box-shadow:
+    inset 0 0 0 5px var(--color-signal-400),
+    inset 0 0 0 7px rgb(8 9 11 / 0.95),
+    0 22px 54px -22px rgb(255 196 0 / 0.55);
+}
+/* Sécurité, autoroute : accents orange sur plaque sombre. */
+.sign[data-tone="beacon"] {
+  --sign-accent: var(--color-beacon-400);
+  box-shadow:
+    inset 0 0 0 2px rgb(255 122 26 / 0.6),
+    0 1px 0 rgb(255 253 246 / 0.06),
+    0 26px 44px -28px rgb(0 0 0 / 0.95);
+}
+.sign[data-tone="beacon"]:hover {
+  box-shadow:
+    inset 0 0 0 2px rgb(255 154 61 / 0.9),
+    0 1px 0 rgb(255 253 246 / 0.08),
+    0 26px 44px -28px rgb(0 0 0 / 0.95);
+}
+.sign[data-tone="beacon"] .signPicto {
+  color: var(--color-asphalt-950);
+  background: var(--color-beacon-500);
+  box-shadow: inset 0 0 0 1.5px rgb(5 7 13 / 0.6);
+}
+@media (forced-colors: active) {
+  .sign {
+    border: 2px solid LinkText;
+  }
+}
+
+/* ═══ Ticket d'estimation (EstimateTicket) ═══════════════════════════════════════════════ */
+
+@layer components {
+  .ticketWrap {
+    position: relative;
+    width: 100%;
+    max-width: 24rem;
+  }
+}
+/* Ombre portée statique du papier (le masque perforé couperait une ombre posée sur le ticket). */
+.ticketWrap {
+  filter: drop-shadow(0 22px 28px rgb(0 0 0 / 0.55)) drop-shadow(0 2px 3px rgb(0 0 0 / 0.4));
+}
+.ticket {
+  --perf: 7px;
+  position: relative;
+  container-type: inline-size;
+  padding: calc(var(--perf) + 1.1rem) 1.5rem calc(var(--perf) + 1.35rem);
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  background-image: linear-gradient(180deg, rgb(22 24 27 / 0.05), transparent 9%, transparent 88%, rgb(22 24 27 / 0.06));
+  border-radius: 4px;
+  /* Bords haut et bas perforés : demi-cercles découpés (masque statique). */
+  -webkit-mask:
+    radial-gradient(circle at 50% 0, transparent 4.5px, #000 5px) 0 0 / 14px 51% repeat-x,
+    radial-gradient(circle at 50% 100%, transparent 4.5px, #000 5px) 0 100% / 14px 51% repeat-x;
+  mask:
+    radial-gradient(circle at 50% 0, transparent 4.5px, #000 5px) 0 0 / 14px 51% repeat-x,
+    radial-gradient(circle at 50% 100%, transparent 4.5px, #000 5px) 0 100% / 14px 51% repeat-x;
+}
+/* Grain fin du papier thermique, à 3,5 % (B.5). */
+.ticket::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/textures/grain.png") 0 0 / 128px 128px;
+  opacity: 0.08;
+  pointer-events: none;
+}
+.ticket > * {
+  position: relative;
+}
+.ticketHead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1.5px dashed rgb(22 24 27 / 0.28);
+}
+.ticketLogo {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: none;
+}
+.ticketPrice {
+  position: relative;
+  padding: 0.85rem 0 0.9rem;
+  border-bottom: 1.5px dashed rgb(22 24 27 / 0.28);
+}
+.ticketPriceLabel {
+  font-size: var(--text-small);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-asphalt-500);
+  text-transform: uppercase;
+}
+.ticketAmount {
+  margin-top: 0.15rem;
+  font-size: clamp(3.25rem, 25cqi, 6.25rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+.ticketEmpty {
+  font-size: clamp(1.5rem, 9cqi, 2rem);
+  line-height: 1.1;
+  padding: 0.25rem 0;
+}
+.ticketLines {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem 0;
+  font-size: var(--text-small);
+  line-height: 1.35;
+  font-weight: 600;
+}
+.ticketLines li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+.ticketCheck {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.05rem;
+  color: var(--color-ink);
+}
+.ticketFoot {
+  padding-top: 0.9rem;
+  border-top: 1.5px dashed rgb(22 24 27 / 0.28);
+  font-size: var(--text-small);
+  line-height: 1.45;
+  font-weight: 500;
+  color: var(--color-asphalt-500);
+  text-wrap: pretty;
+}
+.ticketLines + .ticketFoot {
+  border-top-style: dashed;
+}
+.ticketExtra {
+  padding-top: 1rem;
+}
+/* Tampon encreur : décoratif, frappé à la fin de l'impression (P12). */
+.stamp {
+  position: absolute;
+  top: 0.75rem;
+  right: -0.35rem;
+  padding: 0.3rem 0.7rem 0.32rem;
+  border: 2.5px solid currentColor;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 2.5px var(--color-paper), inset 0 0 0 3.5px currentColor;
+  color: var(--color-beacon-600);
+  font-size: 0.9rem;
+  line-height: 1;
+  font-weight: 900;
+  font-stretch: 112%;
+  font-variation-settings: "wdth" 112;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  rotate: -9deg;
+  opacity: 0.9;
+  pointer-events: none;
+  /* Encre usée : le grain retire quelques points. */
+  -webkit-mask: url("/textures/grain.png") 0 0 / 64px 64px, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    url("/textures/grain.png") 0 0 / 64px 64px exclude,
+    linear-gradient(#000 0 0);
+}
+.stampRecue {
+  color: var(--color-ink);
+}
+@media (forced-colors: active) {
+  .ticket {
+    border: 2px solid CanvasText;
+    -webkit-mask: none;
+    mask: none;
+  }
+}
+
+/* ═══ Trois trajets (ThreeLegs) ═══════════════════════════════════════════════════════════ */
+
+@layer components {
+  .threeLegs {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    container-type: inline-size;
+  }
+}
+/* Marqueurs (dépôt, épingle, drapeau, pastilles) et dépanneuse : groupes centrés sur leur point
+   d'ancrage, agrandis quand le schéma est étroit (mobile) pour rester lisibles. */
+.mark,
+.routeTruckBody {
+  transform-origin: 0 0;
+}
+@container (max-width: 520px) {
+  .threeLegs .mark {
+    scale: 1.5;
+  }
+  .threeLegs .routeTruckBody {
+    scale: 1.35;
+  }
+}
+.threeLegsSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+.threeLegsLegend ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1.5rem;
+  font-size: var(--text-small);
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--color-asphalt-200);
+}
+.threeLegsLegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.legSwatch {
+  width: 1.75rem;
+  height: 0.25rem;
+  border-radius: 99px;
+  background: repeating-linear-gradient(90deg, rgb(245 243 238 / 0.75) 0 5px, transparent 5px 10px);
+}
+li[data-leg="transport"] .legSwatch {
+  height: 0.375rem;
+  background: var(--color-signal-500);
+  box-shadow: 0 0 10px rgb(255 196 0 / 0.45);
+}
+li[data-leg="retour"] .legSwatch {
+  height: 0.1875rem;
+  background: repeating-linear-gradient(90deg, var(--color-asphalt-400) 0 3px, transparent 3px 8px);
+}
+.legName {
+  color: var(--color-chalk);
+}
+.legKm {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-asphalt-300);
+}
+.threeLegsCompact .threeLegsLegend ol {
+  gap: 0.35rem 1rem;
+}
+
+/* ═══ Plan RNB (PlanIdf) ══════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .plan {
+    position: relative;
+    aspect-ratio: 1;
+    /* Les noms se règlent sur la largeur réelle du plan (requêtes de conteneur ci-dessous). */
+    container-type: inline-size;
+  }
+}
+/* Plan étroit (mobile, vignettes) : les noms gardent ≈ 12-13 px à l'écran. Une taille CSS en px
+   sur un texte SVG est en unités du repère (600) : elle remplace l'attribut `font-size`. Les
+   communes secondaires, trop serrées à cette échelle, sont retirées sur le disque régional. */
+@container (max-width: 520px) {
+  .cityLabel {
+    font-size: 22px;
+    stroke-width: 4.5px;
+  }
+  .planDepot .cityLabel {
+    font-size: 20px;
+  }
+  .planRegion .cityLabelMinor {
+    display: none;
+  }
+  .plan .mark {
+    scale: 1.4;
+  }
+  .depotLabel {
+    font-size: 14px;
+    stroke-width: 3.6px;
+  }
+}
+@container (min-width: 521px) and (max-width: 760px) {
+  .planRegion .cityLabel {
+    font-size: 16px;
+  }
+  .planRegion .cityLabelMinor {
+    font-size: 13px;
+  }
+}
+.planSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* Plan du dépôt : carré recadré (`slice`), rien ne déborde du cadre. */
+.planDepot .planSvg {
+  overflow: hidden;
+}
+/* Gyrophare du dépôt : un tour en 5 s (pause hors écran : `data-pause-offscreen`). */
+.sweepBeam {
+  transform-box: view-box;
+  animation: plan-sweep 5s linear infinite;
+}
+@keyframes plan-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Chaque ville s'éclaire au passage du faisceau (délai calculé au rendu), puis reste à 0,75. */
+.planSweep .cityInner {
+  animation: city-ping 5s linear var(--ping-delay, 0s) infinite;
+}
+@keyframes city-ping {
+  0% {
+    opacity: 1;
+  }
+  30%,
+  100% {
+    opacity: 0.75;
+  }
+}
+/* À l'entrée : les villes apparaissent une à une (cascade de 40 ms). */
+.city {
+  transition: opacity 450ms var(--ease-out-expo) calc(var(--i, 0) * var(--stagger-group));
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .plan:not([data-inview]) .city {
+  opacity: 0;
+}
+:global(html[data-motion="off"]) .sweepBeam {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sweepBeam {
+    display: none;
+  }
+}
+
+/* ═══ Relais d'autoroute (HighwayRelay) ═══════════════════════════════════════════════════ */
+
+@layer components {
+  .relay {
+    display: block;
+    margin: 0;
+  }
+}
+.relayH,
+.relayV {
+  position: relative;
+}
+.relaySvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+.relayAuto .relayOnlyWide {
+  display: none;
+}
+@media (min-width: 768px) {
+  .relayAuto .relayOnlyWide {
+    display: block;
+  }
+  .relayAuto .relayOnlyNarrow {
+    display: none;
+  }
+}
+/* Pendant l'animation : la voiture quitte la bande d'arrêt (elle est sur le plateau du dépanneur
+   agréé), puis le dépanneur agréé reste garé à la sortie quand RNB AUTO prend le relais. */
+.relaySvg:has([data-route-current]) .relayCar {
+  display: none;
+}
+.relaySvg:has([data-route-current="agree"]) .relayAgree {
+  display: none;
+}
+.relayStep {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-night-950);
+  background: var(--color-chalk);
+}
+.relayCaptionsH ol,
+.relayCaptionsV ol {
+  font-size: var(--text-small);
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--color-chalk);
+}
+.relayCaptionsH ol {
+  display: grid;
+  grid-template-columns: 45fr 24fr 31fr;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.relayCaptionsH li,
+.relayCaptionsV li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  text-wrap: balance;
+}
+.relayCaptionsH li:nth-child(3) .relayStep,
+.relayCaptionsV li:nth-child(3) .relayStep {
+  background: var(--color-signal-500);
+}
+.relayCaptionsH li:nth-child(1) .relayStep,
+.relayCaptionsV li:nth-child(1) .relayStep {
+  background: var(--color-asphalt-300);
+}
+.relayCaptionsV li {
+  position: absolute;
+  left: 0;
+  width: 44%;
+}
+.relayCaptionsV li[data-step="1"] {
+  top: 27%;
+}
+.relayCaptionsV li[data-step="2"] {
+  top: 44%;
+}
+.relayCaptionsV li[data-step="3"] {
+  top: 76%;
+}
+
+/* ═══ Séquence de chargement (LoadingSequence) ═══════════════════════════════════════════
+   Repère : 640 × 176 unités ; la dépanneuse (360 × 150) commence à x = 170, le sol est à
+   y = 160. La voiture au pied de la rampe déborde à gauche du dessin de la dépanneuse. */
+
+@layer components {
+  .loading {
+    position: relative;
+    aspect-ratio: 640 / 176;
+  }
+}
+.loading {
+  pointer-events: none;
+}
+.loadingGround {
+  position: absolute;
+  inset: 90.9% 0 0;
+  background: linear-gradient(180deg, var(--color-asphalt-850), rgb(13 15 18 / 0.6) 70%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 253 246 / 0.12);
+}
+.loadingBeamPool {
+  position: absolute;
+  left: 78%;
+  right: 0;
+  top: 89%;
+  height: 11%;
+  background: radial-gradient(closest-side, rgb(227 236 255 / 0.22), transparent);
+}
+.loadingTruck {
+  position: absolute;
+  left: 26.5625%;
+  top: 13.64%;
+  width: 56.25%;
+}
+.loadingTruck svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* État final sans JavaScript : câble court (du treuil à l'avant de la voiture), sans crochet
+   pendant à l'arrière ni sangle en double. */
+.loading [data-part="cable"] :global(.draw) {
+  --draw: 0.12;
+}
+.loading [data-part="cable"] > path:not(:global(.draw)),
+.loading [data-part="bed"] > path[d^="M232 64 L120"] {
+  display: none;
+}

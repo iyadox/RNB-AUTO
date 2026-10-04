@@ -1,0 +1,206 @@
+/* Décors de base (docs/09, B.7) : horizon de ville, lampadaires au sodium, dépôt RNB AUTO.
+   Tout est décoratif. État de base = état final ; les boucles se mettent en pause hors écran. */
+
+/* ─── Horizon (Skyline) ───────────────────────────────────────────────────────
+   Le conteneur donne la hauteur (classe de l'appelant) ; la tuile garde ses proportions
+   (unités de conteneur `cqh`) et se répète sans couture. */
+
+/* Valeurs par défaut dans `@layer components` : une classe Tailwind de l'appelant
+   (`absolute`, `hidden`, `h-…`) les remplace toujours. */
+@layer components {
+  .skyline,
+  .lamps {
+    position: relative;
+  }
+  .depot {
+    display: block;
+  }
+}
+.skyline {
+  overflow: clip;
+  container-type: size;
+  pointer-events: none;
+}
+.skylineTrack {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(100% + 100cqh * var(--tile-ratio));
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+  background-size: calc(100cqh * var(--tile-ratio)) 100%;
+}
+.far {
+  --tile-ratio: 8;
+}
+.far .skylineTrack {
+  background-image: url("/scenes/skyline-far.svg");
+}
+.near {
+  --tile-ratio: 10;
+}
+.near .skylineTrack {
+  background-image: url("/scenes/skyline-near.svg");
+}
+.loopSlow {
+  animation: skyline-drift 120s linear infinite;
+}
+.loopFast {
+  animation: skyline-drift 55s linear infinite;
+}
+@keyframes skyline-drift {
+  to {
+    transform: translateX(calc(-100cqh * var(--tile-ratio)));
+  }
+}
+
+/* ─── Lampadaires (StreetLamps) ───────────────────────────────────────────────
+   Les lampadaires se tiennent sur `--lamp-ground` (22 % du bas par défaut) ; en dessous,
+   la chaussée mouillée reçoit leur reflet. Proportions en `cqh` : nets à toute hauteur. */
+
+.lamps {
+  overflow: clip;
+  container-type: size;
+  pointer-events: none;
+  --lamp-ground: 22%;
+}
+.lampTrack {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.lampLoop {
+  width: 200%;
+  animation: lamps-pass 11s linear infinite;
+}
+@keyframes lamps-pass {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.lampRow {
+  position: relative;
+  flex: 1 0 0;
+  height: 100%;
+}
+.lamp {
+  position: absolute;
+  top: 6%;
+  bottom: var(--lamp-ground);
+  width: 0;
+}
+.post {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1.5px;
+  width: 3px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(90deg, #2c333c, #14181d 70%);
+}
+.post::after {
+  /* Socle */
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -2px;
+  width: 7px;
+  height: 5cqh;
+  border-radius: 2px 2px 0 0;
+  background: #1a1f25;
+}
+.arm {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 13cqh;
+  height: 6cqh;
+  border-top: 2.5px solid #252b33;
+  border-right: 2.5px solid transparent;
+  border-top-right-radius: 70% 100%;
+}
+.head {
+  position: absolute;
+  top: -0.5cqh;
+  left: 9cqh;
+  width: 8cqh;
+  height: 2.6cqh;
+  border-radius: 2px 2px 40% 40%;
+  background: linear-gradient(#3a414b, #1d2229 55%, var(--color-sodium) 56%);
+  box-shadow: 0 1.5cqh 2.5cqh 0.4cqh rgb(255 210 122 / 0.45);
+}
+.cone {
+  position: absolute;
+  top: 2cqh;
+  bottom: 0;
+  left: calc(13cqh - 36cqh);
+  width: 72cqh;
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, rgb(255 210 122 / 0.34), rgb(255 210 122 / 0.1) 55%, rgb(255 210 122 / 0.03));
+}
+.pool {
+  position: absolute;
+  bottom: -3cqh;
+  left: calc(13cqh - 44cqh);
+  width: 88cqh;
+  height: 7cqh;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 210 122 / 0.32), rgb(255 210 122 / 0.08) 60%, transparent);
+}
+/* Reflet sur la chaussée mouillée : étiré vers le bas, statique (B.5). */
+.reflection {
+  position: absolute;
+  top: 100%;
+  left: calc(13cqh - 4cqh);
+  width: 8cqh;
+  height: 10cqh;
+  transform-origin: 50% 0;
+  transform: scaleY(2.5);
+  opacity: 0.25;
+  background: linear-gradient(to bottom, var(--color-sodium), rgb(255 210 122 / 0.35) 40%, transparent);
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 2px, transparent 2px 4px);
+  mask-image: repeating-linear-gradient(to bottom, #000 0 2px, transparent 2px 4px);
+}
+
+/* ─── Dépôt (Depot) ───────────────────────────────────────────────────────────── */
+
+.depot {
+  overflow: visible;
+  pointer-events: none;
+}
+.shutter {
+  transform-box: view-box;
+}
+.open .shutter {
+  transform: translateY(-100px);
+}
+/* L'animation part de l'état opposé et finit sur l'état final (`shutter`). */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .animateClose:not([data-inview]) .shutter {
+  transform: translateY(-100px);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .animateOpen:not([data-inview]) .shutter {
+  transform: none;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .animateClose[data-inview] .shutter {
+  animation: shutter-close 1s var(--ease-brake) var(--depot-delay, 0s) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .animateOpen[data-inview] .shutter {
+  animation: shutter-open 1s var(--ease-brake) var(--depot-delay, 0s) both;
+}
+@keyframes shutter-close {
+  from {
+    transform: translateY(-100px);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes shutter-open {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(-100px);
+  }
+}

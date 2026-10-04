@@ -3,6 +3,7 @@ node_modules/
 
 # Next.js
 .next/
+.next-e2e/
 out/
 next-env.d.ts
 *.tsbuildinfo
@@ -27,3 +28,7 @@ blob-report/
 .vercel
 /.*.mjs
 /.tmp-*
+
+# Planches de démonstration temporaires des agents (jamais versionnées)
+/src/app/motion-lab/
+/src/app/kit-demo/

@@ -35,6 +35,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // « standalone » pour l'image Docker (NEXT_OUTPUT=standalone), sortie classique sinon (Vercel…).
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
+  // Dossier de travail séparé pour les tests de bout en bout (serveur lancé à côté de celui de développement).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   // Les consignes pour les agents sont rédigées à la main dans CLAUDE.md (en français).
   agentRules: false,

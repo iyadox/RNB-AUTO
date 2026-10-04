@@ -27,6 +27,8 @@ export default defineConfig({
     timeout: 180_000,
     reuseExistingServer: false,
     env: {
+      // Dossier séparé : les tests tournent à côté du serveur de développement.
+      NEXT_DIST_DIR: ".next-e2e",
       DATABASE_URL: "pglite:memory://",
       GEO_PROVIDER: "simulation",
       NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,

@@ -39,6 +39,10 @@ Les décisions encore en attente sont listées dans `docs/07-questions-ouvertes.
 - Valider toutes les entrées côté serveur avec les schémas partagés.
 - Aucun secret dans le code ni en base : variables d'environnement uniquement.
 
+## Next.js 16
+
+- Cette version de Next.js diffère des versions précédentes (fichier `proxy.ts` au lieu de `middleware.ts`, `revalidateTag(tag, profil)`, `params` asynchrones…). Avant d'utiliser une API, lire le guide correspondant dans `node_modules/next/dist/docs/`.
+
 ## Langue
 
 - Interface et documentation en français.

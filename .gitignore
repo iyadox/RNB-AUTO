@@ -25,3 +25,4 @@ blob-report/
 .DS_Store
 *.log
 .vercel
+.shoot*.mjs

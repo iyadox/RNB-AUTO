@@ -4,9 +4,11 @@
  */
 import type { HolidaysSettings } from "@/core/calendar/holidays";
 import type { PricingConfig, PricingRule, Situation, VehicleCategory } from "@/core/pricing/types";
-import type { AddressValue, SettingsValues } from "./registry";
+import { isSnapshotKey, SETTING_KEYS, type AddressValue, type SettingKey, type SettingsValues } from "./registry";
 
 export type ConfigSnapshot = {
+  /** Valeurs brutes des réglages qui influencent les prix (pour pouvoir revenir à cette version). */
+  settings?: Partial<Record<SettingKey, unknown>>;
   pricing: PricingConfig;
   depot: AddressValue;
   calendar: { referenceTime: "request" | "arrival"; holidays: HolidaysSettings };
@@ -76,7 +78,10 @@ export function buildSnapshot(
   vehicles: VehicleCategory[],
   situations: Situation[],
 ): ConfigSnapshot {
+  const settings: Partial<Record<SettingKey, unknown>> = {};
+  for (const key of SETTING_KEYS) if (isSnapshotKey(key)) settings[key] = v[key];
   return {
+    settings,
     pricing: buildPricingConfig(v, rules, vehicles, situations),
     depot: v["company.depot"],
     calendar: {

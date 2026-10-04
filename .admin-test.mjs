@@ -1,0 +1,41 @@
+import { chromium } from "@playwright/test";
+const out = process.argv[2];
+const browser = await chromium.launch();
+const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const page = await context.newPage();
+const errors = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+const shot = async (name, full = false) => { await page.waitForTimeout(600); await page.screenshot({ path: `${out}/admin-${name}.png`, fullPage: full }); };
+await page.goto("http://localhost:3000/admin", { waitUntil: "networkidle" });
+console.log("url after /admin:", page.url());
+if (page.url().includes("installation")) {
+  await shot("0-install");
+  await page.fill("input[name=name]", "Administrateur");
+  await page.fill("input[name=email]", "admin@rnb-auto.test");
+  await page.fill("input[name=password]", "MotDePasse2026");
+  await page.fill("input[name=confirm]", "MotDePasse2026");
+  await page.click("button[type=submit]");
+  await page.waitForURL("**/admin", { timeout: 20000 });
+} else if (page.url().includes("connexion")) {
+  await page.fill("input[name=email]", "admin@rnb-auto.test");
+  await page.fill("input[name=password]", "MotDePasse2026");
+  await page.click("button[type=submit]");
+  await page.waitForURL("**/admin", { timeout: 20000 });
+}
+await shot("1-home", true);
+await page.goto("http://localhost:3000/admin/tarifs", { waitUntil: "networkidle" });
+await shot("2-tarifs", true);
+const minimum = page.getByLabel("Montant minimum");
+await minimum.fill("50");
+await minimum.blur();
+await page.getByRole("button", { name: "Enregistrer" }).click();
+await page.waitForSelector("text=Vérifier les modifications", { timeout: 15000 });
+await shot("3-confirm");
+await page.getByRole("button", { name: /Confirmer et enregistrer/ }).click();
+await page.waitForSelector("text=Tarifs enregistrés", { timeout: 15000 });
+await shot("4-saved");
+await page.goto("http://localhost:3000/admin/tarifs/historique", { waitUntil: "networkidle" });
+await shot("5-history", true);
+console.log("errors:", errors.length ? errors.join("\n") : "none");
+await browser.close();

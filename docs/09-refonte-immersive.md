@@ -1912,3 +1912,196 @@ Chaque écart au cahier est noté ici avec sa raison. Les lots suivants ajoutent
 | S1-17 | Les dossiers de démonstration ignorés par Git (`src/app/motion-lab/`, `src/app/kit-demo/`) ne sont pas lus par Tailwind : le laboratoire importe sa propre feuille (`@reference "../globals.css"; @source "./"; @import "tailwindcss/utilities" layer(utilities);`). | Détection automatique des sources de Tailwind v4 : les fichiers ignorés par Git sont exclus. |
 | S1-18 | Lenis ne s'arrête plus quand un champ a le focus : il rend seulement la molette au défilement natif (`smoothWheel: false`) tant que le champ est actif. Il s'arrête toujours quand le menu est ouvert. | Un Lenis arrêté annule la molette (`preventDefault`) et pose `overflow: clip` sur `<html>` : toute la page était figée tant que le curseur restait dans un champ (recherche de commune, par exemple). |
 | S1-19 | `.motion-ready` reste posée d'une page à l'autre (le runtime la retire seulement en niveau `off` ou au démontage). | La retirer puis la remettre à chaque navigation relançait les animations des éléments du layout (pied de page). **Pour S2a :** un élément du layout qui a déjà reçu `data-inview` garde son état final sur les pages suivantes (il n'est pas réarmé). |
+
+### J.2 Lot S2a (coque : en-tête, menu, barre d'action, fins de page)
+
+| # | Écart | Raison |
+|---|---|---|
+| S2a-1 | Pied de page : le dépôt est à gauche ; la dépanneuse vide (en miroir, tournée vers la gauche) arrive par la droite et se gare à droite du dépôt, phares braqués sur lui. | Une dépanneuse tournée vers la gauche qui rejoint un dépôt placé à droite devrait reculer ; ainsi, on lit tout de suite un retour au dépôt. |
+| S2a-2 | Les arrivées du pied de page et de `DawnCta` n'utilisent pas `data-arrive` : un couloir immobile sert de déclencheur et une dépanneuse intérieure arrive (mêmes courbes, même freinage ; 2 s dans le pied de page, comme le demande D.8). | `data-arrive` déplace l'élément observé lui-même : un couloir qui part du bord de l'écran en sortait entièrement et n'était jamais vu (dépanneuse invisible, constaté). |
+| S2a-3 | Le pied de page ne passe pas par `data-inview` : l'en-tête pose `data-play` (son propre observateur, seuil de 92 %) et le réarme à chaque navigation ; le rideau du dépôt est piloté par la coque. | Le runtime ne réarme pas le layout (S1-19), et au moment de son cycle la position de défilement est encore celle de l'ancienne page. Arrivée, extinction et rideau partent d'un même déclencheur. |
+| S2a-4 | Le pied de page ne donne l'heure « aube » au ciel que si la page a au moins un `[data-sky]`. | Le runtime prend le premier `[data-sky]` du document : une page sans heure serait restée à l'aube du haut en bas. |
+| S2a-5 | En-tête de 1 024 à 1 279 px : losange du logo seul, liens un peu plus petits. | Avec le nom complet, la navigation et les deux actions débordaient de 40 à 125 px (mesuré). |
+| S2a-6 | Titres du menu mobile en 1,375 rem, largeur de police 90 (au lieu de 1,5 rem en largeur 112). | À 390 px, deux titres passaient sur deux lignes, et Appeler et WhatsApp sortaient du premier écran du menu. |
+| S2a-7 | Interligne des grands titres porté à 0,95 ou 0,96 (au lieu de 0,92). | L'accent d'une capitale (É) touchait la ligne du dessus. |
+| S2a-8 | `GroundText` devient une vraie route en perspective (plan incliné, lignes de rive, tirets, plots) qui porte le texte peint ; le texte est facultatif. | Le texte au sol seul débordait sur les côtés ; `DawnCta` a besoin de la route même sans texte. |
+| S2a-9 | `CallLink` reçoit `missing` (`marker`, `plain`, `hidden`) et `size` ; `PrimaryLink` reçoit la taille `sm`. | Aucun marqueur « N° à compléter » caché ne doit précéder le contenu (test de /contact) ; D.5 prévoit « rien » dans l'en-tête quand le numéro manque. |
+| S2a-10 | Une ligne ajoutée dans `runtime/lenis.ts` : pas de second Lenis si `<html>` porte déjà la classe `lenis`. | Cohabitation temporaire avec l'ancien `home-motion.tsx` de l'accueil (deux Lenis écoutaient la molette). |
+
+À retenir :
+- Pendant la phase de mise à jour d'une transition de page (entre `startViewTransition` et la fin de la mise à jour du DOM), le navigateur suspend le rendu et `elementFromPoint` renvoie `<html>` (118 à 264 ms en développement). Le test U6 mesure donc à partir de `ready` (voir J.13).
+- Le rideau du pied de page dépend de la structure interne du dessin `Depot` (`g[clip-path] > g`) : à adapter si ce dessin change.
+
+### J.3 Lot S2b (kit d'illustrations)
+
+| # | Écart | Raison |
+|---|---|---|
+| S2b-1 | Props facultatives ajoutées à H.3 : `RoutePaths.scale` et `truckScale`, `TruckTopGlyph.tone`, `InfoPlaque.titleAs`, `Voyant.showLabel`, `VoyantGroup.as`, `className` sur plusieurs dessins, `LoadingSequence.scrubStart` et `scrubEnd`, et quelques utilitaires (`planPoint`, `findCity`…). | `vector-effect: non-scaling-stroke` est incompatible avec `pathLength` (tirets faux) : l'épaisseur doit suivre l'échelle. Les pages doivent aussi placer des tracés sur le plan, choisir le niveau de titre et régler les bornes du défilement. Valeurs par défaut conformes au cahier. |
+| S2b-2 | La scène de `LoadingSequence` déclare `needsGsap` pour ses deux modes. | `needsGsap` est lu avant l'initialisation, sans la racine : il ne peut pas dépendre du mode. Les pages concernées chargent GSAP de toute façon. |
+| S2b-3 | `LoadingSequence` « une fois », déjà visible au démarrage : la voiture s'efface, puis réapparaît au pied de la rampe avant le chargement ; plateau incliné à 13° au lieu de 9°. | L'état de base est l'état final (voiture chargée) : sans ce fondu, elle sauterait du plateau au sol. À 9°, la montée n'était pas crédible. |
+| S2b-4 | Balayage du gyrophare de `PlanIdf` : 16 tranches SVG pivotées au lieu d'un `conic-gradient`. | Reste aligné sur le dépôt quel que soit le cadrage ; seul un `transform` est animé. |
+| S2b-5 | Ticket : l'impression concerne tout le ticket ; le prix est entier vers 250 ms (au lieu de 150 ms). | Contrainte de la durée d'impression. Le vrai texte est dans la page dès le rendu. |
+| S2b-6 | Relais d'autoroute sans JavaScript : schéma en trois temps (voiture sur la bande d'arrêt d'urgence, dépanneur agréé à la sortie, RNB AUTO à destination), un seul trajet en deux tronçons. | Une image fixe doit raconter les trois temps ; deux tronçons permettent de changer de véhicule au relais. |
+| S2b-7 | Plan régional : les communes cachées sous le losange du dépôt ne sont pas dessinées ; les noms de Seine-Saint-Denis sont placés à la main. | Sinon les noms se chevauchent à 560 px. |
+| S2b-8 | Étiquettes de schéma (« DÉPANNEUR AGRÉÉ », « SORTIE », « Vous », « Aller / Transport / Retour ») absentes des textes de E et F. | Ce sont des légendes de schéma, sans chiffre, horaire ni distance. |
+
+À retenir : la voiture chargée par `TowTruck` (berline) n'est pas la même que la voiture du client dessinée par `CarSide` (citadine sombre) ; on ne reconnaît pas la même voiture d'une scène à l'autre (/depannage, /remorquage).
+
+### J.4 Lot L1a (accueil : ouverture, portique, carrefour, récit)
+
+| # | Écart | Raison |
+|---|---|---|
+| L1a-1 | Freinage : le texte de l'ouverture monte et pâlit jusqu'à 0,15, mais les boutons restent à opacité 1. | C.1-2 : une action n'est jamais estompée. |
+| L1a-2 | Carte du récit écrite en version légère dans `story-map.tsx` (même contrat P10 que `RoutePaths`), avec des glyphes définis une fois et réutilisés par `<use>`. | Budget de nœuds : la section passe de 728 à environ 370 nœuds. |
+| L1a-3 | Temps de la carte déclenchés par `data-beat` (tracés de 900 ms par tronçon) plutôt qu'un tracé lié en continu au défilement ; la scène pose `data-story`. | L'aide P9 pose le premier temps dès l'initialisation : sans `data-story`, l'épingle tombait hors de l'écran. Même rendu en `full` et en `lite`. |
+| L1a-4 | Carrefour : ligne médiane et bretelles en CSS (sans SVG), et une dépanneuse vue de dessus qui descend la route avec le défilement (niveau `full`, CSS seul). | La géométrie suit toujours la hauteur des panneaux ; l'écran n'est plus statique. |
+| L1a-5 | Panneau à messages : deux instances (deux lignes sur téléphone, une ligne à partir de 1 024 px), taille des LED réduite sur téléphone. | À 390 px, « EN MOINS D'UNE MINUTE » débordait. |
+| L1a-6 | Légende `sr-only` « Trajets de la dépanneuse » sur l'interrupteur ; sans ville du dépôt réglée, l'étape 3 devient « … puis la dépanneuse part vers vous. » | Un groupe de boutons radio a besoin d'un nom ; aucune ville n'est inventée. |
+| L1a-7 | Téléphone : marge basse de l'ouverture égale à la hauteur de la barre d'action ; bouton Pause en haut à droite de la scène. | Sinon la route et les véhicules étaient cachés sous la barre. |
+
+Corrections importantes du contrôle : les scènes du freinage et du récit ont été réécrites sans GSAP (aucune requête GSAP en `lite` sur téléphone) ; la page tient en 14 écrans sur ordinateur.
+
+Restait ouvert à la fin du lot : budget de nœuds de l'accueil (environ 2 800 pour 1 500 : la coque en fait déjà environ 550) et poids du HTML compressé en production, à arbitrer et mesurer en L9.
+
+### J.5 Lot L1b (accueil : prix, autoroute, zone, questions)
+
+| # | Écart | Raison |
+|---|---|---|
+| L1b-1 | Fenêtre de rue en 16:9 à toutes les largeurs (environ 200 px de haut à 390 px au lieu de 180). | La dépanneuse (HTML) est posée sur le dessin en pourcentages : avec un autre cadrage, elle ne tombait plus sur la chaussée. |
+| L1b-2 | « Le dimanche » : lumière du jour et rideaux des commerces baissés ; la nuit, les fenêtres s'allument en cascade avant les lampadaires. | Le choix se voit dans la scène sans afficher d'heure ni d'information inventée. |
+| L1b-3 | Ciel de jour de la fenêtre obtenu par mélange de jetons (`color-mix`). | Aucun jeton de ciel de jour n'existe ; aucune nouvelle couleur. |
+| L1b-4 | Le lien « Que faire en cas de panne sur autoroute » est une plaque sombre à liseré orange, pas un panneau de direction. | En panneau, il s'étalait sur 3 à 4 lignes et passait devant l'action ; le panneau jaune reste réservé à « Demander le relais ». |
+| L1b-5 | Panneau : titre « Demander le relais », sous-titre « Votre véhicule est sorti ? » (ordre inversé). | Sur un panneau, l'action est l'inscription principale ; le texte est complet. |
+| L1b-6 | Réflexes autoroute : quatre plaques fixées sur un mât ; plaque PK 04 orange avec pictogramme. | Un objet de la route plutôt qu'une grille de cartes ; l'orange reste réservé à la sécurité. |
+| L1b-7 | Titre de zone : « Basés à {ville du dépôt}. Partout en Île-de-France. » ; sans ville réglée, « Partout en Île-de-France. ». La phrase « Au cœur de la Seine-Saint-Denis, à quelques minutes de Paris et des grands axes. » est reprise mot pour mot. | Une ville réglée n'est jamais écrite en dur ; le texte existant est conservé (à faire valider, voir docs/07 E). |
+| L1b-8 | Section des questions : un bord de route immobile (balises, borne PK 06). | E.8 demande une section calme : le décor ne bouge pas. |
+| L1b-9 | Plaques PK : « Prix transparent », « Zone d'intervention », « Questions fréquentes ». | Ce sont les surtitres de l'ancien accueil, repris mot pour mot. |
+| L1b-10 | `Odometer` : roule de l'ancienne valeur vers la nouvelle en 700 ms (vers le haut si le prix monte, vers le bas s'il baisse) ; hauteur des cases mesurée avec `offsetHeight` ; chaque colonne découpée à la hauteur des chiffres. | `getBoundingClientRect` est faux sur un ticket incliné : les chiffres voisins apparaissaient pendant le roulement. |
+
+### J.6 Lot L2 (/depannage)
+
+| # | Écart | Raison |
+|---|---|---|
+| L2-1 | Ouverture : la dépanneuse est garée nez à nez avec la voiture (la voiture est en miroir), pas « derrière ». | Un démarrage aux câbles se fait moteur contre moteur ; avec la dépanneuse derrière, le câble aurait longé toute la voiture. |
+| L2-2 | Le câble ne se redessine pas au chargement : seuls le courant et le témoin de charge (1,2 s) sont animés. | La scène est visible dès la première image ; effacer puis redessiner le câble produisait un saut. |
+| L2-3 | Tableau de bord : voyants en 3 × 2 à partir de 1 280 px, en 2 × 3 entre 1 024 et 1 279 px ; compte-tours à côté du titre seulement à partir de 1 024 px, taille adaptée. | À 1 024 px, trois colonnes donnaient des lignes de 3 ou 4 mots et le compte-tours touchait le titre. |
+| L2-4 | Décor ajouté sans texte : planche de bord, plots rétroréfléchissants, rangée de chevrons, balise et lampadaire. | Immersion « du haut en bas », sans zone morte entre les sections (B.4). |
+| L2-5 | Questions liées : `prix-sur-place`, `presence`, `sans-le-site` (F.1 citait `sans-site`). | `sans-site` n'existe pas dans `faq.ts`. |
+| L2-6 | Le texte « Remorquage » (petite étiquette) devient la ligne d'aide du panneau de direction. | Le panneau place l'aide sous l'inscription ; texte inchangé. |
+
+Restait ouvert : à 390 px, la plaque « PK 01 · LES SITUATIONS COURANTES » se coupe après « LES » (équilibrage des lignes du socle).
+
+### J.7 Lot L3 (/remorquage)
+
+| # | Écart | Raison |
+|---|---|---|
+| L3-1 | Taille du titre principal plafonnée : `min(text-hero, 12,5vh)` sur ordinateur, `min(text-hero, 16vw)` sous 1 024 px, et `min(text-hero, 11vh, 8vw)` de 1 024 à 1 279 px. Le h1 reste immobile. | Avec `text-hero`, le bouton principal sortait du premier écran (ordinateur, 1 024 × 768) et dépassait la limite U4 de 580 px. |
+| L3-2 | Le titre de PK 02 n'est pas découpé en lignes (`data-split`). | Le découpage cassait la ligne à l'espace insécable avant « ? » : le « ? » partait seul à la ligne. |
+| L3-3 | Appeler à côté du bouton principal de l'ouverture, sur ordinateur seulement. | Appeler en une seconde depuis l'ouverture ; sur téléphone, la barre d'action le fait déjà. |
+| L3-4 | La scène collante n'existe que sur ordinateur à pointeur fin, avec JavaScript et hors `off` ; ailleurs, les situations sont une liste avec leurs vignettes. Panneau de direction sans texte ajouté à l'ouverture. | P9 en `off` demande les visuels à côté de chaque texte ; sans pointeur fin, la scène resterait figée au premier temps. |
+| L3-5 | Les trois garanties sont imprimées sur le ticket du kit (sans montant), au lieu d'une liste. | B.8 prévoit le ticket sur cette page ; pas de liste de cartes. |
+
+Corrections importantes du contrôle : chargement lié au défilement réglé avec `scrubEnd="bottom 22%"` (il se terminait en 150 px) ; ouverture reconstruite (route mouillée, lampadaire, ville au loin).
+
+### J.8 Lot L4 (/zones-d-intervention)
+
+| # | Écart | Raison |
+|---|---|---|
+| L4-1 | Ouverture propre (`OpeningMap`) au lieu d'`OpeningShot` : carte de 60svh sur téléphone, carte de 80vh à droite derrière un voile sur ordinateur. Titre, accroche et bouton immobiles (bas du bouton à 548 px à 390 × 664). | `OpeningShot` limite la scène à 34svh sur téléphone. |
+| L4-2 | Titre en `clamp(3rem, 14vw, 5.5rem)`. | Avec `text-hero`, quatre lignes et un accent qui touchait la ligne du dessus. |
+| L4-3 | PK 03 : la première phrase du paragraphe existant devient le h2 ; libellés repris de mots existants. | Un h2 par section (A1) ; F.3 ne fixait pas ce titre. |
+| L4-4 | Ajouts sans texte nouveau : légende des 4 secteurs (liens d'ancre), panneau vers /panne-autoroute, trajet et dépanneuse sur le plan collant, onde du dépôt, bascule de caméra. | Aucune section ne reste un texte seul. |
+| L4-5 | Pas de reflet `data-retro` sur les plaques de secteurs. | Sur des plaques hautes, le reflet passait longtemps sur la liste et gênait la lecture. |
+| L4-6 | Section PK 01 (recherche de commune) entièrement masquée sans JavaScript. | Sans champ, son titre n'aurait rien en dessous ; les listes complètes suivent. |
+| L4-7 | Marges basses des sections réduites. | Zones mortes d'environ 290 px entre les scènes. |
+
+Restait ouvert : « Depuis Bobigny » est écrit en dur dans le titre (texte existant, voir docs/07 E) ; sur tablette tactile de 1 024 à 1 279 px, le plan collant reste à l'état final ; sans découpage en lignes, l'équilibrage coupe les mots à trait d'union (« INTERVENONS- / NOUS ? »).
+
+### J.9 Lot L5 (/panne-autoroute)
+
+| # | Écart | Raison |
+|---|---|---|
+| L5-1 | Ouverture et sections PK 01 et PK 02 rendues par des composants du lot (avec `Plate`), pas par `OpeningShot` et `Section`. Rien n'apparaît en montant sur cette page. | Il faut les réflexes avant la scène sur téléphone et une scène collante sur ordinateur ; `Section` pose `data-reveal`, que C.6 exclut ici. |
+| L5-2 | Titre principal plus petit sur téléphone (`min(text-hero, 13,6vw)`, 53 px à 390 px). | « Votre sécurité » tient sur une ligne et le premier réflexe remonte dans le premier écran. |
+| L5-3 | Intitulés existants « Les bons réflexes » et « Que faire tout de suite ? » gardés en h2 ; nouvelles étiquettes courtes « PK 02 · Le relais » et repère « Questions ». | F.4 ne donne pas d'étiquette pour PK 02 ; « relais » est déjà le mot du bouton. |
+| L5-4 | `HighwayRelay` sans légendes : les trois plaques (textes existants) servent de légendes, reliées au schéma. | Sinon les titres apparaissaient deux fois. |
+| L5-5 | Bande d'arrêt d'urgence et bretelle de sortie calculées en perspective (`perspective.ts`, testé) ; la ville est dessinée dans le SVG au lieu de `Skyline`. | Avec un cadrage recadré, une `Skyline` HTML ne restait pas sur l'horizon du dessin. |
+| L5-6 | Panneau bleu de l'ouverture sans le mot SORTIE ; le premier panneau SORTIE est celui du relais. | C'est le « panneau bleu générique » de F.4. |
+| L5-7 | Aucune apparition sur le relais et ses plaques ; le reflet du kit est gardé. | Intensité minimale (C.6) ; le reflet ne touche aucun texte de sécurité. |
+
+Restait ouvert : le runtime arme encore le halo des phares sur cette page (C.6 : « Lenis seulement ») ; le lien `tel:112` et le texte « (tous les 2 km) » sont à faire valider (docs/07 E).
+
+### J.10 Lot L6 (/questions-frequentes, /entreprise, /contact)
+
+**/questions-frequentes (L6a)**
+
+| # | Écart | Raison |
+|---|---|---|
+| L6a-1 | Le trajet de la dépanneuse sur la route en « ? » est animé par une scène (suivi du tracé SVG, sans GSAP), pas par `offset-path`. | La scène change de taille selon l'écran ; tracé et véhicule partagent le même repère. État final (garée) sans JavaScript et en `off`. |
+| L6a-2 | Titre principal : `min(15vw, 8.5rem)` sous 1 024 px, `clamp(4rem, 6.6vw, 6rem)` au-delà. | U4 (bas du bouton à 449 px au lieu d'environ 587) et ouverture contenue sur ordinateur. |
+| L6a-3 | Les thèmes qui n'ont qu'une question (Autoroute, Véhicules) l'affichent ouverte. | Sinon la section se réduisait à une seule ligne fermée. |
+| L6a-4 | Plaques « PK 0X · N questions » (nombre calculé), titres et barre des thèmes avec les libellés de `FAQ_THEMES` ; ancres préfixées `theme-`. | `faq.ts` est la seule source ; certaines ancres de questions portaient déjà ces noms. |
+| L6a-5 | Pas de questions liées sur cette page. | La page est déjà la liste complète. |
+| L6a-6 | Aube : « Appelez-nous ou écrivez-nous sur WhatsApp. » | Fragment exact de l'accroche existante. |
+
+À retenir : sans JavaScript, une ancre amène bien à la question, mais il faut un geste pour l'ouvrir (impossible en CSS) ; `scroll-padding-top` est fixé à 5 rem alors que l'en-tête mobile fait 64 px.
+
+**/entreprise et /contact (L6b)**
+
+| # | Écart | Raison |
+|---|---|---|
+| L6b-1 | Plan technique de la dépanneuse : libellés de F.6, mais chaque annotation porte la phrase existante complète. | Reprendre les anciens paragraphes mot pour mot sans les afficher deux fois. |
+| L6b-2 | Questions liées ajoutées sur /entreprise. | Ordre commun des sous-pages (D.10) ; pas de zone vide avant la Prochaine sortie. |
+| L6b-3 | /contact : ouverture sur mesure (titre, puis façade de trois touches Téléphone, WhatsApp, Demande) ; borne dessinée seulement sur ordinateur. | Les trois canaux sont entiers dans le premier écran à 390 × 844 comme à 1 440 × 900. |
+| L6b-4 | /contact : le h2 de l'adresse est le libellé du dépôt et celui de l'email est l'adresse (préfixes `sr-only` « Adresse : » et « Email : »). | Pas de répétition des mots portés par les plaques ; le contexte reste annoncé aux lecteurs d'écran. |
+| L6b-5 | /entreprise : la dépanneuse de l'ouverture garde son gyrophare et part vers la droite au défilement (niveau `full`). | Du mouvement à la sortie de l'ouverture, cohérent avec « avant le départ ». |
+| L6b-6 | Plan technique joué en moins de 700 ms au total. | C.1-4 : tout texte lisible au plus tard 700 ms après son entrée. |
+
+### J.11 Lot L7 (/demande, habillage)
+
+| # | Écart | Raison |
+|---|---|---|
+| L7-1 | Le sens du glissement entre étapes est déduit pendant le rendu ; seul ajout dans `goTo` : le focus du titre. | Le sens reste juste avec le bouton retour du téléphone et la reprise de saisie, sans toucher à la logique du parcours. |
+| L7-2 | Feuille de route masquée à l'étape « Coordonnées ». | Le récapitulatif du formulaire montre déjà les mêmes lignes. |
+| L7-3 | Barre mobile de la feuille de route de 48 px (au lieu de 44). | Zones de toucher de 48 px au moins. |
+| L7-4 | « Votre estimation » devient le h1 de l'étape Prix (texte inchangé). | Un seul h1 par écran et une cible pour le focus. |
+| L7-5 | L'intertitre « Pris en compte » disparaît : les éléments inclus deviennent les lignes cochées du ticket, avec les kilomètres. | Anatomie du ticket (B.8, F.8). |
+| L7-6 | Étape Prix sur ordinateur : schéma des trois trajets (vrais kilomètres) et boutons à côté du ticket. Sur téléphone, « Demander le dépannage » est juste sous le premier écran. | Le ticket (7 lignes) est trop haut sur téléphone ; Appeler et WhatsApp restent dans la barre. |
+| L7-7 | Pas de reflet `data-retro` sur les tuiles ni sur la référence. | Sur une page qui ne défile pas, le reflet restait figé en bande blanche. |
+| L7-8 | Mini-dépanneuse sans gyrophare ; boucles du décor figées pendant le calcul. | Deux boucles visibles au plus (C.1-8). |
+
+Restait ouvert : près du dépôt (Pantin), l'épingle « Vous » chevauche le losange et l'étiquette du dépôt sur le plan (vraie géographie) ; le lien `tel:112` de la branche autoroute est à faire valider.
+
+### J.12 Lot L8 (pages légales, 404, erreur)
+
+| # | Écart | Raison |
+|---|---|---|
+| L8-1 | Pages légales : quelques lumières de décor (reflet sur la plaque au chargement, tête des bornes qui s'allume), en CSS, niveau `full` seulement. Aucun texte animé. | Une mise en scène sur chaque écran, sans gêner la lecture. |
+| L8-2 | Pas de `content-visibility: auto` sur les sections légales. | Sections courtes : rien à gagner, et la taille estimée faussait l'arrivée des ancres du sommaire. |
+| L8-3 | Ciel des pages légales : minuit (ouverture), nuit (corps), heure bleue (fin), aube (pied de page). | Décision clé 2 : chaque page va de minuit à l'aube. |
+| L8-4 | Titre principal écrit dans la plaque d'entrée d'agglomération, sans `OpeningShot` ; pas d'accroche sur /mentions-legales (il n'y en avait pas). | F.9 demande le titre sur la plaque. |
+| L8-5 | 404 et erreur : section « Déviation », un mât vers les pages du menu (libellés et aides existants). | Une personne perdue retrouve la bonne page en un geste. |
+| L8-6 | 404 : la dépanneuse arrive en CSS au chargement sur ordinateur, à l'entrée dans l'écran sur téléphone ; gyrophare éteint. | Une animation dans le temps finit toujours à l'état final ; deux boucles visibles au plus. |
+| L8-7 | « À COMPLÉTER » entouré d'une bordure de chantier à chevrons (composant local). | F.9 demande cette bordure ; le marqueur du socle n'a qu'une bande. |
+| L8-8 | Page d'erreur : `retry()` (Next 16.3) en plus de `reset()`. | Recommandation de la documentation de Next 16.3. |
+| L8-9 | La 404 d'une adresse inconnue (`src/app/not-found.tsx`) recompose la coque publique ; en L9, cette composition est partagée avec le layout public (`src/components/public/public-shell.tsx`). | Elle est rendue hors du groupe `(public)`, donc sans son layout. |
+
+Pièges à retenir pour la suite :
+- dans un `*.module.css`, écrire `:global(.motion-ready)` et `:global(.js)`, sinon la classe est renommée et la règle ne s'applique jamais ;
+- un lien découpé par `clip-path` perd son contour de focus : prévoir un focus de remplacement (liseré plus épais, face éclaircie) ;
+- avec `data-follow-section`, garder les sections jointives (`padding`, pas `margin`), sinon la ligne centrale tombe entre deux sections.
+
+Restait ouvert : le texte existant « Les boutons Appeler et WhatsApp en bas de l'écran » de la page d'erreur est faux sur ordinateur (à relire) ; les adresses inconnues sous /admin affichent la 404 publique ; Lenis était encore chargé sur la 404 sur ordinateur.
+
+### J.13 Lot L9 (recette et nettoyage)
+
+La recette est répartie en chantiers ; chacun rend un compte rendu (corrections, mesures avant et après, captures à 390 et 1 440 px, en normal et en « moins d'animations »). Ces comptes rendus, joints à la livraison du lot L9, font foi pour le détail ; cette section n'en garde que les règles durables.
+
+- **Tests de recette** : `tests/e2e/urgence.spec.ts` (U1 à U4, U6, U8, U10) et `tests/e2e/immersion.spec.ts` (A1, A3, textes uniques de G.1, cases à cocher, débordement horizontal, erreurs de console, `[data-reveal]`, `data-sky`, GSAP absent des pages calmes). Ils couvrent toutes les pages publiques, y compris la page « Route barrée » d'une adresse inconnue. Le projet Playwright `desktop` (1 440 × 900) n'exécute que ces deux fichiers ; le projet `mobile` les exécute aussi, à 390 × 844.
+- **U6 pendant une transition** : la mesure se fait à `ready` de la transition (après la phase de mise à jour du DOM, voir J.2), 100 ms plus tard et à la fin.
+- **U8** : le test retarde la réponse du serveur à l'estimation (7 s) pour vérifier le message de 4 s, puis contrôle, dans la même image, le titre, le prix dans la zone `aria-live` et le bouton actif.
+- **Sur ordinateur**, la barre d'action n'existe pas (à partir de 768 px) : U1 et U6 contrôlent les liens de l'en-tête. Sans numéro réglé, l'en-tête n'affiche pas Appeler (D.5) ; le lien Contact y mène.
+- **A3** : en niveau `off`, le test refuse toute animation infinie en cours et toute animation liée au défilement, avec une seule exception : le fondu « il reste des liens » en bas du menu mobile (`menu-fade`), un indicateur d'état du défilement de la liste qui ne déplace rien.
+- **Bruit du serveur de développement** : l'erreur Turbopack « No link element found for chunk … css » (course au chargement d'une feuille CSS pendant la compilation) est ignorée par les tests ; elle n'existe pas en production.
+- `@gsap/react` sera retiré des dépendances dès que plus aucun fichier ne l'importera : au 04/10/2026, seul l'ancien `home-motion.tsx` (code mort, à supprimer avec `sections.tsx`) l'importe encore.
+- **Piège corrigé pendant la recette** : la vitre de l'en-tête sans JavaScript (`html:not(.js) .header::after`, animation liée au défilement) s'appliquait aussi avec JavaScript et en niveau `off`, car `.js` était renommé par le module CSS. Le test A3 l'a détecté ; la règle est maintenant écrite `:global(html:not(.js)) .header::after`.

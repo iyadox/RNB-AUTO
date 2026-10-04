@@ -51,3 +51,22 @@ Appliquées par défaut, toutes modifiables :
 - [ ] Qui reçoit les nouvelles demandes par email (*Paramètres → Notifications*), et clé Resend (voir [08](08-installation-et-deploiement.md)).
 - [ ] Fiche Google Business : essentielle pour apparaître sur « dépannage Bobigny ».
 - [ ] Textes de sécurité de la branche autoroute, à relire.
+
+## E. Site public « Pleins phares » : à faire valider par l'administrateur
+
+La refonte immersive (voir [09 — Refonte immersive](09-refonte-immersive.md), G.4) n'invente aucune information. Ces points reprennent des textes existants ou touchent à la sécurité : ils doivent être relus et validés avant la mise en ligne.
+
+- [ ] **Lien d'appel vers le 112** : le réflexe « Appelez les secours » de /panne-autoroute et l'encadré de sécurité de la branche autoroute de la demande en ligne contiennent un lien `tel:112`. Le garder, ou ne laisser que le texte ?
+- [ ] **Textes de sécurité** de /panne-autoroute et de la branche autoroute (repris mot pour mot de l'ancien site), dont « Utilisez une borne orange d'appel d'urgence (tous les 2 km) ou composez le 112 ».
+- [ ] **Délai** : « Nous vous rappelons dans quelques minutes » (étape « Demande reçue ») ressemble à un engagement de délai (voir C). Texte inchangé.
+- [ ] **Treuil** : /remorquage dit « Chargement au treuil sur le plateau, sans forcer la mécanique. » (situation « Véhicule non roulant », texte repris de l'ancien site), et les illustrations du chargement (/remorquage, /depannage) montrent le câble du treuil. La refonte ne le mentionne nulle part ailleurs. À confirmer avec le type de dépanneuse (voir B).
+- [ ] **Photos réelles** de la dépanneuse (voir A) : le site utilise des illustrations dessinées ; aucun emplacement vide n'est prévu tant que les photos n'existent pas.
+- [ ] **Textes qui citent Bobigny ou la Seine-Saint-Denis en dur** (repris de l'ancien site). Ils deviennent faux si le dépôt change de ville dans *Paramètres → Adresse de départ* : à réécrire dans ce cas.
+  - Accueil, section « zone » : « Au cœur de la Seine-Saint-Denis, à quelques minutes de Paris et des grands axes. » (« à quelques minutes » ressemble aussi à une promesse de délai). Le titre « Basés à … » lit, lui, la ville du dépôt dans les réglages.
+  - /zones-d-intervention : titre « Depuis Bobigny, toute l'Île-de-France. » et secteur « Notre département, au départ de Bobigny. » ; titre et description de la page pour les moteurs de recherche.
+  - /entreprise : titre « RNB AUTO, dépannage à Bobigny. », accroche « installée au cœur de la Seine-Saint-Denis » et description pour les moteurs de recherche.
+  - /questions-frequentes : panneau « Prochaine sortie » vers L'entreprise (« RNB AUTO, dépannage à Bobigny »).
+  - /depannage : titre de la page pour les moteurs de recherche.
+  - Titre et description du site, image de partage, manifeste et données structurées (zone desservie).
+  - Réglage *Paramètres → Entreprise → Zone desservie* (valeur de départ « Bobigny, la Seine-Saint-Denis, Paris et l'Île-de-France », reprise dans l'accroche de l'accueil) : à modifier dans l'administration.
+- [ ] **Page d'erreur** : « Les boutons Appeler et WhatsApp en bas de l'écran fonctionnent toujours. » est juste sur téléphone seulement ; vérifier la phrase affichée sur ordinateur.

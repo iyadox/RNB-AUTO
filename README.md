@@ -24,8 +24,8 @@ La base locale se crée toute seule. **Mise en ligne (Vercel + Neon, ou Docker) 
 
 ### Site public
 
-- Accueil animé (motion design au défilement, sans ralentir le parcours d'urgence ; respecte la préférence « moins d'animations »).
-- Pages Dépannage, Remorquage, Zones d'intervention, Panne sur autoroute, Questions fréquentes, L'entreprise, Contact, Mentions légales, Confidentialité, Conditions d'intervention.
+- Site public immersif « Pleins phares » : chaque page est une nuit sur la route, de minuit à l'aube, avec sa propre scène animée (voir [09 — Refonte immersive](docs/09-refonte-immersive.md)). Les animations ne ralentissent jamais le parcours d'urgence ; elles s'arrêtent avec la préférence « moins d'animations » du téléphone ou avec le bouton **« Arrêter les animations »** du pied de page (choix mémorisé).
+- Pages Accueil, Dépannage, Remorquage, Zones d'intervention, Panne sur autoroute, Questions fréquentes, L'entreprise, Contact, Mentions légales, Confidentialité, Conditions d'intervention, et une page « Route barrée » pour les adresses inconnues.
 - Barre d'action permanente sur téléphone : **Appeler**, **WhatsApp** (message pré-rempli), **Demande** — de simples liens qui fonctionnent sans JavaScript.
 - Parcours de demande : position du téléphone ou adresse, cas particulier de l'autoroute, destination ou dépannage sur place, véhicule, problème, **prix estimé calculé par le serveur**, coordonnées, puis **photos facultatives** (réduites sur le téléphone, métadonnées et position GPS retirées).
 - Référencement : métadonnées, plan du site, données structurées, image de partage.

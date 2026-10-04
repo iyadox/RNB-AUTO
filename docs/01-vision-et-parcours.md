@@ -66,14 +66,17 @@ Règles de contenu :
 
 Une page « Comment est calculé votre prix » est possible mais facultative (décision à prendre). Elle expliquerait les principes (distance, véhicule, horaire, situation) sans jamais montrer les coûts internes.
 
-### Direction visuelle proposée
+### Direction visuelle : « Pleins phares »
 
-- Univers **route et signalisation** : fond asphalte sombre, **jaune de signalisation** (contraste maximal, lisible en plein soleil), blanc ; motifs de marquage au sol et de chevrons de balisage ; lueur de gyrophare très discrète.
-- Titres en typographie condensée et robuste, dans l'esprit des panneaux routiers ; texte courant très lisible.
-- **Vraies photos** de la dépanneuse RNB AUTO plutôt que des images génériques.
-- Pas de grille de « trois cartes » : des sections pleine largeur, avec une hiérarchie qui mène à l'action.
-- Animations en CSS, légères, désactivées quand le téléphone demande moins d'animations, et jamais sur le chemin d'urgence.
-- Zones tactiles d'au moins 48 px ; actions principales à portée du pouce.
+Le site public suit la direction **« Pleins phares »**, décrite en détail dans [09 — Refonte immersive](09-refonte-immersive.md) (cahier de conception, règles vérifiables et journal des écarts).
+
+- **Une nuit sur la route, de la panne jusqu'au lever du jour au dépôt.** Chaque page commence à minuit et finit à l'aube : le ciel change de section en section (minuit, nuit, heure bleue, aube), jamais selon le défilement brut.
+- **Une vraie route de nuit, balisée.** Les grands liens sont des panneaux de direction, les faits passent sur un panneau lumineux, les listes sont des objets de la route (voyants, bornes, plaques, ticket). Plus aucune grille de cartes.
+- **La lumière a toujours une source** (lampadaire, phare, gyrophare, feux de détresse) : ce qui est éclairé, c'est ce qu'il faut lire. Jaune de signalisation pour l'action, orange pour la sécurité, vert pour WhatsApp seulement.
+- **Chaque page a sa scène d'ouverture** : le bas-côté (dépannage), le chargement (remorquage), la vue du ciel (zones), la bande d'arrêt d'urgence (autoroute), la route en point d'interrogation (questions), le dépôt (entreprise), la borne d'appel (contact), l'entrée d'agglomération (pages légales), la route barrée (page introuvable). Les dessins sont faits à la main en SVG ; les **vraies photos** de la dépanneuse les remplaceront quand elles seront fournies.
+- **L'urgence d'abord.** Le titre, l'accroche et les boutons sont visibles et immobiles dès la première image ; Appeler, WhatsApp et Demande restent sous le pouce sur téléphone, sans JavaScript et pendant les transitions de page. Les animations ne cachent jamais une action.
+- **Trois niveaux d'animation** : complet, allégé (appareil modeste, économie de données) et arrêté (préférence « moins d'animations » du téléphone ou bouton « Arrêter les animations » du pied de page, mémorisé). Arrêtées, les pages restent complètes.
+- Zones tactiles d'au moins 48 px, texte de 17 px au moins sur téléphone, actions principales à portée du pouce.
 - La même identité (couleurs, typographies, logo) servira plus tard au studio vidéo 9:16.
 
 ## 4. Pages administrateur

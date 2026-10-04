@@ -24,7 +24,7 @@
 | Validation | Zod, schémas partagés client/serveur | une seule définition des règles de saisie |
 | Authentification | sessions en base (jeton aléatoire dont seule l'empreinte SHA-256 est gardée), mot de passe haché avec **scrypt** (bibliothèque standard de Node.js), cookie `HttpOnly` `Secure` `SameSite=Lax`, tentatives limitées | primitives éprouvées, aucune dépendance supplémentaire |
 | Interface | Tailwind CSS 4, composants accessibles faits pour le projet (interrupteurs, champs €, % et heure, fenêtres de confirmation) | design sur mesure, gros boutons |
-| Animations | GSAP (ScrollTrigger, SplitText) et Lenis, uniquement sur le site public | motion design au défilement, désactivé si « moins d'animations » |
+| Animations | CSS et un petit runtime maison ; GSAP (ScrollTrigger, SplitText) et Lenis chargés en différé, uniquement sur le site public (voir §10) | motion design « Pleins phares », jamais sur le chemin d'urgence, arrêté si « moins d'animations » |
 | Géocodage | Géoplateforme IGN (Base Adresse Nationale), secours Photon | gratuit, officiel |
 | Itinéraires | Géoplateforme IGN, secours OSRM, OpenRouteService en option | gratuits ; fournisseurs interchangeables |
 | Cartes | liens Google Maps et Waze pour la navigation ; carte OpenStreetMap pour vérifier la position du dépôt | aucun coût par affichage |
@@ -33,7 +33,7 @@
 | Notifications | email (Resend) ; la demande reste toujours visible dans l'admin | gratuit au départ |
 | Hébergement | Vercel + Neon recommandés ; image Docker pour un serveur à soi | HTTPS automatique, déploiement à chaque envoi sur GitHub |
 | Tâches planifiées | tâche quotidienne Vercel (`/api/maintenance`), et à défaut lors des visites de l'admin | purges, carburant automatique |
-| Tests | Vitest (moteur, réglages, photos, parcours serveur sur base en mémoire), Playwright (parcours complets sur mobile simulé) | — |
+| Tests | Vitest (moteur, réglages, photos, parcours serveur sur base en mémoire), Playwright (parcours complets sur mobile simulé, recette du site public sur téléphone et ordinateur) | — |
 | Qualité | ESLint, contrôle des types, GitHub Actions | chaque modification est vérifiée automatiquement |
 
 ## 3. Structure du dépôt
@@ -63,7 +63,9 @@ rnb-auto/
 │   │   ├── settings/ pricing-admin/  réglages, versions, journal, simulateur
 │   │   ├── notifications/ auth/ security/ site/
 │   │   └── maintenance.ts        entretien automatique
-│   └── components/               interface (public, admin, identité visuelle)
+│   ├── components/               interface : public, home, pages, request, motion, scenes, admin, brand, ui
+│   ├── content/                  contenus partagés (plan du site, questions fréquentes)
+│   └── styles/                   animations et transitions de page en CSS
 ├── drizzle/                      migrations SQL
 ├── scripts/                      migrations, données de départ, création d'un compte
 ├── tests/e2e/                    parcours Playwright
@@ -167,8 +169,41 @@ Règles communes :
 - Images optimisées et dimensionnées ; polices hébergées sur le site, chargées sans bloquer l'affichage.
 - Objectifs : accueil utilisable en moins de 2 secondes sur une connexion 4G moyenne ; score mobile Lighthouse d'au moins 90.
 - Le bouton Appeler fonctionne avant même la fin du chargement.
+- Budgets du site public animé (JavaScript par page, poids du HTML, nombre de nœuds, Lighthouse) : voir [09, G.2](09-refonte-immersive.md#g2-performance-budget).
 
-## 10. Évolutions prévues dès maintenant
+## 10. Animations du site public (« Pleins phares »)
+
+Le site public est animé selon le cahier [09 — Refonte immersive](09-refonte-immersive.md). Règle d'or : **sans JavaScript, ou si les animations échouent, chaque page est complète et à son état final.** Les animations ne font qu'ajouter du mouvement à une page déjà lisible ; elles ne touchent jamais aux actions (Appeler, WhatsApp, Demande, boutons).
+
+### Les pièces
+
+| Pièce | Rôle |
+|---|---|
+| `MotionHeadScript` | petit script en ligne, premier élément du layout public : pose `html.js` et le niveau d'animation (`data-motion`) **avant le premier affichage**. Il n'existe que dans le HTML envoyé par le serveur. |
+| `MotionRuntime` | monté une fois dans le layout public, sans GSAP (quelques Ko). À chaque page : observateurs (apparitions, pause des scènes hors de l'écran, heure du ciel `data-sky`, progression de lecture), puis `html.motion-ready`, puis, au premier moment calme, le **chargement différé** du reste. À chaque navigation, tout ce qui a été créé pour la page précédente est nettoyé. |
+| Niveaux `full`, `lite`, `off` | `full` par défaut ; `lite` sur un appareil modeste ou en économie de données (pas de montée des lignes ni de tracé lié au défilement) ; `off` si le téléphone demande moins d'animations ou si le visiteur a appuyé sur « Arrêter les animations » (pied de page, choix mémorisé). En `off`, aucun état caché n'existe : tout est à l'état final, sans boucle ni animation liée au défilement. La même règle est écrite deux fois (script d'en-tête et `level.ts`) et un test vérifie qu'elles concordent. |
+| `useScenes` | chaque page enregistre ses propres **scènes** (`<div data-scene="nom">` + un chargeur `() => import("./nom.scene")`). Le runtime initialise une scène quand elle approche de l'écran et la nettoie au changement de page. Aucun registre partagé à modifier. |
+| GSAP et Lenis | **jamais au chargement initial** : importés dynamiquement, seulement si la page en a besoin (titres découpés en lignes, scènes collantes sur ordinateur, tracés liés au défilement) ; Lenis seulement sur ordinateur, en `full`, hors pages calmes. S'ils ne se chargent pas (réseau, blocage), la page reste complète. /contact, /demande, /panne-autoroute, les pages légales et la page introuvable ne chargent pas GSAP. |
+| `PageTransition` (React `ViewTransition`) | enveloppe le contenu de chaque `page.tsx` : l'ancienne page s'éteint, la nouvelle s'allume dans un cercle de lumière (400 ms au plus, simple fondu en `lite`, rien en `off`). L'en-tête, la barre d'action et le ciel n'y participent pas : ils restent cliquables pendant la transition. `SharedMorph` relie un panneau du carrefour de l'accueil à la plaque d'ouverture de la page d'arrivée. |
+| Routes calmes | listes `CALM_ROUTES` (ni Lenis ni halo des phares) et pages sans halo dans `src/content/site-map.ts` ; une page dont l'adresse est quelconque (introuvable, erreur) se déclare calme elle-même par un attribut sur sa racine. |
+
+Les effets simples (apparitions, reflets, voyants qui s'allument, ciel, arrivées de véhicules) sont des **attributs `data-*` + CSS** (`src/styles/motion.css`, `src/styles/view-transitions.css`) ; le JavaScript ne fait que poser `data-inview` au bon moment.
+
+### Les dossiers
+
+| Dossier | Contenu |
+|---|---|
+| `src/components/motion/` | le socle : script d'en-tête, runtime et ses aides (`runtime/` : observateurs, chargeur GSAP, Lenis, halo, registre des scènes), niveaux, `useScenes`, transitions de page, ciel de nuit, compteur, panneau à messages, bouton « Arrêter les animations ». |
+| `src/components/scenes/` | les dessins réutilisables : `base/` (dépôt, ville, lampadaires) et `kit/` (panneaux de direction, plaques, voyants, ticket d'estimation, trajets, plan schématique de l'Île-de-France, séquence de chargement, relais d'autoroute…). |
+| `src/components/pages/` | les scènes et blocs propres à chaque page (`depannage/`, `remorquage/`, `zones/`, `autoroute/`, `faq/`, `entreprise/`, `contact/`, `legal/`, `errors/`). L'accueil est dans `src/components/home/`, le parcours de demande dans `src/components/request/`. |
+| `src/components/public/` | la coque publique : en-tête, menu, barre d'action, pied de page, blocs communs des pages (ouverture, sections, questions liées, prochaine sortie, aube). |
+| `src/content/` | contenus partagés écrits une seule fois : plan du site (menus, pied de page, « prochaine sortie », routes calmes) et questions fréquentes. |
+
+### Garde-fous vérifiés automatiquement
+
+`tests/e2e/urgence.spec.ts` et `tests/e2e/immersion.spec.ts` (lancés par `npm run e2e`, sur téléphone et sur ordinateur) vérifient notamment : barre d'action présente sans JavaScript, actions jamais estompées ni recouvertes (y compris pendant une transition), titre et bouton principal immobiles dès le premier affichage, aucun GSAP ni Lenis au chargement, pages complètes avec GSAP et Lenis bloqués, rien qui bouge en « moins d'animations », un seul titre principal par page, aucune erreur de console et aucun débordement horizontal.
+
+## 11. Évolutions prévues dès maintenant
 
 | Évolution | Ce que l'architecture prévoit |
 |---|---|
@@ -185,14 +220,14 @@ Règles communes :
 | Planning, maintenance, consommation réelle | tables à ajouter (pleins, entretiens) ; les coûts réels pourront remplacer les estimations dans les statistiques |
 | Studio réseaux sociaux | projet séparé : modèles HTML/CSS/JS en 1080×1920 paramétrables (texte, prix, téléphone, ville), rendus image par image puis exportés en vidéo MP4, avec la même identité visuelle (`src/components/brand`) |
 
-## 11. Qualité et environnements
+## 12. Qualité et environnements
 
 - Environnements : **local** (base PGlite créée automatiquement), **prévisualisation** (chaque branche sur Vercel) et **production**.
 - Chaque modification passe par le contrôle des types, le lint, les tests et la construction du site (GitHub Actions), puis par les parcours Playwright. Le moteur tarifaire est entièrement couvert par des tests.
 - Les migrations de base sont versionnées ; aucune modification manuelle en production.
 - Les erreurs serveur sont journalisées, sans données personnelles inutiles.
 
-## 12. Références
+## 13. Références
 
 - Géocodage, Géoplateforme IGN (remplace l'ancienne API Adresse) : <https://geoservices.ign.fr/documentation/services/services-geoplateforme/geocodage>
 - Transfert de l'API Adresse à l'IGN : <https://adresse.data.gouv.fr/blog/lapi-adresse-de-la-base-adresse-nationale-est-transferee-a-lign>

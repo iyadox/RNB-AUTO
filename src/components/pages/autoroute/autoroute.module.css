@@ -1,0 +1,502 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   /panne-autoroute « La bande d'arrêt d'urgence » (docs/09, F.4, lot L5).
+   Intensité minimale : aucune apparition, aucune montée de lignes, aucun GSAP, aucun gyrophare.
+   Seuls les feux de détresse clignotent (1 Hz, classe .hazard du socle) et les trajets se
+   tracent une fois. L'immersion vient de la lumière : sodium, feux, catadioptres, panneau bleu.
+   Couleurs uniquement par jetons. Sections transparentes sur le ciel (heure « bleue »).
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Ouverture ─────────────────────────────────────────────────────────────── */
+
+.opening {
+  position: relative;
+  padding-top: calc(var(--header-h, 4rem) + 1.25rem);
+  overflow-x: clip;
+}
+.openingGrid {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+.openingText {
+  position: relative;
+  z-index: 1;
+}
+.title {
+  @apply font-display;
+  margin-top: 0.9rem;
+  /* Sur téléphone, « Votre sécurité » tient sur une ligne : les réflexes montent dans le premier
+     écran (U4), le titre reste le plus grand texte de la page. */
+  font-size: min(var(--text-hero), 13.6vw);
+  /* 0,95 : l'accent d'une capitale (É) ne touche jamais la ligne du dessus. */
+  line-height: 0.95;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.title em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+.lead {
+  @apply text-lead;
+  margin-top: 0.9rem;
+  max-width: 54ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+
+/* Scène : sur mobile, après les réflexes, en pleine largeur. */
+.openingScene {
+  position: relative;
+  margin-top: 2.5rem;
+  margin-inline: -1rem;
+  aspect-ratio: 4 / 3;
+}
+@media (min-width: 640px) {
+  .openingScene {
+    margin-inline: -1.5rem;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (min-width: 1024px) {
+  .opening {
+    padding-top: calc(var(--header-h, 5rem) + 2.5rem);
+  }
+  .openingGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 3.5rem;
+    align-items: start;
+  }
+  /* Le titre déborde sur le fondu de la scène : « Votre sécurité » tient sur une ligne et les
+     réflexes remontent dans le premier écran. */
+  .title {
+    width: calc(100% + 9rem);
+    font-size: clamp(4.5rem, 7.2vw, 7.25rem);
+  }
+  /* La bande d'arrêt d'urgence reste à côté des réflexes pendant leur lecture (CSS seul, sans
+     épinglage GSAP), et déborde jusqu'au bord droit de l'écran. */
+  .openingScene {
+    position: sticky;
+    top: calc(var(--header-h, 5rem) + 1.5rem);
+    margin: 0;
+    margin-right: calc(min(0px, (80rem - 100vw) / 2) - 2rem);
+    height: calc(100svh - var(--header-h, 5rem) - 3rem);
+    max-height: 52rem;
+    aspect-ratio: auto;
+  }
+}
+
+.edgeLine {
+  height: 2px;
+  margin-top: 0;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 60px, transparent 60px 120px);
+}
+
+/* ─── La bande d'arrêt d'urgence (scène) ────────────────────────────────────── */
+
+.shoulder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Fondu vers le ciel en haut et sur le bord gauche : une fenêtre sur la route, pas un cadre. */
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0, #000 22%, #000 88%, transparent 100%),
+    linear-gradient(to right, transparent 0, #000 16%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent 0, #000 22%, #000 88%, transparent 100%),
+    linear-gradient(to right, transparent 0, #000 16%);
+  mask-composite: intersect;
+}
+@media (max-width: 1023px) {
+  .shoulder {
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent 0, #000 18%, #000 82%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 18%, #000 82%, transparent 100%);
+  }
+}
+.shoulderSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Réflexes (contenu de sécurité : AUCUNE animation) ────────────────────── */
+
+.reflexes {
+  margin-top: 1.6rem;
+}
+.reflexesTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.reflexesKicker {
+  @apply font-plate text-plate;
+  color: var(--color-beacon-400);
+}
+.reflexesTitle > span:last-child {
+  @apply font-sign;
+  font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.625rem);
+  line-height: 1.1;
+  color: var(--color-chalk);
+}
+.reflexList {
+  position: relative;
+  margin-top: 0.5rem;
+  list-style: none;
+  padding: 0;
+  --num-col: 3.25rem;
+  --reflex-pad: 1.05rem;
+  --num-h: 3.5rem;
+}
+.reflex {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--num-col) minmax(0, 1fr);
+  column-gap: 1rem;
+  padding-block: var(--reflex-pad);
+}
+/* Séparateur : tirets de marquage au sol, côté texte seulement. */
+.reflex + .reflex::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(var(--num-col) + 1rem);
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.14) 0 24px, transparent 24px 48px);
+}
+/* La glissière : un tronçon de lisse entre deux réflexes, du catadioptre d'un chiffre jusqu'au
+   chiffre suivant (les chiffres ne sont jamais posés sur la lisse : aucun fond derrière eux). */
+.reflex::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--reflex-pad) + var(--num-h) + 1.15rem);
+  bottom: calc(-1 * var(--reflex-pad) + 0.55rem);
+  left: calc(var(--num-col) / 2 - 2.5px);
+  width: 5px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--color-asphalt-400), var(--color-asphalt-600) 55%, var(--color-asphalt-800));
+  box-shadow: inset 1px 0 0 rgb(255 253 246 / 0.22);
+}
+/* Après le dernier réflexe, la lisse file et s'efface. */
+.reflex:last-child::after {
+  bottom: 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+  mask-image: linear-gradient(to bottom, #000, transparent);
+}
+.reflexNumber {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-self: start;
+  height: var(--num-h);
+  font-size: 3.4rem;
+  line-height: 1;
+  color: var(--color-chalk);
+}
+/* Catadioptre de la glissière, sous chaque chiffre (fixe). */
+.reflexNumber::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -0.7rem;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 2px;
+  rotate: 45deg;
+  background: var(--color-beacon-400);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--color-beacon-400) 45%, transparent);
+}
+.reflexBody {
+  min-width: 0;
+}
+.reflexTitle {
+  @apply font-step;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  line-height: 1.15;
+  color: var(--color-chalk);
+}
+.reflexIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  color: var(--color-beacon-400);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-beacon-400) 45%, transparent);
+}
+.reflexText {
+  @apply text-body;
+  margin-top: 0.4rem;
+  max-width: 52ch;
+  color: var(--color-asphalt-200);
+  text-wrap: pretty;
+}
+.call112 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3.25rem;
+  margin-top: 0.9rem;
+  padding: 0 1.35rem;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 1.0625rem;
+  color: var(--color-asphalt-950);
+  background: var(--color-beacon-500);
+  transition: background-color var(--dur-ui) var(--ease-out-expo);
+}
+.call112:hover {
+  background: var(--color-beacon-400);
+}
+.call112:active {
+  scale: 0.98;
+}
+
+@media (min-width: 1024px) {
+  .reflexList {
+    --num-col: 4.5rem;
+    --reflex-pad: 1.35rem;
+    --num-h: 4.75rem;
+    margin-top: 0.75rem;
+  }
+  .reflex {
+    column-gap: 1.5rem;
+  }
+  .reflexNumber {
+    font-size: 4.75rem;
+  }
+}
+
+/* Lien secondaire : « Votre véhicule est déjà sorti ? Demander le relais ». */
+.relayLink {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.4rem;
+  min-height: 3rem;
+  margin-top: 1.25rem;
+  margin-left: calc(3.25rem + 1rem);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-asphalt-200);
+}
+.relayLinkAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 800;
+  color: var(--color-signal-400);
+  text-underline-offset: 6px;
+}
+.relayLink:hover .relayLinkAction {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+@media (min-width: 1024px) {
+  .relayLink {
+    margin-left: calc(4.5rem + 1.5rem);
+  }
+}
+
+/* ─── Titres de section ─────────────────────────────────────────────────────── */
+
+.sectionTitle {
+  @apply font-display text-display;
+  margin-top: 1rem;
+  max-width: 15em;
+  line-height: 0.96;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.sectionTitle em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+
+/* ─── PK 01 · Le relais ─────────────────────────────────────────────────────── */
+
+.relaySection {
+  position: relative;
+  padding-top: var(--spacing-section);
+  padding-bottom: calc(var(--spacing-section) * 0.5);
+}
+.relayHead,
+.relayStory {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+.relayFrame {
+  margin-top: 2.25rem;
+  margin-inline: -1rem;
+}
+@media (min-width: 640px) {
+  .relayFrame {
+    margin-inline: 0;
+  }
+}
+.relaySteps {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  list-style: none;
+  padding: 0;
+}
+.relayStep {
+  position: relative;
+}
+.relayHanger {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .relayFrame {
+    margin-top: 3rem;
+  }
+  .relaySteps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+  }
+  /* Les plaques descendent comme la bretelle : sortie, puis route ordinaire. */
+  .relayStep:nth-child(2) {
+    margin-top: 2.5rem;
+  }
+  .relayStep:nth-child(3) {
+    margin-top: 5rem;
+  }
+  /* Tige qui suspend chaque plaque sous l'endroit du schéma qu'elle explique. */
+  .relayHanger {
+    display: block;
+    position: absolute;
+    left: 2.5rem;
+    bottom: 100%;
+    width: 2px;
+    height: calc(2.5rem + var(--drop, 0rem));
+    background: repeating-linear-gradient(to bottom, rgb(255 253 246 / 0.28) 0 6px, transparent 6px 12px);
+  }
+  .relayHanger::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-chalk);
+    opacity: 0.6;
+  }
+  .relayStep:nth-child(2) .relayHanger {
+    --drop: 2.5rem;
+  }
+  .relayStep:nth-child(3) .relayHanger {
+    --drop: 5rem;
+  }
+}
+
+/* ─── PK 02 · La sortie ─────────────────────────────────────────────────────── */
+
+.exitSection {
+  position: relative;
+  padding-top: calc(var(--spacing-section) * 0.5);
+  padding-bottom: calc(var(--spacing-section) * 0.6);
+  overflow-x: clip;
+}
+.exitGrid {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  display: flex;
+  flex-direction: column;
+}
+.exitSceneCol {
+  position: relative;
+  order: -1;
+  margin-inline: -1rem;
+  margin-bottom: 1.5rem;
+  /* Sur téléphone, cadrage plus serré (slice) : la bretelle et son panneau remplissent l'écran. */
+  aspect-ratio: 6 / 5;
+}
+.exitText {
+  position: relative;
+  z-index: 1;
+}
+.exitTitle {
+  @apply font-display text-display;
+  margin-top: 1rem;
+  line-height: 0.96;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.exitTitle em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+.exitLead {
+  @apply text-lead;
+  margin-top: 1.25rem;
+  max-width: 46ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+@media (min-width: 640px) {
+  .exitSceneCol {
+    margin-inline: -1.5rem;
+    aspect-ratio: 16 / 10;
+  }
+}
+@media (min-width: 1024px) {
+  .exitGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: center;
+    gap: 2rem;
+  }
+  .exitSceneCol {
+    order: 0;
+    margin: 0;
+    margin-right: calc(min(0px, (80rem - 100vw) / 2) - 2rem);
+    aspect-ratio: 16 / 10;
+  }
+}
+
+.exit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0, #000 20%, #000 84%, transparent 100%),
+    linear-gradient(to right, transparent 0, #000 12%, #000 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent 0, #000 20%, #000 84%, transparent 100%),
+    linear-gradient(to right, transparent 0, #000 12%, #000 100%);
+  mask-composite: intersect;
+}
+@media (max-width: 1023px) {
+  .exit {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18%, #000 82%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 18%, #000 82%, transparent 100%);
+  }
+}
+.exitSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Couleurs forcées : le décor s'efface, le texte reste. */
+@media (forced-colors: active) {
+  .shoulder,
+  .exit {
+    display: none;
+  }
+  .call112 {
+    border: 2px solid ButtonText;
+  }
+}

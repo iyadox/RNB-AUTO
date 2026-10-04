@@ -1,0 +1,1249 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   Pages légales « L'entrée d'agglomération » (docs/09, F.9).
+
+   - Ouverture : la plaque d'entrée d'agglomération (craie, liseré sombre, sans le rouge
+     réglementaire) porte le titre principal, plantée sur ses deux poteaux au bord de la route,
+     éclairée par un lampadaire au sodium ; la ville au loin.
+   - Corps : sommaire en mât de jalonnement (collant sur ordinateur, <details> sur mobile),
+     sections bornées au bord de la ligne de rive, objets de la route (plaque de tare, panneau des
+     durées, panneau d'information, pictogrammes).
+   - Fin : la plaque de fin d'agglomération, barrée, et le retour à l'accueil.
+
+   Aucune animation sur le texte. Seules des lumières (reflet des phares sur la plaque au
+   chargement, bornes qui s'allument quand leur section passe au milieu de l'écran) bougent,
+   jamais en `off` ni en `lite` pour ce qui suit le défilement. Couleurs : jetons seulement.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Ouverture ─────────────────────────────────────────────────────────────── */
+
+.opening {
+  /* Ouverture compacte (F.9) : la plaque, ses poteaux et une bande de route, sans plus. */
+  --post-gap: 2.25rem;
+  --post-sink: 1.4rem;
+  --road-h: 4rem;
+  --lamp-w: 2rem;
+  position: relative;
+  overflow-x: clip;
+  padding-top: calc(var(--header-h, 4rem) + 1.25rem);
+}
+@media (min-width: 1024px) {
+  .opening {
+    --post-gap: 3.5rem;
+    --post-sink: 2rem;
+    --road-h: 5.5rem;
+    --lamp-w: 4.5rem;
+    padding-top: calc(var(--header-h, 5rem) + 2rem);
+  }
+}
+
+.openGrid {
+  display: grid;
+  grid-template-areas:
+    "sign"
+    "road"
+    "lead";
+}
+@media (min-width: 1024px) {
+  .openGrid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas:
+      "sign lead"
+      "road road";
+    column-gap: 2.5rem;
+    align-items: end;
+  }
+  .openGrid_solo {
+    grid-template-areas:
+      "sign ."
+      "road road";
+  }
+}
+
+/* La plaque, ses poteaux et son lampadaire. */
+.signMount {
+  grid-area: sign;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 40rem) var(--lamp-w);
+  justify-content: start;
+}
+.signColumn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: var(--post-gap);
+}
+
+/* Poteaux : derrière la plaque, plantés dans l'accotement. */
+.posts {
+  position: absolute;
+  top: 1.5rem;
+  bottom: calc(-1 * var(--post-sink));
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.posts::before,
+.posts::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.4rem;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-asphalt-750),
+    var(--color-asphalt-500) 38%,
+    var(--color-asphalt-700) 62%,
+    var(--color-asphalt-850)
+  );
+}
+.posts::before {
+  left: 24%;
+}
+.posts::after {
+  right: 24%;
+}
+@media (min-width: 1024px) {
+  .posts::before,
+  .posts::after {
+    width: 0.55rem;
+  }
+}
+
+/* Plaque d'entrée d'agglomération : craie, jante claire, liseré sombre (jamais rouge). */
+.sign {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  container-type: inline-size;
+  overflow: clip;
+  border-radius: 12px;
+  padding: 1.05rem 0.95rem 1.15rem;
+  color: var(--color-ink);
+  background:
+    /* lumière du lampadaire, en haut à droite */
+    radial-gradient(120% 140% at 100% -10%, color-mix(in srgb, var(--color-sodium) 30%, transparent), transparent 55%),
+    /* microprismes (B.5) */
+    repeating-linear-gradient(60deg, color-mix(in srgb, var(--color-ink) 4%, transparent) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(120deg, color-mix(in srgb, var(--color-ink) 4%, transparent) 0 1px, transparent 1px 5px),
+    linear-gradient(to bottom, var(--color-chalk), var(--color-paper));
+  box-shadow:
+    inset 0 0 0 4px var(--color-chalk),
+    inset 0 0 0 8px var(--color-asphalt-950),
+    0 0 0 1px color-mix(in srgb, var(--color-asphalt-950) 60%, transparent),
+    0 36px 60px -28px var(--color-night-950);
+}
+@media (min-width: 1024px) {
+  .sign {
+    border-radius: 16px;
+    padding: 1.75rem 2.25rem 1.9rem;
+    box-shadow:
+      inset 0 0 0 6px var(--color-chalk),
+      inset 0 0 0 12px var(--color-asphalt-950),
+      0 0 0 1px color-mix(in srgb, var(--color-asphalt-950) 60%, transparent),
+      0 50px 90px -36px var(--color-night-950);
+  }
+}
+/* Reflet des phares : une seule lumière traverse la plaque au chargement (le texte est déjà lu). */
+.sign::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, var(--color-xenon) 70%, transparent) 50%,
+    transparent 62%
+  );
+  translate: -120% 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-motion]:not([data-motion="off"]) .sign::after {
+    animation: sign-glare 1.4s var(--ease-beam) 0.35s both;
+  }
+}
+@keyframes sign-glare {
+  from {
+    translate: -120% 0;
+  }
+  to {
+    translate: 120% 0;
+  }
+}
+@media (forced-colors: active) {
+  .sign::after {
+    display: none;
+  }
+}
+
+.signTitle {
+  @apply font-display;
+  /* Le mot le plus long (--fit unités de lettre, voir titleFit) tient toujours sur une ligne. */
+  font-size: min(5.25rem, calc(100cqi / (var(--fit, 10) * 0.53)));
+  line-height: 0.95;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  hyphens: manual;
+  color: var(--color-ink);
+}
+
+/* Panonceau sous la plaque : pictogramme de la page et surtitre. */
+.panonceau {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+  border-radius: 6px;
+  color: var(--color-chalk);
+  background: var(--color-night-950);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 26%, transparent),
+    0 14px 30px -16px var(--color-night-950);
+}
+.panonceauPicto {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  color: var(--color-ink);
+  background: var(--color-chalk);
+}
+
+/* Lampadaire au sodium (statique) : mât, crosse, tête, cône, halo. */
+.lamp {
+  position: relative;
+  pointer-events: none;
+}
+.lampPost {
+  position: absolute;
+  top: -2.25rem;
+  bottom: calc(-1 * var(--post-sink));
+  left: 50%;
+  width: 5px;
+  translate: -50% 0;
+  background: linear-gradient(90deg, var(--color-asphalt-750), var(--color-asphalt-500) 45%, var(--color-asphalt-850));
+}
+.lampArm {
+  position: absolute;
+  top: -2.25rem;
+  right: calc(50% - 2.5px);
+  width: 3rem;
+  height: 1.6rem;
+  border: 4px solid var(--color-asphalt-600);
+  border-bottom: 0;
+  border-left: 0;
+  border-top-right-radius: 1.4rem;
+}
+.lampHead {
+  position: absolute;
+  top: calc(-2.25rem - 0.2rem);
+  right: calc(50% + 2.6rem);
+  width: 2.6rem;
+  height: 0.75rem;
+  border-radius: 0.4rem 0.4rem 0.25rem 0.25rem;
+  background: var(--color-asphalt-750);
+}
+.lampHead::after {
+  content: "";
+  position: absolute;
+  left: 0.3rem;
+  right: 0.3rem;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-sodium);
+  box-shadow: 0 0 14px 3px color-mix(in srgb, var(--color-sodium) 70%, transparent);
+}
+.lampHalo {
+  position: absolute;
+  top: calc(-2.25rem - 4rem);
+  right: calc(50% + 3.9rem - 4.5rem);
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-sodium) 34%, transparent), transparent 62%);
+}
+.lampCone {
+  position: absolute;
+  top: calc(-2.25rem + 0.5rem);
+  bottom: calc(-1 * var(--post-sink));
+  right: calc(50% + 3.9rem - 9rem);
+  width: 18rem;
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-sodium) 30%, transparent),
+    color-mix(in srgb, var(--color-sodium) 8%, transparent) 70%,
+    color-mix(in srgb, var(--color-sodium) 4%, transparent)
+  );
+}
+@media (min-width: 1024px) {
+  .lampHead {
+    right: calc(50% + 2.6rem);
+  }
+  .lampCone {
+    width: 26rem;
+    right: calc(50% + 3.9rem - 13rem);
+  }
+}
+
+/* La route : accotement, chaussée mouillée, ligne médiane, plots ; la ville au loin. */
+.road {
+  grid-area: road;
+  position: relative;
+  z-index: 1;
+  height: var(--road-h);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  pointer-events: none;
+}
+.roadSurface {
+  position: absolute;
+  inset: 0;
+  background:
+    /* plots rétroréfléchissants */
+    radial-gradient(circle, color-mix(in srgb, var(--color-reflect) 55%, transparent) 0 1.5px, transparent 2px) 20px 60% / 120px 6px repeat-x,
+    /* ligne médiane, tirets 60/60 réduits */
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-chalk) 34%, transparent) 0 36px, transparent 36px 72px) 0 72% / 100% 2px no-repeat,
+    /* bord de chaussée */
+    linear-gradient(to bottom, transparent 30%, color-mix(in srgb, var(--color-chalk) 24%, transparent) 30% calc(30% + 1.5px), transparent calc(30% + 1.5px)),
+    /* flaque de lumière du lampadaire */
+    radial-gradient(28% 70% at var(--pool-x, 88%) 30%, color-mix(in srgb, var(--color-sodium) 22%, transparent), transparent 70%),
+    /* accotement puis bitume */
+    linear-gradient(
+      to bottom,
+      var(--color-asphalt-900) 0 30%,
+      var(--color-asphalt-800) 30%,
+      var(--color-asphalt-850) 70%,
+      var(--color-night-950)
+    );
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent);
+}
+@media (min-width: 1024px) {
+  .roadSurface {
+    --pool-x: 52%;
+  }
+}
+/* Reflet étiré du lampadaire sur la chaussée mouillée (statique). */
+.roadSurface::after {
+  content: "";
+  position: absolute;
+  top: 34%;
+  left: calc(var(--pool-x, 88%) - 0.6rem);
+  width: 1.2rem;
+  height: 70%;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-sodium) 30%, transparent), transparent);
+}
+.backdrop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 10rem;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 45%);
+  mask-image: linear-gradient(to bottom, transparent, #000 45%);
+}
+@media (min-width: 1024px) {
+  .backdrop {
+    height: 19rem;
+  }
+}
+.backdropGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(70% 90% at 70% 100%, color-mix(in srgb, var(--color-sodium) 10%, transparent), transparent 70%);
+}
+.backdropLamps.backdropLamps {
+  --lamp-ground: 0%;
+  position: absolute;
+  left: 34%;
+  right: -6%;
+  bottom: 0;
+  height: 72%;
+  opacity: 0.5;
+}
+@media (max-width: 1023px) {
+  .backdropLamps.backdropLamps {
+    display: none;
+  }
+}
+.backdropSkyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 62%;
+  opacity: 0.7;
+}
+
+.lead {
+  grid-area: lead;
+  position: relative;
+  z-index: 2;
+  padding-top: 1.1rem;
+}
+@media (min-width: 1024px) {
+  .lead {
+    align-self: end;
+    padding-top: 0;
+    padding-bottom: calc(var(--post-gap) + 0.5rem);
+  }
+}
+.leadText {
+  @apply text-lead;
+  max-width: 38ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+
+/* ─── Corps : sommaire et sections ──────────────────────────────────────────── */
+
+.body {
+  position: relative;
+  padding-top: 2.5rem;
+  padding-bottom: calc(var(--spacing-section) * 0.6);
+}
+@media (min-width: 1024px) {
+  .body {
+    padding-top: 4.5rem;
+  }
+}
+.bodyGrid {
+  display: grid;
+  gap: 2.25rem;
+}
+@media (min-width: 1024px) {
+  .bodyGrid {
+    grid-template-columns: 17rem minmax(0, 1fr);
+    column-gap: clamp(2.5rem, 4vw, 5rem);
+    align-items: start;
+  }
+}
+
+/* Sommaire : un mât de jalonnement. Collant sur ordinateur, jamais sur mobile. */
+.tocDesktop {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .tocDesktop {
+    position: sticky;
+    top: calc(var(--header-h, 5rem) + 2rem);
+    display: block;
+    max-height: calc(100vh - var(--header-h, 5rem) - 3rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding: 0.25rem 0.75rem 1rem 0;
+  }
+  .tocMobile {
+    display: none;
+  }
+}
+.tocHead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  color: var(--color-asphalt-200);
+}
+.tocHeadCap {
+  width: 0.55rem;
+  height: 0.95rem;
+  flex: none;
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(to bottom, var(--color-signal-500) 0 38%, var(--color-chalk) 38%);
+}
+.tocMast {
+  position: relative;
+  padding-left: 1.35rem;
+}
+/* Le mât. */
+.tocMast::before {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  bottom: -1rem;
+  left: 0.3rem;
+  width: 5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-asphalt-750), var(--color-asphalt-500) 45%, var(--color-asphalt-850));
+}
+.tocList {
+  display: grid;
+  gap: 0.45rem;
+}
+.tocItem {
+  position: relative;
+}
+/* Collier de fixation entre le mât et la lame. */
+.tocItem::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -1.1rem;
+  width: 1.1rem;
+  height: 0.4rem;
+  translate: 0 -50%;
+  border-radius: 1px;
+  background: var(--color-asphalt-700);
+}
+
+/* Lame de jalonnement : plaque à bout pointu (liseré = couche du dessous). */
+.blade {
+  --tip: 0.85rem;
+  display: block;
+  padding: 1.5px;
+  color: var(--color-asphalt-200);
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, 0 100%);
+  background: color-mix(in srgb, var(--color-reflect) 18%, transparent);
+  transition:
+    background-color var(--dur-ui) var(--ease-out-expo),
+    color var(--dur-ui) var(--ease-out-expo);
+}
+.bladeFace {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3rem;
+  padding: 0.55rem calc(var(--tip) + 0.6rem) 0.55rem 0.7rem;
+  clip-path: polygon(0 0, calc(100% - var(--tip) + 0.5px) 0, calc(100% - 1px) 50%, calc(100% - var(--tip) + 0.5px) 100%, 0 100%);
+  background: var(--color-night-950);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.bladeNum {
+  @apply font-figure;
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding-inline: 0.2rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  color: var(--color-asphalt-200);
+  background: var(--color-asphalt-800);
+  transition:
+    color var(--dur-ui) var(--ease-out-expo),
+    background-color var(--dur-ui) var(--ease-out-expo);
+}
+.blade:hover {
+  color: var(--color-chalk);
+  background: color-mix(in srgb, var(--color-signal-500) 55%, transparent);
+}
+/* Focus (A6) : la découpe en pointe masque le contour ; le liseré passe à 3 px en jaune et la
+   face s'éclaircit (le marge négative compense l'épaisseur : rien ne bouge autour). */
+.blade:focus-visible {
+  outline: none;
+  margin: -1.5px;
+  padding: 3px;
+  background: var(--color-signal-400);
+  color: var(--color-chalk);
+}
+.blade:focus-visible .bladeFace {
+  background: var(--color-night-800);
+}
+/* Section en cours (le runtime pose aria-current sur les liens `data-follow-section`). */
+.blade[aria-current] {
+  color: var(--color-chalk);
+  background: var(--color-signal-500);
+}
+.blade[aria-current] .bladeNum {
+  color: var(--color-ink);
+  background: var(--color-signal-500);
+}
+
+/* Sommaire sur mobile : un <details> natif, fermé par défaut. */
+.tocMobile {
+  border-radius: 6px;
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 18%, transparent);
+}
+.tocSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--color-chalk);
+}
+.tocSummary::-webkit-details-marker {
+  display: none;
+}
+.tocSummaryChevron {
+  margin-left: auto;
+  transition: rotate var(--dur-ui) var(--ease-out-expo);
+}
+.tocMobile[open] .tocSummaryChevron {
+  rotate: 180deg;
+}
+.tocMobileBody {
+  padding: 0.25rem 1rem 1.1rem 1rem;
+}
+.tocMobile .bladeFace {
+  font-size: 1.0625rem;
+}
+
+/* Article : une route qui longe la ligne de rive ; chaque section a sa borne. */
+.article {
+  position: relative;
+  min-width: 0;
+}
+@media (min-width: 1024px) {
+  .article {
+    padding-left: 4.75rem;
+  }
+  /* Ligne de rive, en tirets. */
+  .article::before {
+    content: "";
+    position: absolute;
+    top: 1.75rem;
+    bottom: 0;
+    left: 1.6rem;
+    width: 2px;
+    background: repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-chalk) 18%, transparent) 0 22px,
+      transparent 22px 44px
+    );
+    -webkit-mask-image: linear-gradient(to bottom, #000 85%, transparent);
+    mask-image: linear-gradient(to bottom, #000 85%, transparent);
+  }
+}
+
+.section {
+  position: relative;
+  view-timeline-name: --legal-section;
+  /* Une section atteinte par le sommaire s'arrête vers le tiers de l'écran : même courte, elle
+     couvre alors le milieu de l'écran et c'est bien sa lame qui s'allume. */
+  scroll-margin-top: max(calc(var(--header-h, 4rem) + 1rem), 24vh);
+}
+/* Sections jointives (aucune marge entre elles) : la ligne centrale de l'écran est toujours sur
+   une section, la lame du sommaire ne reste jamais sur une section déjà quittée. */
+.section + .section {
+  padding-top: 3rem;
+}
+.section:not(:last-child) {
+  padding-bottom: 3rem;
+}
+/* Séparateur : tirets de marquage au sol (B.4). */
+.section + .section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(100%, 68ch);
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-chalk) 12%, transparent) 0 30px,
+    transparent 30px 60px
+  );
+}
+@media (min-width: 1024px) {
+  .section + .section {
+    padding-top: 4rem;
+  }
+  .section:not(:last-child) {
+    padding-bottom: 4rem;
+  }
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+@media (min-width: 1024px) {
+  .sectionHead {
+    position: relative;
+    margin-bottom: 1.6rem;
+  }
+}
+.sectionTitle {
+  @apply font-step;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.125rem);
+  line-height: 1.12;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+
+/* Borne kilométrique : fût craie, tête qui s'allume quand la section passe au milieu de l'écran. */
+.borne {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: end center;
+  width: 2.35rem;
+  height: 3rem;
+  padding-bottom: 0.35rem;
+  border-radius: 1.1rem 1.1rem 3px 3px;
+  overflow: clip;
+  color: var(--color-ink);
+  background: linear-gradient(to bottom, var(--color-chalk), var(--color-paper));
+  box-shadow: 0 12px 24px -12px var(--color-night-950);
+}
+@media (min-width: 1024px) {
+  .borne {
+    position: absolute;
+    left: calc(-4.75rem + 1.6rem + 1px - 1.175rem);
+    top: 50%;
+    translate: 0 -50%;
+  }
+}
+.borneCap {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 38%;
+  background: var(--color-asphalt-600);
+}
+.borneCapLit {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 38%;
+  background: var(--color-signal-500);
+  opacity: 0;
+}
+.borneNum {
+  @apply font-figure;
+  position: relative;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.borneIcon {
+  position: relative;
+}
+/* La tête de la borne capte les phares pendant que sa section occupe le milieu de l'écran.
+   Défilement lié : niveau `full` seulement, CSS seul, jamais sur le texte. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html[data-motion="full"] .borneCapLit {
+      animation: borne-light linear both;
+      animation-timeline: --legal-section;
+      animation-range: cover 18% cover 82%;
+    }
+  }
+}
+@keyframes borne-light {
+  0% {
+    opacity: 0;
+  }
+  18%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ─── « À COMPLÉTER » : zone de chantier ────────────────────────────────────── */
+
+.chantier {
+  display: inline-flex;
+  /* Un peu de place pour la ponctuation qui suit (le point ne passe pas seul à la ligne). */
+  max-width: calc(100% - 0.5em);
+  padding: 3px;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-beacon-500) 0 6px,
+    var(--color-asphalt-950) 6px 12px
+  );
+}
+.chantier > span {
+  max-width: 100%;
+  border-radius: 3px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-beacon-500) 14%, transparent), color-mix(in srgb, var(--color-beacon-500) 14%, transparent)),
+    var(--color-night-950);
+  white-space: normal;
+}
+
+/* ─── Plaque de tare : identité de l'éditeur (mentions légales) ─────────────── */
+
+.tarePlate {
+  position: relative;
+  max-width: 44rem;
+  margin-top: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background:
+    /* rivets aux quatre coins */
+    radial-gradient(circle at 0.65rem 0.65rem, var(--color-asphalt-500) 0 2.5px, transparent 3px),
+    radial-gradient(circle at calc(100% - 0.65rem) 0.65rem, var(--color-asphalt-500) 0 2.5px, transparent 3px),
+    radial-gradient(circle at 0.65rem calc(100% - 0.65rem), var(--color-asphalt-500) 0 2.5px, transparent 3px),
+    radial-gradient(circle at calc(100% - 0.65rem) calc(100% - 0.65rem), var(--color-asphalt-500) 0 2.5px, transparent 3px),
+    /* métal brossé */
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 2.5%, transparent) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, var(--color-asphalt-800), var(--color-asphalt-850) 55%, var(--color-night-950));
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 16%, transparent),
+    0 30px 60px -36px var(--color-night-950);
+}
+@media (min-width: 640px) {
+  .tarePlate {
+    padding: 1rem 1.75rem;
+  }
+}
+.tareRow {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.8rem 0.25rem;
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+.tareRow + .tareRow {
+  background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-chalk) 14%, transparent) 0 8px,
+      transparent 8px 16px
+    )
+    0 0 / 100% 1px no-repeat;
+}
+@media (min-width: 640px) {
+  .tareRow {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: baseline;
+  }
+}
+.tareLabel {
+  color: var(--color-asphalt-300);
+  font-weight: 600;
+}
+.tareValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-chalk);
+  font-weight: 650;
+}
+.tareValue a {
+  color: var(--color-signal-400);
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+.tareValue a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Liste à pictogrammes ──────────────────────────────────────────────────── */
+
+.signList {
+  display: grid;
+  gap: 1rem;
+  max-width: 68ch;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--color-asphalt-200);
+}
+.signListItem {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+.signPicto {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 6px;
+  color: var(--color-signal-400);
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 18%, transparent);
+}
+.signListText {
+  padding-top: 0.3rem;
+}
+
+/* ─── Panneau des durées (confidentialité) ──────────────────────────────────── */
+
+.durations {
+  position: relative;
+  max-width: 46rem;
+  padding: 0.5rem 0;
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(60deg, color-mix(in srgb, var(--color-reflect) 2%, transparent) 0 1px, transparent 1px 5px),
+    var(--color-night-950);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 22%, transparent),
+    inset 0 0 0 6px var(--color-night-950),
+    inset 0 0 0 7px color-mix(in srgb, var(--color-reflect) 8%, transparent),
+    0 30px 60px -36px var(--color-night-950);
+}
+.durationRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+}
+@media (min-width: 640px) {
+  .durationRow {
+    padding: 1.15rem 1.75rem;
+    gap: 2rem;
+  }
+}
+.durationRow + .durationRow {
+  background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-chalk) 14%, transparent) 0 8px,
+      transparent 8px 16px
+    )
+    1.1rem 0 / calc(100% - 2.2rem) 1px no-repeat;
+}
+.durationText {
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--color-asphalt-200);
+}
+.durationLabel {
+  display: block;
+  font-weight: 750;
+  color: var(--color-chalk);
+}
+.durationText strong {
+  color: var(--color-chalk);
+}
+/* Le chiffre, comme une distance sur un panneau (décor : la phrase le dit déjà). */
+.durationFigure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  justify-content: end;
+  min-width: 4.5rem;
+  color: var(--color-signal-400);
+  white-space: nowrap;
+}
+.durationNumber {
+  @apply font-figure;
+  font-size: clamp(2.25rem, 1.6rem + 2.4vw, 3.25rem);
+  line-height: 0.9;
+}
+.durationUnit {
+  @apply font-plate;
+  font-size: 0.75rem;
+  color: var(--color-asphalt-200);
+}
+
+/* ─── « L'essentiel » (conditions) : un panneau d'information à quatre lignes ── */
+
+.essentials {
+  position: relative;
+  max-width: 50rem;
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(60deg, color-mix(in srgb, var(--color-reflect) 2%, transparent) 0 1px, transparent 1px 5px),
+    linear-gradient(170deg, var(--color-night-900), var(--color-night-950));
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 22%, transparent),
+    0 40px 80px -40px var(--color-night-950);
+}
+.essentialsList {
+  display: grid;
+}
+@media (min-width: 768px) {
+  .essentialsList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.essential {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1.35rem 1.15rem;
+}
+@media (min-width: 768px) {
+  .essential {
+    padding: 1.75rem 1.75rem;
+  }
+}
+/* Séparateurs en tirets entre les lignes du panneau. */
+.essential + .essential {
+  background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-chalk) 14%, transparent) 0 8px,
+      transparent 8px 16px
+    )
+    1.15rem 0 / calc(100% - 2.3rem) 1px no-repeat;
+}
+@media (min-width: 768px) {
+  .essential + .essential {
+    background: none;
+  }
+  .essential:nth-child(n + 3) {
+    background: repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-chalk) 14%, transparent) 0 8px,
+        transparent 8px 16px
+      )
+      1.75rem 0 / calc(100% - 3.5rem) 1px no-repeat;
+  }
+  .essential:nth-child(odd)::after {
+    content: "";
+    position: absolute;
+    top: 1.75rem;
+    bottom: 1.75rem;
+    right: 0;
+    width: 1px;
+    background: repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-chalk) 14%, transparent) 0 8px,
+      transparent 8px 16px
+    );
+  }
+}
+.essentialPicto {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 6px;
+  color: var(--color-ink);
+  background: var(--color-chalk);
+}
+.essentialLabel {
+  @apply font-plate;
+  font-size: 0.75rem;
+  color: var(--color-signal-400);
+}
+.essentialText {
+  margin-top: 0.45rem;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  font-weight: 550;
+  color: var(--color-chalk);
+  text-wrap: pretty;
+}
+.essentialText strong {
+  color: var(--color-signal-400);
+}
+/* Poteaux du panneau. */
+.essentialsPosts {
+  position: relative;
+  height: 2.25rem;
+  max-width: 50rem;
+  pointer-events: none;
+}
+.essentialsPosts::before,
+.essentialsPosts::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.45rem;
+  background: linear-gradient(90deg, var(--color-asphalt-750), var(--color-asphalt-500) 40%, var(--color-asphalt-850));
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent);
+}
+.essentialsPosts::before {
+  left: 18%;
+}
+.essentialsPosts::after {
+  right: 18%;
+}
+
+/* ─── Fin : plaque de fin d'agglomération, barrée ───────────────────────────── */
+
+.end {
+  --post-gap: 2.75rem;
+  --post-sink: 1.6rem;
+  --road-h: 4.75rem;
+  position: relative;
+  overflow-x: clip;
+  padding-top: calc(var(--spacing-section) * 0.55);
+}
+@media (min-width: 1024px) {
+  .end {
+    --post-gap: 4.5rem;
+    --post-sink: 2.25rem;
+    --road-h: 7rem;
+  }
+}
+.end .roadSurface {
+  --pool-x: -40%;
+}
+.endGrid {
+  display: grid;
+  grid-template-areas:
+    "sign"
+    "road"
+    "aside";
+}
+@media (min-width: 768px) {
+  .endGrid {
+    grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
+    grid-template-areas:
+      "sign aside"
+      "road road";
+    column-gap: 3rem;
+    align-items: end;
+  }
+}
+.endSign {
+  grid-area: sign;
+  position: relative;
+  z-index: 2;
+  max-width: 30rem;
+  padding-bottom: var(--post-gap);
+}
+.endPlate {
+  position: relative;
+  container-type: inline-size;
+  overflow: clip;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem 1.2rem;
+  background:
+    repeating-linear-gradient(60deg, color-mix(in srgb, var(--color-ink) 4%, transparent) 0 1px, transparent 1px 5px),
+    linear-gradient(to bottom, var(--color-chalk), var(--color-paper));
+  box-shadow:
+    inset 0 0 0 4px var(--color-chalk),
+    inset 0 0 0 8px var(--color-asphalt-950),
+    0 30px 50px -26px var(--color-night-950);
+}
+.endPlateText {
+  @apply font-display;
+  font-size: min(3.4rem, calc(100cqi / (var(--fit, 10) * 0.53)));
+  line-height: 0.95;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--color-ink);
+}
+/* La barre de fin (sombre, jamais rouge). */
+.endPlate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 6px),
+    var(--color-asphalt-950) calc(50% - 6px) calc(50% + 6px),
+    transparent calc(50% + 6px)
+  );
+}
+.endPosts {
+  position: absolute;
+  top: 2rem;
+  bottom: calc(-1 * var(--post-sink));
+  left: 0;
+  right: 0;
+  z-index: -1;
+}
+.endPosts::before,
+.endPosts::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.4rem;
+  background: linear-gradient(90deg, var(--color-asphalt-750), var(--color-asphalt-500) 40%, var(--color-asphalt-850));
+}
+.endPosts::before {
+  left: 22%;
+}
+.endPosts::after {
+  right: 22%;
+}
+.endAside {
+  grid-area: aside;
+  position: relative;
+  z-index: 2;
+  padding-top: 1.25rem;
+}
+@media (min-width: 768px) {
+  .endAside {
+    padding-top: 0;
+    padding-bottom: calc(var(--post-gap) + 0.25rem);
+  }
+}
+
+/* Lien « Retour à l'accueil » : une lame pointée vers la gauche. */
+.homeBlade {
+  --tip: 1.15rem;
+  display: inline-block;
+  padding: 1.5px;
+  clip-path: polygon(var(--tip) 0, 100% 0, 100% 100%, var(--tip) 100%, 0 50%);
+  background: color-mix(in srgb, var(--color-reflect) 40%, transparent);
+  color: var(--color-chalk);
+  text-decoration: none;
+  transition: background-color var(--dur-ui) var(--ease-out-expo);
+}
+.homeBladeFace {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 3.75rem;
+  padding: 0.5rem 1.5rem 0.5rem calc(var(--tip) + 0.85rem);
+  clip-path: polygon(calc(var(--tip) - 0.5px) 0, 100% 0, 100% 100%, calc(var(--tip) - 0.5px) 100%, 1px 50%);
+  background: var(--color-night-950);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+.homeBlade:hover,
+.homeBlade:focus-visible {
+  outline: none;
+  background: var(--color-signal-500);
+}
+.homeBlade:focus-visible {
+  margin: -1.5px;
+  padding: 3px;
+}
+.homeBlade:focus-visible .homeBladeFace {
+  background: var(--color-night-800);
+}
+.homeBlade:hover .homeBladeIcon,
+.homeBlade:focus-visible .homeBladeIcon {
+  color: var(--color-signal-400);
+}
+
+/* ─── Couleurs forcées et contraste renforcé ───────────────────────────────── */
+
+@media (forced-colors: active) {
+  .lamp,
+  .backdrop,
+  .roadSurface,
+  .posts,
+  .endPosts {
+    display: none;
+  }
+  .blade,
+  .homeBlade {
+    clip-path: none;
+    border: 1px solid CanvasText;
+  }
+  .bladeFace,
+  .homeBladeFace {
+    clip-path: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .sign,
+  .endPlate {
+    background: var(--color-chalk);
+  }
+}

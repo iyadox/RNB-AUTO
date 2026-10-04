@@ -1,0 +1,924 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   /depannage « Le bas-côté » (docs/09, F.1, lot L2).
+   - PK 00 : la voiture capot ouvert sous le lampadaire, la dépanneuse nez à nez, les câbles,
+     le témoin de charge.
+   - PK 01 : le combiné d'instruments (compte-tours, six voyants).
+   - PK 02 : la route aux quatre bornes (horizontale sur ordinateur, verticale sur mobile).
+   - PK 03 : la séquence de chargement, à l'heure bleue.
+   Règles : couleurs par jetons, ni flou ni `overflow: hidden` ; états de base = états finaux
+   (sans JavaScript, `off`) ; les animations liées au défilement sont coupées en `off` et
+   n'existent qu'en niveau `full`. Ce qu'une classe de l'appelant doit pouvoir remplacer est
+   dans `@layer components`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Titre principal ───────────────────────────────────────────────────────── */
+
+/* Sur mobile, le bouton reste sous 580 px à 390 × 664 ; sur ordinateur, la taille suit aussi la
+   hauteur de l'écran pour que le bouton reste dans le premier écran. */
+.heroTitle {
+  display: block;
+}
+@media (max-width: 1023px) {
+  .heroTitle {
+    font-size: min(var(--text-hero), 15.4vw);
+    line-height: 0.95;
+  }
+}
+@media (min-width: 1024px) {
+  .heroTitle {
+    font-size: min(var(--text-hero), 12.5vh);
+    line-height: 0.95;
+  }
+}
+
+/* ─── PK 00 · Le bas-côté ───────────────────────────────────────────────────── */
+
+.openFrame {
+  position: relative;
+  container-type: inline-size;
+  isolation: isolate;
+  /* Scène pleine largeur sur mobile (jusqu'aux bords de l'écran). */
+  margin-inline: -1rem;
+}
+@media (min-width: 640px) {
+  .openFrame {
+    margin-inline: -1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .openFrame {
+    /* Ordinateur : la scène déborde jusqu'au bord droit de l'écran (moins 20 px de marge pour
+       une barre de défilement classique ; le bord est de toute façon fondu). */
+    margin-left: -3rem;
+    margin-right: calc(-1 * (max(2rem, (100vw - 80rem) / 2 + 2rem) - 1.25rem));
+  }
+}
+.openStage {
+  position: relative;
+  /* Monde de 100 × 84 unités (1 unité = 1cqw), ancré en bas ; sur mobile, le haut est rogné. */
+  height: min(64cqw, 34svh);
+  overflow: clip;
+  pointer-events: none;
+  /* Bords fondus : la chaussée ne se termine jamais par un bord net (pas de « boîte ») et
+     l'arrière de la dépanneuse, coupé par le cadrage serré, se perd dans la nuit. */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 15%),
+    linear-gradient(to bottom, transparent, #000 22%, #000 84%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 15%),
+    linear-gradient(to bottom, transparent, #000 22%, #000 84%, transparent);
+  mask-composite: intersect;
+}
+/* La case de scène de l'ouverture (socle) coupe ce qui dépasse sous 1 024 px : on lui laisse
+   la marge des bords pour que la scène aille vraiment jusqu'aux bords de l'écran. */
+@media (max-width: 1023px) {
+  :global(*):has(> .openFrame) {
+    overflow-clip-margin: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .openStage {
+    height: min(80cqw, 66vh);
+    /* Bords fondus : le ciel global continue autour de la scène. */
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, #000 7%, #000 94%, transparent),
+      linear-gradient(to bottom, transparent, #000 12%, #000 86%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent, #000 7%, #000 94%, transparent),
+      linear-gradient(to bottom, transparent, #000 12%, #000 86%, transparent);
+    mask-composite: intersect;
+  }
+}
+/* Boîte du monde : c'est elle qui donne l'unité (1cqw). Sur ordinateur, elle est plus large que
+   la scène et calée à droite : on cadre plus serré sur les deux véhicules. */
+.openWorldBox {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 128%;
+  height: 100%;
+  container-type: inline-size;
+}
+@media (min-width: 640px) {
+  .openWorldBox {
+    width: 112%;
+  }
+}
+@media (min-width: 1024px) {
+  /* Ordinateur : la dépanneuse entière (plateau et inscription RNB AUTO compris) reste dans le
+     cadre ; seul le bout du plateau se fond dans le ciel. */
+  .openWorldBox {
+    width: 102%;
+  }
+}
+.openCityGlow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(42cqw 26cqw at 72% calc(100% - 14cqw), color-mix(in srgb, var(--color-sodium) 14%, transparent), transparent 70%),
+    radial-gradient(70cqw 20cqw at 50% calc(100% - 16cqw), color-mix(in srgb, var(--color-sodium) 7%, transparent), transparent 75%);
+}
+.openSkylineWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 15.6cqw;
+  height: 20cqw;
+  opacity: 0.7;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+.openSkyline {
+  position: absolute;
+  inset: 0;
+}
+.openWorld {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.openTruck {
+  position: absolute;
+  left: -3cqw;
+  bottom: 11.67cqw;
+  width: 60cqw;
+}
+.openTruck svg,
+.openCarSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.openCar {
+  position: absolute;
+  left: 61cqw;
+  bottom: 11cqw;
+  width: 40cqw;
+  /* Tournée vers la dépanneuse : nez à nez, comme pour un démarrage avec câbles. */
+  scale: -1 1;
+}
+.openCable {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+}
+.openCurrent {
+  stroke-dasharray: 0.09 1.2;
+  opacity: 0;
+}
+
+/* Témoin de charge : plaque sombre, pictogramme de batterie, cinq segments LED. */
+.openCharge {
+  position: absolute;
+  left: 68.5cqw;
+  bottom: 37.2cqw;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.5rem 0.38rem 0.42rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-night-950) 88%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-reflect) 14%, transparent),
+    0 10px 28px -12px color-mix(in srgb, var(--color-led) 40%, transparent);
+}
+.openChargeIcon {
+  width: 1.1rem;
+  height: 1.1rem;
+  stroke: var(--color-chalk);
+  stroke-opacity: 0.85;
+}
+.openChargeBar {
+  display: flex;
+  gap: 2px;
+}
+.openChargeSeg {
+  width: 0.42rem;
+  height: 0.8rem;
+  border-radius: 1.5px;
+  background: var(--color-led);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-led) 55%, transparent);
+}
+@media (min-width: 1024px) {
+  .openCharge {
+    gap: 0.55rem;
+    padding: 0.5rem 0.65rem 0.5rem 0.55rem;
+  }
+  .openChargeIcon {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+  .openChargeSeg {
+    width: 0.55rem;
+    height: 1rem;
+  }
+}
+
+/* Séquence (une fois, à l'entrée) : le courant parcourt le câble, la charge monte. Le câble
+   lui-même ne bouge pas (la scène est visible dès le chargement : aucun élément ne disparaît). */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openStage[data-inview] .openCurrent {
+  animation: dp-current 420ms linear 900ms 3;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openStage[data-inview] .openChargeSeg {
+  animation: dp-charge 240ms steps(2, end) calc(900ms + var(--seg) * 240ms) both;
+}
+@keyframes dp-current {
+  from {
+    opacity: 1;
+    stroke-dashoffset: 0.1;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: -1;
+  }
+}
+@keyframes dp-charge {
+  from {
+    opacity: 0.14;
+    box-shadow: none;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ─── PK 01 · Le tableau de bord ────────────────────────────────────────────── */
+
+/* Planche de bord pleine largeur (position statique : elle part du haut du combiné). */
+.dashCowl {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  width: 100%;
+  height: 22rem;
+  margin-top: -7rem;
+  pointer-events: none;
+}
+@media (min-width: 1024px) {
+  .dashCowl {
+    height: 30rem;
+    margin-top: -10rem;
+  }
+}
+.dash {
+  position: relative;
+}
+/* Lueur ambrée des voyants sur le tableau de bord (source : les voyants allumés). */
+.dash::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -3rem;
+  height: 60%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--color-beacon-400) 10%, transparent), transparent 75%);
+}
+.dashGaugeSlot {
+  position: relative;
+  z-index: 0;
+  width: min(15rem, 66%);
+  margin: -1rem 0.5rem -4.2rem auto;
+}
+@media (min-width: 1024px) {
+  /* À côté du titre, cadran entier au-dessus du combiné (rien ne le coupe). Entre 1 024 et
+     1 279 px, il reste plus petit et serré à droite pour ne jamais toucher le titre. */
+  .dashGaugeSlot {
+    position: absolute;
+    right: clamp(1.5rem, 13.5vw - 7.5rem, 3.5rem);
+    /* Le cadran déborde de 14 % sous le dessin (lunette) : on le garde au-dessus du combiné. */
+    bottom: calc(100% + 2.25rem);
+    width: clamp(10.5rem, 17vw, 16rem);
+    margin: 0;
+  }
+}
+.dashGauge {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.dashNeedle {
+  transform-box: view-box;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .dashGaugeSlot[data-inview] .dashNeedle {
+  animation: dp-needle 1.6s var(--ease-beam) 150ms both;
+}
+@keyframes dp-needle {
+  0% {
+    transform: rotate(0deg);
+  }
+  48% {
+    transform: rotate(240deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Le combiné : une seule plaque aux angles coupés (pas de carte), liseré par le fond. */
+.dashPanel {
+  --cut: 22px;
+  position: relative;
+  z-index: 1;
+  padding: 1px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-reflect) 22%, transparent), color-mix(in srgb, var(--color-reflect) 5%, transparent) 40%, color-mix(in srgb, var(--color-led) 16%, transparent));
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+}
+.dashPanel::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  clip-path: inherit;
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--color-night-800) 92%, var(--color-led) 8%), transparent 70%),
+    linear-gradient(180deg, var(--color-night-900), var(--color-night-950));
+}
+/* Verre du combiné : reflet fixe en haut. */
+.dashHood {
+  position: absolute;
+  inset: 1px 1px auto;
+  height: 42%;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(172deg, color-mix(in srgb, var(--color-reflect) 6%, transparent), transparent 62%);
+}
+.dashGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  margin: 0;
+  padding: 0.5rem 1.25rem;
+  list-style: none;
+}
+@media (min-width: 1024px) {
+  .dashGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 1rem 0.5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .dashGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.dashItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 1.15rem;
+  padding: 1.6rem 0;
+}
+/* Séparateurs : tirets de marquage (jamais de filet plein). */
+.dashItem + .dashItem::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 16%, transparent) 0 18px, transparent 18px 36px);
+}
+@media (min-width: 1024px) {
+  .dashItem {
+    padding: 2rem 2rem 2.25rem;
+    gap: 1.35rem;
+  }
+  .dashItem + .dashItem::before {
+    display: none;
+    left: 0;
+    right: auto;
+    top: 2rem;
+    bottom: 2rem;
+    width: 1px;
+    height: auto;
+    background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--color-reflect) 16%, transparent) 0 14px, transparent 14px 28px);
+  }
+  /* Tirets horizontaux au-dessus de chaque rangée sauf la première ; verticaux entre colonnes. */
+  .dashItem::after {
+    content: "";
+    position: absolute;
+    left: 2rem;
+    right: 2rem;
+    top: 0;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 16%, transparent) 0 18px, transparent 18px 36px);
+  }
+  .dashItem:nth-child(-n + 2)::after {
+    display: none;
+  }
+  .dashItem:nth-child(2n)::before {
+    display: block;
+  }
+}
+@media (min-width: 1280px) {
+  .dashItem:nth-child(3)::after {
+    display: none;
+  }
+  .dashItem:nth-child(2n)::before {
+    display: none;
+  }
+  .dashItem:not(:nth-child(3n + 1))::before {
+    display: block;
+  }
+}
+@media (max-width: 1023px) {
+  .dashVoyant {
+    --voyant-size: 56px !important;
+  }
+}
+@media (min-width: 1024px) {
+  .dashVoyant {
+    --voyant-size: 64px !important;
+  }
+}
+.dashTitle {
+  @apply font-step;
+  font-size: clamp(1.3rem, 1.1rem + 0.6vw, 1.55rem);
+  line-height: 1.15;
+  color: var(--color-chalk);
+  text-wrap: balance;
+}
+.dashText {
+  @apply text-body;
+  margin-top: 0.5rem;
+  max-width: 44ch;
+  color: var(--color-asphalt-300);
+  text-wrap: pretty;
+}
+
+/* ─── PK 02 · La route aux quatre bornes ────────────────────────────────────── */
+
+.steps {
+  position: relative;
+  --borne-w: 2.75rem;
+  --borne-h: 4rem;
+}
+
+/* Borne kilométrique : tête jaune arrondie, fût craie, numéro à l'encre. */
+@layer components {
+  .borne {
+    position: relative;
+    display: block;
+  }
+}
+.borne {
+  width: var(--borne-w);
+  height: var(--borne-h);
+  border-radius: calc(var(--borne-w) / 2) calc(var(--borne-w) / 2) 4px 4px;
+  background: linear-gradient(180deg, var(--color-chalk), color-mix(in srgb, var(--color-chalk) 82%, var(--color-asphalt-400)));
+  box-shadow:
+    0 14px 30px -10px color-mix(in srgb, var(--color-signal-500) 45%, transparent),
+    inset -4px 0 0 color-mix(in srgb, var(--color-asphalt-950) 8%, transparent);
+  transition: background-color var(--dur-reveal) var(--ease-out-expo);
+}
+.borneCap {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 40%;
+  border-radius: calc(var(--borne-w) / 2) calc(var(--borne-w) / 2) 0 0;
+  background: var(--color-signal-500);
+  box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--color-asphalt-950) 18%, transparent);
+  transition: background-color var(--dur-reveal) var(--ease-out-expo);
+}
+.borneNumber {
+  position: absolute;
+  inset: 40% 0 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-sans);
+  font-variation-settings: "wdth" 75;
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+/* Borne pas encore atteinte (ordinateur, scène liée au défilement). Limité à l'ordinateur : si
+   la fenêtre rétrécit pendant la scène, la version mobile ne garde jamais de borne éteinte. */
+@media (min-width: 1024px) {
+  .step[data-pending] .borne {
+    box-shadow: inset -4px 0 0 color-mix(in srgb, var(--color-asphalt-950) 8%, transparent);
+    background: linear-gradient(180deg, var(--color-asphalt-300), var(--color-asphalt-400));
+  }
+  .step[data-pending] .borneCap {
+    background: var(--color-asphalt-500);
+  }
+}
+
+.stepTitle {
+  @apply font-step;
+  font-size: clamp(1.3rem, 1.1rem + 0.6vw, 1.55rem);
+  line-height: 1.15;
+  color: var(--color-chalk);
+  text-wrap: balance;
+}
+.stepText {
+  @apply text-body;
+  margin-top: 0.5rem;
+  color: var(--color-asphalt-300);
+  text-wrap: pretty;
+}
+.stepsList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Mobile et tablette : route verticale à gauche. */
+@media (max-width: 1023px) {
+  .steps {
+    padding-left: 0;
+    view-timeline-name: --dp-steps;
+  }
+  .stepsRoadRow {
+    display: none;
+  }
+  .stepsRail {
+    position: absolute;
+    left: calc(var(--borne-w) / 2 - 1.75rem);
+    width: 3.5rem;
+    top: 1rem;
+    bottom: 0;
+    border-radius: 2px;
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 30%, transparent) 0 2px, transparent 2px calc(100% - 2px), color-mix(in srgb, var(--color-reflect) 30%, transparent) calc(100% - 2px)),
+      linear-gradient(180deg, var(--color-asphalt-850), var(--color-asphalt-800) 50%, var(--color-asphalt-850));
+    -webkit-mask-image: linear-gradient(to bottom, #000 85%, transparent);
+    mask-image: linear-gradient(to bottom, #000 85%, transparent);
+  }
+  .stepsRail::before {
+    /* Ligne médiane en tirets. */
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    translate: -50% 0;
+    background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--color-reflect) 30%, transparent) 0 18px, transparent 18px 36px);
+  }
+  .stepsRailFill {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 12%;
+    width: 4px;
+    translate: -50% 0;
+    border-radius: 2px;
+    background: var(--color-signal-500);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-signal-500) 55%, transparent);
+    transform-origin: 50% 0;
+  }
+  .stepsRailTruck {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 0;
+    height: 88%;
+    /* État final : la dépanneuse au bout du remplissage. */
+    translate: 0 calc(100% - 3.5rem);
+  }
+  .stepsRailTruckSvg {
+    position: absolute;
+    left: -1.5rem;
+    top: -1.5rem;
+    width: 3rem;
+    height: 6rem;
+    overflow: visible;
+  }
+  .stepsList {
+    position: relative;
+    display: grid;
+    gap: 2.75rem;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: var(--borne-w) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.6rem;
+  }
+  .stepCopy {
+    padding-top: 0.6rem;
+    max-width: 40ch;
+  }
+}
+/* Le remplissage et la dépanneuse suivent la lecture (niveau `full`, CSS seul). */
+@supports (animation-timeline: view()) {
+  @media (max-width: 1023px) {
+    :global(html[data-motion="full"]) .stepsRailFill {
+      animation: dp-rail-fill linear both;
+      animation-timeline: --dp-steps;
+      animation-range: cover 22% cover 70%;
+    }
+    :global(html[data-motion="full"]) .stepsRailTruck {
+      animation: dp-rail-truck linear both;
+      animation-timeline: --dp-steps;
+      animation-range: cover 22% cover 70%;
+    }
+    :global(html[data-motion="full"]) .borneCap {
+      animation: dp-borne-light linear both;
+      animation-timeline: view();
+      animation-range: entry 100% cover 52%;
+    }
+  }
+}
+@keyframes dp-rail-fill {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes dp-rail-truck {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 calc(100% - 3.5rem);
+  }
+}
+@keyframes dp-borne-light {
+  0%,
+  92% {
+    background-color: var(--color-asphalt-500);
+  }
+  100% {
+    background-color: var(--color-signal-500);
+  }
+}
+
+/* Ordinateur : route horizontale, une borne et une étape par colonne. */
+@media (min-width: 1024px) {
+  .steps {
+    container-type: inline-size;
+    --borne-w: 3.25rem;
+    --borne-h: 4.75rem;
+    --road-h: 11cqw;
+    --road-top: 3.33cqw;
+  }
+  .stepsRail {
+    display: none;
+  }
+  .stepsRoadRow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--borne-h) - var(--road-top) - 0.15rem);
+    height: var(--road-h);
+  }
+  .stepsRoadSvg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .stepsList {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .step {
+    position: relative;
+    padding: calc(var(--borne-h) + var(--road-h) - var(--road-top) + 2.25rem) 1.5rem 0;
+    text-align: center;
+  }
+  .borne {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% 0;
+  }
+  .borneNumber {
+    font-size: 1.2rem;
+  }
+  .stepCopy {
+    max-width: 24ch;
+    margin: 0 auto;
+  }
+}
+
+/* ─── PK 03 · Si la réparation n'est pas possible sur place ─────────────────── */
+
+.tow {
+  display: grid;
+  gap: 2.5rem;
+}
+@media (min-width: 1024px) {
+  .tow {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: center;
+    gap: 3rem;
+  }
+}
+.towText {
+  @apply text-lead;
+  max-width: 52ch;
+  color: var(--color-asphalt-200);
+  text-wrap: pretty;
+}
+.towSign {
+  margin-top: 2rem;
+  width: 100%;
+}
+.towFrame {
+  position: relative;
+  container-type: inline-size;
+  margin-inline: -1rem;
+}
+@media (min-width: 640px) {
+  .towFrame {
+    margin-inline: -1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .towFrame {
+    margin-inline: 0 -2rem;
+  }
+}
+.towStage {
+  position: relative;
+  height: 56cqw;
+  overflow: clip;
+  pointer-events: none;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 16%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 16%);
+  mask-composite: intersect;
+}
+.towGlow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(28cqw 22cqw at 14% 84%, color-mix(in srgb, var(--color-sodium) 12%, transparent), transparent 70%),
+    radial-gradient(60cqw 18cqw at 60% 84%, color-mix(in srgb, var(--color-xenon) 6%, transparent), transparent 75%);
+}
+.towSkyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9cqw;
+  height: 15cqw;
+  opacity: 0.5;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+}
+.towWorld {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.towLoading {
+  position: absolute;
+  left: 4cqw;
+  bottom: 6.8cqw;
+  width: 88cqw;
+}
+/* Mobile : la séquence prend toute la largeur et le ciel vide au-dessus est réduit. */
+@media (max-width: 639px) {
+  .towStage {
+    height: 50cqw;
+  }
+  .towLoading {
+    left: -1cqw;
+    bottom: 5.6cqw;
+    width: 104cqw;
+  }
+}
+
+/* ─── Marquages de transition ───────────────────────────────────────────────── */
+
+/* Plots rétroréfléchissants entre les tirets (60/60) ; ils s'allument de gauche à droite. */
+/* Les marquages se placent au milieu de l'espace entre deux sections (sans l'allonger) : ils
+   remplissent le vide au lieu d'en ajouter. */
+.studs {
+  position: relative;
+  height: 1.25rem;
+  margin-top: calc(var(--spacing-section) - 0.625rem);
+  margin-bottom: calc(-1 * var(--spacing-section) + 0.625rem);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+.studs::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  translate: 0 -50%;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 20%, transparent) 0 60px, transparent 60px 120px);
+}
+.studsOff,
+.studsOn {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat-x;
+  background-size: 120px 100%;
+  background-position: 0 50%;
+}
+.studsOff {
+  background-image: radial-gradient(7px 3.5px at 90px 50%, var(--color-asphalt-600) 92%, transparent);
+}
+.studsOn {
+  background-image:
+    radial-gradient(6px 3px at 90px 50%, var(--color-reflect) 92%, transparent),
+    radial-gradient(22px 9px at 90px 50%, color-mix(in srgb, var(--color-reflect) 32%, transparent), transparent 80%);
+}
+@supports (animation-timeline: view()) {
+  :global(html[data-motion="full"]) .studsOn {
+    animation: dp-studs linear both;
+    animation-timeline: view();
+    animation-range: entry 40% cover 62%;
+  }
+}
+@keyframes dp-studs {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Rangée de chevrons de balisage (jaune et noir), fine ; elle glisse au défilement. */
+.chevrons {
+  position: relative;
+  height: 0.75rem;
+  margin-top: calc(var(--spacing-section) - 0.375rem);
+  margin-bottom: calc(-1 * var(--spacing-section) + 0.375rem);
+  overflow: clip;
+  border-radius: 2px;
+  opacity: 0.85;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+}
+.chevronsTrack {
+  position: absolute;
+  inset: 0 -48px 0 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-signal-500) 0 8.5px,
+    var(--color-asphalt-950) 8.5px 17px
+  );
+}
+@supports (animation-timeline: view()) {
+  :global(html[data-motion="full"]) .chevronsTrack {
+    animation: dp-chevrons linear both;
+    animation-timeline: view();
+    animation-range: cover;
+  }
+}
+@keyframes dp-chevrons {
+  from {
+    translate: -48px 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+/* ─── Niveau `off` : aucune animation (états finaux) ────────────────────────── */
+
+:global(html[data-motion="off"]) .studsOn,
+:global(html[data-motion="off"]) .chevronsTrack,
+:global(html[data-motion="off"]) .stepsRailFill,
+:global(html[data-motion="off"]) .stepsRailTruck,
+:global(html[data-motion="off"]) .borneCap,
+:global(html[data-motion="off"]) .openCurrent,
+:global(html[data-motion="off"]) .dashNeedle {
+  animation: none !important;
+}
+
+@media (forced-colors: active) {
+  .openStage,
+  .towStage,
+  .dashGaugeSlot,
+  .stepsRoadRow,
+  .stepsRail {
+    display: none;
+  }
+}

@@ -1,0 +1,477 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   404 « Route barrée » et page d'erreur (docs/09, F.10).
+
+   - Ouverture : texte et trois issues à gauche, visibles et immobiles dès la première image ;
+     la scène à droite (sous le texte sur mobile) : barrière à chevrons et ses deux feux orange
+     (1 Hz, en alternance), lampadaire au sodium qui « respire » (404) ou éteint (erreur),
+     panneau jaune « DÉVIATION », dépanneuse qui arrive et freine devant la barrière (404).
+   - Déviation : un mât de jalonnement vers les pages du site (libellés du menu).
+
+   Boucles visibles : feux de la barrière et lampadaire (deux au plus), en pause hors de l'écran.
+   Sans JavaScript et en `off` : état final (dépanneuse arrêtée devant la barrière).
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Ouverture ─────────────────────────────────────────────────────────────── */
+
+.detour {
+  position: relative;
+  overflow-x: clip;
+  padding-top: calc(var(--header-h, 4rem) + 1.5rem);
+  padding-bottom: 2.5rem;
+}
+@media (min-width: 1024px) {
+  .detour {
+    display: flex;
+    align-items: center;
+    min-height: min(88vh, 54rem);
+    padding-top: calc(var(--header-h, 5rem) + 2.5rem);
+    padding-bottom: 3.5rem;
+  }
+}
+.detourGrid {
+  display: grid;
+  gap: 2rem;
+}
+@media (min-width: 1024px) {
+  .detourGrid {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: 3rem;
+  }
+}
+.detourText {
+  position: relative;
+  z-index: 2;
+}
+
+.plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--color-beacon-400);
+}
+.platePicto {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 6px;
+  color: var(--color-asphalt-950);
+  background: var(--color-beacon-500);
+}
+
+.title {
+  @apply font-display;
+  margin-top: 1.1rem;
+  font-size: clamp(3.4rem, 15vw, 6.5rem);
+  line-height: 0.95;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.title em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+.lead {
+  @apply text-lead;
+  margin-top: 1.1rem;
+  max-width: 34rem;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+@media (min-width: 640px) {
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+/* Bouton jaune de l'erreur (« Réessayer ») : même allure que le bouton principal du site. */
+.retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  height: 4rem;
+  padding-inline: 1.75rem;
+  border-radius: 1rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--color-asphalt-950);
+  background: var(--color-signal-500);
+  box-shadow: 0 18px 48px -14px color-mix(in srgb, var(--color-signal-500) 55%, transparent);
+  transition:
+    background-color var(--dur-ui) var(--ease-out-expo),
+    translate var(--dur-ui) var(--ease-out-expo);
+}
+.retry:hover {
+  background: var(--color-signal-400);
+}
+.retry:active {
+  scale: 0.98;
+}
+
+/* Lien secondaire (« Retour à l'accueil », « Accueil ») : liseré clair, 64 px. */
+.homeLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  height: 4rem;
+  padding-inline: 1.5rem;
+  border-radius: 1rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--color-chalk);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 30%, transparent);
+  transition:
+    color var(--dur-ui) var(--ease-out-expo),
+    box-shadow var(--dur-ui) var(--ease-out-expo);
+}
+.homeLink:hover {
+  color: var(--color-signal-400);
+  box-shadow: inset 0 0 0 1.5px var(--color-signal-500);
+}
+@media (max-width: 639px) {
+  .actions > * {
+    width: 100%;
+  }
+}
+
+/* ─── Scène « Route barrée » ────────────────────────────────────────────────── */
+
+.stage {
+  position: relative;
+}
+@media (min-width: 1024px) {
+  /* La scène déborde vers le bord droit de l'écran. */
+  .stage {
+    margin-right: min(0px, calc((1280px - 100vw) / 2 - 2rem));
+  }
+}
+.frame {
+  position: relative;
+  aspect-ratio: 200 / 120;
+  width: 100%;
+  pointer-events: none;
+  /* La scène sort de la nuit : fondu à gauche (la dépanneuse arrive de là), à droite et en bas. */
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 9%, #000 94%, transparent),
+    linear-gradient(to bottom, #000 86%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 9%, #000 94%, transparent),
+    linear-gradient(to bottom, #000 86%, transparent);
+  mask-composite: intersect;
+}
+@media (max-width: 1023px) {
+  /* Mobile : la scène est recadrée sur la barrière (la nuit vide de gauche sort du cadre). */
+  .frame {
+    width: 118%;
+    margin-left: -12%;
+  }
+}
+.frameSkyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20%;
+  height: 38%;
+  opacity: 0.55;
+}
+.world {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.signText {
+  font-family: var(--font-sans);
+  font-size: 3.5px;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-variation-settings: "wdth" 100;
+  letter-spacing: 0.02em;
+}
+
+/* Dépanneuse : un couloir immobile sert de déclencheur (P16), la dépanneuse intérieure arrive. */
+.truckLane {
+  position: absolute;
+  inset: 0;
+}
+.truck {
+  position: absolute;
+  left: 4%;
+  top: 58.6%;
+  width: 34%;
+}
+/* Ordinateur : la scène est dans le premier écran, l'arrivée part au chargement, en CSS seul
+   (le script d'en-tête pose `html.js` et le niveau avant le premier affichage : aucun saut ; et
+   une animation dans le temps finit toujours à l'état final, même si le runtime échoue). */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  html:global(.js)[data-motion]:not([data-motion="off"]) .truck {
+    animation: truck-arrive 1.6s var(--ease-brake) 0.35s both;
+  }
+  html:global(.js)[data-motion]:not([data-motion="off"]) .truck :global(.truck-body) {
+    transform-box: fill-box;
+    transform-origin: 80% 100%;
+    animation: truck-dip 360ms var(--ease-out-expo) 1.7s both;
+  }
+  html:global(.js)[data-motion]:not([data-motion="off"]) .truck [data-wheel] {
+    animation: truck-wheels 1.6s var(--ease-brake) 0.35s both;
+  }
+}
+/* Mobile : la scène est sous le texte ; l'arrivée part quand elle entre dans l'écran (P16). */
+@media (max-width: 1023px) {
+  html:global(.motion-ready)[data-motion]:not([data-motion="off"]) .truckLane:not([data-inview]) .truck {
+    translate: -150% 0;
+  }
+  html:global(.motion-ready)[data-motion]:not([data-motion="off"]) .truckLane[data-inview] .truck {
+    animation: truck-arrive 1.6s var(--ease-brake) 0.25s both;
+  }
+  html:global(.motion-ready)[data-motion]:not([data-motion="off"]) .truckLane[data-inview] .truck :global(.truck-body) {
+    transform-box: fill-box;
+    transform-origin: 80% 100%;
+    animation: truck-dip 360ms var(--ease-out-expo) 1.6s both;
+  }
+  html:global(.motion-ready)[data-motion]:not([data-motion="off"]) .truckLane[data-inview] .truck [data-wheel] {
+    animation: truck-wheels 1.6s var(--ease-brake) 0.25s both;
+  }
+}
+@keyframes truck-arrive {
+  from {
+    translate: -150% 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes truck-dip {
+  0% {
+    rotate: 0deg;
+  }
+  38% {
+    rotate: 1.2deg;
+  }
+  72% {
+    rotate: -0.35deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+@keyframes truck-wheels {
+  from {
+    rotate: -1260deg;
+  }
+  to {
+    rotate: 0deg;
+  }
+}
+
+/* Feux de la barrière : le second répond au premier (1 Hz chacun). */
+/* Spécificité doublée : `.hazard` (motion.css) redéfinit `animation` ; le décalage doit gagner
+   quel que soit l'ordre de chargement des feuilles. */
+.hazardAlt.hazardAlt {
+  animation-delay: -0.5s;
+}
+
+/* ─── Déviation : mât de jalonnement ────────────────────────────────────────── */
+
+.deviation {
+  position: relative;
+  padding-top: calc(var(--spacing-section) * 0.5);
+  padding-bottom: calc(var(--spacing-section) * 0.6);
+}
+.deviationHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.25rem;
+}
+@media (min-width: 1024px) {
+  .deviationHead {
+    justify-content: center;
+  }
+}
+/* Le titre est écrit sur un panneau jaune de déviation. */
+.deviationTitle {
+  @apply font-sign;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 6px;
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+  line-height: 1;
+  color: var(--color-ink);
+  background: var(--color-signal-500);
+  box-shadow:
+    inset 0 0 0 3px var(--color-signal-500),
+    inset 0 0 0 5px var(--color-ink);
+}
+
+.mast {
+  position: relative;
+  margin-top: 2.25rem;
+  padding-left: 1.6rem;
+}
+/* Le mât. */
+.mast::before {
+  content: "";
+  position: absolute;
+  top: -1.25rem;
+  bottom: -2rem;
+  left: 0.4rem;
+  width: 6px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-asphalt-750), var(--color-asphalt-500) 45%, var(--color-asphalt-850));
+  -webkit-mask-image: linear-gradient(to bottom, #000 85%, transparent);
+  mask-image: linear-gradient(to bottom, #000 85%, transparent);
+}
+.mastList {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 34rem;
+}
+.mastItem {
+  position: relative;
+}
+.mastItem::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -1.25rem;
+  width: 1.25rem;
+  height: 0.45rem;
+  translate: 0 -50%;
+  background: var(--color-asphalt-700);
+}
+@media (min-width: 1024px) {
+  /* Sur ordinateur : lames de part et d'autre d'un mât central, pointées vers l'extérieur. */
+  .mast {
+    padding-left: 0;
+  }
+  .mast::before {
+    left: 50%;
+    translate: -50% 0;
+  }
+  .mastList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 3rem;
+    row-gap: 0.75rem;
+    max-width: 62rem;
+    margin-inline: auto;
+  }
+  .mastItem:nth-child(odd)::before {
+    left: auto;
+    right: -1.5rem;
+    width: 1.5rem;
+  }
+  .mastItem:nth-child(even)::before {
+    left: -1.5rem;
+    width: 1.5rem;
+  }
+}
+
+.blade {
+  --tip: 1.1rem;
+  display: block;
+  padding: 1.5px;
+  color: var(--color-chalk);
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, 0 100%);
+  background: color-mix(in srgb, var(--color-reflect) 22%, transparent);
+  transition: background-color var(--dur-ui) var(--ease-out-expo);
+}
+.bladeFace {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.85rem;
+  min-height: 4rem;
+  padding: 0.65rem calc(var(--tip) + 0.85rem) 0.65rem 0.75rem;
+  clip-path: polygon(0 0, calc(100% - var(--tip) + 0.5px) 0, calc(100% - 1px) 50%, calc(100% - var(--tip) + 0.5px) 100%, 0 100%);
+  background:
+    repeating-linear-gradient(60deg, color-mix(in srgb, var(--color-reflect) 2%, transparent) 0 1px, transparent 1px 5px),
+    var(--color-night-950);
+}
+@media (min-width: 1024px) {
+  .mastItem:nth-child(odd) .blade {
+    clip-path: polygon(var(--tip) 0, 100% 0, 100% 100%, var(--tip) 100%, 0 50%);
+  }
+  .mastItem:nth-child(odd) .bladeFace {
+    padding: 0.65rem 0.75rem 0.65rem calc(var(--tip) + 0.85rem);
+    clip-path: polygon(calc(var(--tip) - 0.5px) 0, 100% 0, 100% 100%, calc(var(--tip) - 0.5px) 100%, 1px 50%);
+  }
+}
+.bladePicto {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 6px;
+  color: var(--color-ink);
+  background: var(--color-chalk);
+}
+.bladeLabel {
+  @apply font-sign;
+  font-size: 1.0625rem;
+  line-height: 1.15;
+}
+.bladeHelp {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-asphalt-300);
+}
+@media (min-width: 1024px) {
+  .bladeHelp {
+    font-size: 0.9375rem;
+  }
+}
+.blade:hover,
+.blade:focus-visible {
+  outline: none;
+  background: var(--color-signal-500);
+}
+/* Focus (A6) : liseré de 3 px et face éclaircie (la découpe en pointe masque le contour). */
+.blade:focus-visible {
+  margin: -1.5px;
+  padding: 3px;
+}
+.blade:focus-visible .bladeFace {
+  background: var(--color-night-800);
+}
+.blade:hover .bladeLabel,
+.blade:focus-visible .bladeLabel {
+  color: var(--color-signal-400);
+}
+
+@media (forced-colors: active) {
+  .frame {
+    display: none;
+  }
+  .blade,
+  .bladeFace,
+  .mastItem:nth-child(odd) .blade,
+  .mastItem:nth-child(odd) .bladeFace {
+    clip-path: none;
+    border: 1px solid CanvasText;
+  }
+}

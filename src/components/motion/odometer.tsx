@@ -5,6 +5,9 @@
  * Le serveur rend le VRAI texte (« 105 € ») ; pendant le roulement il reste dans l'arbre
  * d'accessibilité (simplement rendu transparent) et des colonnes décoratives `aria-hidden`
  * passent par-dessus, en chiffres de largeur fixe : aucun décalage de mise en page.
+ * Quand la valeur change (choix du moment de l'accueil), le compteur roule de l'ANCIENNE valeur
+ * vers la nouvelle en 700 ms (E.5), en avançant si elle monte, en reculant si elle baisse.
+ * Chaque colonne est découpée à la hauteur des chiffres (hublot) : rien ne dépasse du prix.
  * Jamais sur un numéro de téléphone ni sur une référence de demande.
  * `off`, préférence « moins d'animations » et sans JavaScript : valeur fixe.
  */
@@ -39,21 +42,88 @@ function cssDurationMs(value: string): number {
   return /\d\s*s\s*$/.test(value.trim()) && !/ms\s*$/.test(value.trim()) ? number * 1000 : number;
 }
 
-/** Construit les colonnes et lance le roulement. Retourne l'arrêt (qui remet le vrai texte). */
-function roll(root: HTMLElement, text: string, duration: number): () => void {
+/** Durée du roulement quand la valeur change (E.5 : de l'ancienne à la nouvelle valeur). */
+const CHANGE_DURATION_MS = 700;
+/** Cascade de droite à gauche entre deux colonnes. */
+const STAGGER_MS = 60;
+
+/**
+ * Ligne de base d'un texte, en px depuis le haut de `root` (boîte de mise en page, insensible aux
+ * transformations) : une sonde de hauteur nulle posée sur la ligne de base.
+ * `root` doit être positionné (c'est le cas de [data-odometer]) pour servir de `offsetParent`.
+ */
+function baselineIn(host: HTMLElement, root: HTMLElement): number | null {
+  const probe = document.createElement("span");
+  probe.setAttribute("aria-hidden", "true");
+  probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline;";
+  host.appendChild(probe);
+  let y = 0;
+  let node: HTMLElement | null = probe;
+  // Somme des offsetTop jusqu'à la racine (les transform du ticket ou des bandes sont ignorés).
+  while (node && node !== root) {
+    y += node.offsetTop;
+    node = node.offsetParent as HTMLElement | null;
+  }
+  probe.remove();
+  return node === root ? y : null;
+}
+
+/**
+ * Hauteur d'encre des chiffres (au-dessus et au-dessous de la ligne de base), mesurée sur la
+ * police réelle. Chaque colonne est découpée à cette fenêtre, comme le hublot d'un compteur :
+ * rien ne dépasse au-dessus du prix pendant le roulement (sinon la cellule voisine chevauchait
+ * le libellé du ticket, constaté).
+ */
+function digitInk(el: HTMLElement): { ascent: number; descent: number } | null {
+  const style = getComputedStyle(el);
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return null;
+  // La largeur de police (font-stretch en %) ne change pas les mesures verticales : on l'omet.
+  ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const m = ctx.measureText("0123456789");
+  if (!Number.isFinite(m.actualBoundingBoxAscent) || !m.actualBoundingBoxAscent) return null;
+  return { ascent: m.actualBoundingBoxAscent, descent: Math.max(0, m.actualBoundingBoxDescent || 0) };
+}
+
+/** Chiffres d'un texte, alignés à droite sur `count` colonnes (colonne absente : 0). */
+function digitsOf(text: string, count: number): number[] {
+  const digits = Array.from(text).filter((c) => /\d/.test(c)).map(Number);
+  return [...Array<number>(Math.max(0, count - digits.length)).fill(0), ...digits].slice(-count);
+}
+
+/** Valeur numérique d'un texte formaté (« 187,50 € » → 187.5), pour le sens du roulement. */
+const numericOf = (text: string) => Number(text.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+
+/**
+ * Construit les colonnes et lance le roulement de `fromText` (null : depuis 0, premier roulement)
+ * vers `text`. Retourne l'arrêt (qui remet le vrai texte).
+ */
+function roll(root: HTMLElement, text: string, duration: number, fromText: string | null = null): () => void {
   const valueEl = root.querySelector<HTMLElement>(".odometer-value");
   if (!valueEl) return () => {};
-  // Hauteur de la ligne (boîte de la racine), pas celle des glyphes : chaque cellule fait
-  // exactement la hauteur visible de la colonne et son chiffre tombe sur la ligne de base du
-  // vrai texte. Sinon la colonne laisse voir les chiffres voisins et le texte saute à la fin.
-  const height = root.getBoundingClientRect().height || valueEl.getBoundingClientRect().height;
+  // Hauteur de MISE EN PAGE de la ligne (offsetHeight), jamais getBoundingClientRect : le
+  // ticket est tourné de quelques degrés, sa boîte englobante est plus haute que la ligne. Les
+  // cellules étaient alors trop hautes, les colonnes décalées et le haut d'un chiffre voisin
+  // dépassait au-dessus du prix (constaté à mi-roulement).
+  const height = root.offsetHeight || valueEl.offsetHeight;
   if (!height) return () => {};
+  const baseline = baselineIn(valueEl, root);
+  const ink = digitInk(root);
+
+  const chars = Array.from(text);
+  const digitCount = chars.filter((c) => /\d/.test(c)).length;
+  const targets = digitsOf(text, digitCount);
+  const sources = fromText === null ? null : digitsOf(fromText, digitCount);
+  // Le compteur avance quand la valeur monte, recule quand elle baisse.
+  const upward = fromText === null || numericOf(text) >= numericOf(fromText);
 
   const overlay = document.createElement("span");
   overlay.className = "odometer-roll";
   overlay.setAttribute("aria-hidden", "true");
-  const strips: { strip: HTMLElement; digit: number }[] = [];
-  for (const char of Array.from(text)) {
+  const strips: { strip: HTMLElement; start: number; end: number }[] = [];
+  const glyphs: HTMLElement[] = [];
+  let digitIndex = 0;
+  for (const char of chars) {
     if (/\d/.test(char)) {
       const col = document.createElement("span");
       col.className = "odometer-col";
@@ -68,26 +138,64 @@ function roll(root: HTMLElement, text: string, duration: number): () => void {
       }
       col.appendChild(strip);
       overlay.appendChild(col);
-      strips.push({ strip, digit: Number(char) });
+      const target = targets[digitIndex] ?? 0;
+      const source = sources ? (sources[digitIndex] ?? 0) : 0;
+      // Positions dans la bande 0-9 0-9 : départ et arrivée, toujours dans le sens du roulement.
+      let start: number;
+      let end: number;
+      if (!sources) {
+        start = 0;
+        end = 10 + target;
+      } else if (upward) {
+        start = source;
+        end = target >= source ? target : target + 10;
+      } else {
+        start = source + 10;
+        end = target <= source ? target + 10 : target;
+      }
+      strips.push({ strip, start, end });
+      strip.style.transform = `translateY(${-start * height}px)`;
+      digitIndex++;
     } else {
       const glyph = document.createElement("span");
       glyph.textContent = char;
       glyph.style.lineHeight = `${height}px`;
       overlay.appendChild(glyph);
+      glyphs.push(glyph);
     }
   }
   root.appendChild(overlay);
-  valueEl.style.color = "transparent";
 
-  // Cascade de droite à gauche : 60 ms entre deux colonnes.
-  const count = strips.length;
-  const lastDelay = (count - 1) * 60;
+  // Les chiffres des cellules tombent exactement sur la ligne de base du vrai texte (aucun saut
+  // à la fin), et chaque colonne est découpée à la hauteur d'encre des chiffres.
+  const firstCell = strips[0]?.strip.firstElementChild as HTMLElement | null | undefined;
+  const cellBaseline = firstCell ? baselineIn(firstCell, root) : null;
+  const shift = baseline !== null && cellBaseline !== null ? baseline - cellBaseline : 0;
+  const line = baseline ?? cellBaseline;
+  const pad = parseFloat(getComputedStyle(root).fontSize) * 0.04;
+  if (shift) for (const glyph of glyphs) glyph.style.translate = `0 ${shift}px`;
+  for (const { strip } of strips) {
+    if (shift) strip.style.marginTop = `${shift}px`;
+    if (ink && line !== null) {
+      const top = Math.max(0, line - ink.ascent - pad);
+      const bottom = Math.min(height, line + ink.descent + pad);
+      if (bottom > top) (strip.parentElement as HTMLElement).style.clipPath = `inset(${top}px 0 ${height - bottom}px 0)`;
+    }
+  }
+  valueEl.style.color = "transparent";
+  // Position de départ calculée avant la transition (sinon le navigateur saute à l'arrivée).
+  void overlay.offsetWidth;
+
+  // Cascade de droite à gauche ; seules les colonnes qui changent roulent.
+  const moving = strips.filter(({ start, end }) => start !== end);
+  const count = moving.length;
+  const lastDelay = Math.max(0, count - 1) * STAGGER_MS;
   const each = Math.max(240, duration - lastDelay);
   const frame = requestAnimationFrame(() => {
-    strips.forEach(({ strip, digit }, index) => {
-      const delay = (count - 1 - index) * 60;
+    moving.forEach(({ strip, end }, index) => {
+      const delay = (count - 1 - index) * STAGGER_MS;
       strip.style.transition = `transform ${each}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`;
-      strip.style.transform = `translateY(${-(10 + digit) * height}px)`;
+      strip.style.transform = `translateY(${-end * height}px)`;
     });
   });
   const finish = () => {
@@ -104,23 +212,40 @@ function roll(root: HTMLElement, text: string, duration: number): () => void {
 
 export function Odometer({ value, unit = "€", trigger = "view", duration, className }: OdometerProps) {
   const ref = useRef<HTMLSpanElement>(null);
+  /** Texte affiché lors du passage précédent de l'effet (pour rouler de l'ancienne valeur). */
+  const lastTextRef = useRef<string | null>(null);
+  /** Le premier roulement a commencé : un changement de valeur roule alors de l'ancienne à la nouvelle. */
+  const startedRef = useRef(false);
   const text = formatOdometer(value, unit);
 
   useEffect(() => {
     const root = ref.current;
+    const previous = lastTextRef.current;
+    lastTextRef.current = text;
     if (!root || currentMotionLevel() === "off") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const total = duration ?? (cssDurationMs(getComputedStyle(root).getPropertyValue("--dur-odometer")) || 1100);
     let stop = () => {};
-    if (trigger === "mount") {
+
+    // Changement de valeur après le premier roulement : de l'ancienne à la nouvelle, en 700 ms.
+    if (startedRef.current && previous !== null && previous !== text) {
+      stop = roll(root, text, CHANGE_DURATION_MS, previous);
+      return () => stop();
+    }
+
+    const total = duration ?? (cssDurationMs(getComputedStyle(root).getPropertyValue("--dur-odometer")) || 1100);
+    const start = () => {
+      startedRef.current = true;
       stop = roll(root, text, total);
+    };
+    if (trigger === "mount") {
+      start();
       return () => stop();
     }
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         io.disconnect();
-        stop = roll(root, text, total);
+        start();
       },
       { threshold: 0.6 },
     );

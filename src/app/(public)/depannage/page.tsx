@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CtaBand, FeatureGrid, PageHero, Section, Steps } from "@/components/public/page-blocks";
-import { Icon } from "@/components/ui/icon";
+import { PageTransition } from "@/components/motion/page-transition";
+import { CallLink, PrimaryLink } from "@/components/public/actions";
+import { DawnCta, NextExit, OpeningShot, RelatedFaq, Section } from "@/components/public/page-blocks";
+import { RoadLine } from "@/components/public/road-line";
+import { Dashboard } from "@/components/pages/depannage/dashboard";
+import { DepannageScenes } from "@/components/pages/depannage/depannage-scenes";
+import { OpeningScene } from "@/components/pages/depannage/opening-scene";
+import { StepsRoad } from "@/components/pages/depannage/steps-road";
+import { TowFallback } from "@/components/pages/depannage/tow-fallback";
+import styles from "@/components/pages/depannage/depannage.module.css";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 
 export const metadata: Metadata = {
@@ -11,96 +18,73 @@ export const metadata: Metadata = {
   alternates: { canonical: "/depannage" },
 };
 
+/** Repères de la ligne de route (D.3), un par section. */
+const MARKERS = [
+  { id: "ouverture", pk: "00", label: "Dépannage sur place" },
+  { id: "situations", pk: "01", label: "Les situations courantes" },
+  { id: "etapes", pk: "02", label: "Comment ça se passe" },
+  { id: "bon-a-savoir", pk: "03", label: "Bon à savoir" },
+  { id: "questions-liees", pk: "04", label: "Questions" },
+] as const;
+
+/**
+ * /depannage « Le bas-côté » (docs/09, F.1) : la voiture capot ouvert sous le lampadaire,
+ * le tableau de bord des situations, la route aux quatre bornes, la séquence de chargement
+ * quand la réparation n'est pas possible, puis questions liées, prochaine sortie et aube.
+ */
 export default async function DepannagePage() {
   const info = await getPublicSiteInfo();
   return (
     <>
-      <PageHero
-        eyebrow="Dépannage sur place"
-        icon="wrench"
-        title={
-          <>
-            On vous remet <span className="text-signal-500">sur la route.</span>
-          </>
-        }
-        lead="Batterie à plat, crevaison, petite panne : quand le problème peut se régler sur place, nous intervenons directement. Sinon, votre véhicule est remorqué là où vous le souhaitez."
-      >
-        <Link href="/demande" className="inline-flex h-14 items-center gap-2 rounded-2xl bg-signal-500 px-6 font-extrabold text-asphalt-950">
-          Estimer mon dépannage
-          <Icon name="arrowRight" size={20} strokeWidth={2.6} />
-        </Link>
-      </PageHero>
+      <RoadLine markers={MARKERS} />
+      <PageTransition>
+        <DepannageScenes />
 
-      <Section eyebrow="Les situations courantes" title="Ce que nous réglons sur place">
-        <FeatureGrid
-          items={[
-            {
-              icon: "battery",
-              title: "Batterie à plat",
-              text: "Démarrage avec un booster professionnel. Si la batterie est hors d'usage, nous vous conseillons pour la suite.",
-            },
-            {
-              icon: "tire",
-              title: "Crevaison",
-              text: "Montage de votre roue de secours. Sans roue de secours, ou si la jante est abîmée, nous emmenons le véhicule.",
-            },
-            {
-              icon: "engine",
-              title: "Petite panne",
-              text: "Nous évaluons la situation sur place. Si la réparation n'est pas possible au bord de la route, nous remorquons.",
-            },
-            {
-              icon: "parking",
-              title: "Véhicule en parking",
-              text: "Parking souterrain, résidence, centre commercial : indiquez-le, nous venons préparés à l'accès.",
-            },
-            {
-              icon: "access",
-              title: "Accès difficile",
-              text: "Ruelle, pente, véhicule mal placé : décrivez la situation pour que nous arrivions avec le bon matériel.",
-            },
-            {
-              icon: "question",
-              title: "Autre problème",
-              text: "Vous ne savez pas ce qui se passe ? Décrivez ce que vous voyez, nous vous rappelons pour en parler.",
-            },
-          ]}
-        />
-      </Section>
-
-      <Section tone="darker" eyebrow="Comment ça se passe" title="Quatre étapes, aucune surprise">
-        <Steps
-          steps={[
-            { title: "Vous décrivez la panne", text: "En ligne, par téléphone ou sur WhatsApp, en quelques secondes." },
-            { title: "Vous voyez le prix", text: "L'estimation tient compte de la distance, de l'horaire et de la situation." },
-            { title: "Nous confirmons", text: "Nous vous rappelons pour valider le prix et l'heure d'arrivée." },
-            { title: "Nous intervenons", text: "Sur place si c'est possible, sinon votre véhicule est remorqué." },
-          ]}
-        />
-      </Section>
-
-      <Section eyebrow="Bon à savoir" title="Si la réparation n'est pas possible sur place">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <p className="text-lg leading-relaxed text-asphalt-300" data-reveal>
-            Certaines pannes ne se réparent pas au bord de la route. Dans ce cas, nous vous proposons de remorquer votre
-            véhicule vers le garage de votre choix, votre domicile ou toute autre adresse. Le nouveau prix vous est
-            annoncé avant de partir.
-          </p>
-          <Link
-            href="/remorquage"
-            data-reveal
-            className="group flex items-center justify-between gap-6 rounded-3xl border border-white/10 bg-asphalt-850 p-7 transition-colors hover:border-signal-500/60"
-          >
-            <span>
-              <span className="block text-sm font-bold uppercase tracking-[0.2em] text-signal-500">Remorquage</span>
-              <span className="mt-2 block text-2xl font-extrabold">Découvrir le remorquage</span>
+        <OpeningShot
+          eyebrow="Dépannage sur place"
+          pictogram="wrench"
+          morphName="vt-sign-depannage"
+          title={
+            <span className={styles.heroTitle}>
+              On vous remet{" "}
+              <em data-beam="load" className="not-italic">
+                sur la route.
+              </em>
             </span>
-            <Icon name="arrowRight" size={28} className="text-signal-500 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </Section>
+          }
+          lead="Batterie à plat, crevaison, petite panne : quand le problème peut se régler sur place, nous intervenons directement. Sinon, votre véhicule est remorqué là où vous le souhaitez."
+          actions={
+            <div className="flex flex-wrap items-center gap-3">
+              <PrimaryLink href="/demande">Estimer mon dépannage</PrimaryLink>
+              <CallLink phone={info.phone} size="lg" className="max-sm:hidden" />
+            </div>
+          }
+          scene={<OpeningScene />}
+        />
 
-      <CtaBand info={info} />
+        <Section id="situations" pk="01" label="Les situations courantes" title="Ce que nous réglons sur place" split>
+          <Dashboard />
+        </Section>
+
+        <Section id="etapes" pk="02" label="Comment ça se passe" title="Quatre étapes, aucune surprise" split>
+          <StepsRoad />
+        </Section>
+
+        <Section
+          id="bon-a-savoir"
+          pk="03"
+          label="Bon à savoir"
+          sky="bleue"
+          title="Si la réparation n'est pas possible sur place"
+          split
+        >
+          <TowFallback />
+        </Section>
+
+        <RelatedFaq ids={["prix-sur-place", "presence", "sans-le-site"]} />
+        <NextExit from="/depannage" />
+        <DawnCta info={info} title="Besoin d'une dépanneuse maintenant ?" truck="empty" />
+      </PageTransition>
     </>
   );
 }

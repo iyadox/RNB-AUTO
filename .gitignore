@@ -1,0 +1,27 @@
+# Dépendances
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Base locale de développement (PGlite)
+.data/
+
+# Environnement : ne jamais committer de secrets
+.env
+.env.local
+.env.*.local
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Divers
+.DS_Store
+*.log
+.vercel

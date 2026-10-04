@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { PageTransition } from "@/components/motion/page-transition";
+import { CallLink, WhatsAppLink } from "@/components/public/actions";
 import { RequestFlow } from "@/components/request/request-flow";
+import { Icon } from "@/components/ui/icon";
 import { getDb } from "@/server/db/client";
 import { getPublicCatalog } from "@/server/site/catalog";
 import { getPublicSiteInfo } from "@/server/site/public-info";
@@ -22,19 +25,39 @@ async function depotPoint() {
   }
 }
 
+/**
+ * /demande (docs/09, F.8) : le parcours de demande, habillé en « route de nuit ». Ciel `nuit`,
+ * `aube` à l'étape « Demande reçue ». Ni GSAP, ni Lenis, ni halo, ni RoadLine (route calme ; la
+ * route des étapes remplace la progression). Sans JavaScript, le bloc ci-dessous oriente vers
+ * l'appel et WhatsApp (liens rendus par le serveur).
+ */
 export default async function RequestPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [info, catalog, depot, params] = await Promise.all([getPublicSiteInfo(), getPublicCatalog(), depotPoint(), searchParams]);
   return (
-    <div className="relative min-h-[100svh] bg-asphalt-950">
-      <div className="map-grid pointer-events-none absolute inset-0 opacity-40 [mask-image:linear-gradient(to_bottom,black,transparent_60%)]" aria-hidden="true" />
+    <PageTransition>
       <RequestFlow
         catalog={catalog}
         phone={info.phone}
         whatsapp={info.whatsapp}
         regulatedRoads={info.regulatedRoads}
         depot={depot}
+        siteDepot={info.depot}
         startOnHighway={params.autoroute === "1"}
+        notice={
+          <noscript>
+            <div className="mb-8 rounded-[6px] border-2 border-beacon-500 bg-night-950/90 p-5">
+              <p className="flex items-start gap-3 text-[1.0625rem] font-bold text-chalk">
+                <Icon name="alert" size={22} className="mt-0.5 shrink-0 text-beacon-400" />
+                Le calcul en ligne a besoin de JavaScript. Appelez-nous ou écrivez-nous sur WhatsApp.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <CallLink phone={info.phone} variant="solid" />
+                <WhatsAppLink whatsapp={info.whatsapp} variant="solid" />
+              </div>
+            </div>
+          </noscript>
+        }
       />
-    </div>
+    </PageTransition>
   );
 }

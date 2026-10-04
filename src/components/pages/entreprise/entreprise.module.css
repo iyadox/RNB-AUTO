@@ -1,0 +1,954 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   /entreprise « Le dépôt, avant le départ » (docs/09, F.6, lot L6b).
+   - PK 00 : la façade du dépôt la nuit ; le rideau monte une fois, la lumière de l'atelier se
+     répand sur le parvis, la dépanneuse fait deux appels de phares. Au défilement (niveau
+     `full`), elle s'en va vers la droite.
+   - PK 01 : le plan technique (fond `blueprint`, quadrillage), la dépanneuse au trait, trois
+     lignes de rappel qui se tracent vers des annotations reprises des textes existants.
+   - PK 02 : les six engagements, comme des panneaux de bord de route : chaque panneau rond
+     s'éclaire quand sa ligne passe au milieu de l'écran, le marquage se trace, le reflet passe.
+   Règles : couleurs par jetons, ni flou ni `overflow: hidden` ; état de base = état final (sans
+   JavaScript et en `off`) ; les états cachés n'existent que sous `html.motion-ready` ; les
+   animations liées au défilement n'existent qu'en niveau `full` et sont coupées en `off`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Titre principal ───────────────────────────────────────────────────────── */
+
+.heroTitle {
+  display: block;
+}
+/* Mobile : le bouton reste sous 580 px à 390 × 664 (U4). */
+@media (max-width: 1023px) {
+  .heroTitle {
+    font-size: min(var(--text-hero), 12.6vw);
+    line-height: 0.95;
+  }
+}
+/* Ordinateur : la taille suit aussi la hauteur et la largeur de la colonne. */
+@media (min-width: 1024px) {
+  .heroTitle {
+    font-size: min(var(--text-hero), 12vh, 7.4vw);
+    line-height: 0.95;
+  }
+}
+
+/* ═══ PK 00 · Le dépôt la nuit ═══════════════════════════════════════════════ */
+
+.openFrame {
+  position: relative;
+  isolation: isolate;
+  /* Mobile : la scène va jusqu'aux bords de l'écran. */
+  margin-inline: -1rem;
+  height: min(34svh, 84vw);
+  overflow: clip;
+  pointer-events: none;
+  /* Bords fondus dans le ciel (côtés et bas). */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 6%, #000 94%, transparent),
+    linear-gradient(to bottom, #000 82%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 6%, #000 94%, transparent),
+    linear-gradient(to bottom, #000 82%, transparent);
+  mask-composite: intersect;
+}
+@media (min-width: 640px) {
+  .openFrame {
+    margin-inline: -1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .openFrame {
+    /* La scène déborde jusqu'au bord droit de l'écran (bord fondu). */
+    margin-left: -2rem;
+    margin-right: calc(-1 * (max(2rem, (100vw - 80rem) / 2 + 2rem) - 1.25rem));
+    height: min(42rem, 72vh);
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, #000 12%, #000 95%, transparent),
+      linear-gradient(to bottom, #000 78%, transparent);
+    mask-image:
+      linear-gradient(to right, transparent, #000 12%, #000 95%, transparent),
+      linear-gradient(to bottom, #000 78%, transparent);
+  }
+}
+/* Le décor : un monde de proportions fixes (5 × 4), ancré en bas et centré. */
+.openStage {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  /* Mobile : le haut du monde (ciel vide) est rogné pour grandir le dépôt et la dépanneuse. */
+  height: 118%;
+  aspect-ratio: 5 / 4;
+  translate: -50% 0;
+}
+@media (min-width: 1024px) {
+  .openStage {
+    height: 100%;
+    left: auto;
+    right: -3%;
+    translate: none;
+  }
+}
+.openStage > * {
+  position: absolute;
+}
+
+/* Lueur de la ville, sous l'horizon. */
+.openCity {
+  left: -40%;
+  right: -40%;
+  bottom: 24%;
+  height: 50%;
+  background: radial-gradient(55% 70% at 45% 100%, color-mix(in srgb, var(--color-sodium) 14%, transparent), transparent 70%);
+}
+.openSkyline {
+  left: -40%;
+  right: -40%;
+  bottom: 29.5%;
+  height: 27%;
+}
+.openSkylineInner {
+  position: absolute;
+  inset: 0;
+  opacity: 0.7;
+}
+
+/* Parvis (de la façade au trottoir), sous la lumière de l'atelier. */
+.openGround {
+  left: -40%;
+  right: -40%;
+  bottom: 16%;
+  height: 14.4%;
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-reflect) 14%, transparent), transparent 1px),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-sodium) 5%, var(--color-night-900)),
+      color-mix(in srgb, var(--color-sodium) 3%, var(--color-night-950))
+    );
+}
+/* Bordure du trottoir puis chaussée mouillée : ligne de rive, tirets 60/60 à l'échelle. */
+.openRoad {
+  left: -40%;
+  right: -40%;
+  bottom: 0;
+  height: 16%;
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-reflect) 34%, transparent), color-mix(in srgb, var(--color-reflect) 8%, transparent) 2px, transparent 5px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 30%, transparent) 0 2.4%, transparent 2.4% 4.8%) 0 38% / 100% 2px no-repeat,
+    linear-gradient(to bottom, var(--color-asphalt-900), var(--color-night-950) 80%);
+}
+
+/* Le dépôt (SVG 480 × 260, sol à 92 %) : sol posé sur le haut du parvis (30 %). */
+.openDepot {
+  left: -8%;
+  width: 78%;
+  bottom: 25.9%;
+}
+/* Rideau : 1,2 s (F.6) au lieu de la seconde par défaut du dessin. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openDepot svg[data-inview] g[clip-path] > g {
+  animation-duration: 1.2s;
+}
+
+/* Lumière de l'atelier qui se répand sur le parvis et la chaussée quand le rideau est levé. */
+.openSpill {
+  left: 13%;
+  width: 40%;
+  bottom: 2%;
+  height: 28%;
+  clip-path: polygon(19% 0, 79% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-sodium) 34%, transparent), transparent 85%);
+  opacity: 0.6;
+}
+
+/* L'atelier éclairé derrière le rideau levé (sol chaud, lumière qui monte). */
+.openDoorGlow {
+  left: 19.3%;
+  width: 24.3%;
+  bottom: 30%;
+  height: 21%;
+  background:
+    radial-gradient(70% 60% at 50% 100%, color-mix(in srgb, var(--color-sodium) 40%, transparent), transparent 75%),
+    linear-gradient(to top, color-mix(in srgb, var(--color-sodium) 16%, transparent), transparent 70%);
+  opacity: 1;
+}
+
+/* Reflets mouillés : enseigne (jaune) et appliques (sodium), étirés vers le bas, statiques. */
+.openWet {
+  bottom: 1%;
+  height: 15%;
+  width: 1.2%;
+  translate: -50% 0;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-sodium) 60%, transparent) 18%, transparent);
+  opacity: 0.2;
+}
+.openWetSign {
+  width: 1.8%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-signal-500) 75%, transparent) 18%, transparent);
+  opacity: 0.26;
+}
+
+/* Halo de l'enseigne : il s'allume en grésillant à l'arrivée sur la page. */
+.openSignHalo {
+  left: 31%;
+  bottom: 58.4%;
+  width: 30%;
+  aspect-ratio: 1;
+  translate: -50% 50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-signal-500) 24%, transparent), transparent 66%);
+}
+
+/* La dépanneuse (SVG 360 × 150), au premier plan sur la chaussée, tournée vers la droite. */
+.openTruckLane {
+  left: 35%;
+  width: 58%;
+  bottom: 3.4%;
+}
+.openTruck {
+  display: block;
+  width: 100%;
+}
+.openTruck svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* Reflet mouillé sous la dépanneuse (phares et gyrophare). */
+.openTruckWet {
+  position: absolute;
+  left: 0;
+  right: -10%;
+  top: 92%;
+  height: 34%;
+  background:
+    radial-gradient(14% 100% at 93% 0, color-mix(in srgb, var(--color-xenon) 30%, transparent), transparent),
+    radial-gradient(10% 80% at 74% 0, color-mix(in srgb, var(--color-beacon-500) 22%, transparent), transparent);
+}
+/* Éclat des phares : sur le bloc optique, avec une traînée horizontale. */
+.openFlare {
+  position: absolute;
+  left: 92.8%;
+  bottom: 50%;
+  width: 30%;
+  aspect-ratio: 1;
+  translate: -50% 50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-xenon) 80%, transparent) 0 5%,
+    color-mix(in srgb, var(--color-xenon) 20%, transparent) 20%,
+    transparent 62%
+  );
+  opacity: 0.55;
+}
+.openFlare::after {
+  content: "";
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  top: 50%;
+  height: 2.5%;
+  translate: 0 -50%;
+  border-radius: 999px;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--color-xenon) 60%, transparent), transparent);
+}
+
+/* ─── Mouvements de l'ouverture (jamais en `off`, jamais sans JavaScript) ─── */
+
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openStage[data-inview] .openSignHalo {
+  animation: sign-buzz 700ms linear 120ms both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openStage[data-inview] .openSpill {
+  animation: spill-in 900ms var(--ease-out-expo) 1.15s both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openStage[data-inview] .openDoorGlow {
+  animation: door-glow 1.3s var(--ease-out-expo) 0.5s both;
+}
+/* Deux appels de phares, une fois le rideau levé. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openStage[data-inview] .openFlare {
+  animation: high-beam 1.2s linear 1.7s both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .openStage[data-inview] .openTruck [data-part="headlights"] {
+  animation: high-beam-lamp 1.2s linear 1.7s both;
+}
+@keyframes sign-buzz {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.9;
+  }
+  24% {
+    opacity: 0.15;
+  }
+  38% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes door-glow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes spill-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+/* Deux appels : l'éclat et les phares s'éteignent puis se rallument ensemble, deux fois, et
+   reviennent à leur état de base (éclat à 0,55, phares allumés). */
+@keyframes high-beam {
+  0% {
+    opacity: 0.55;
+  }
+  8%,
+  32% {
+    opacity: 0.05;
+  }
+  18%,
+  44% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+@keyframes high-beam-lamp {
+  0%,
+  18%,
+  44%,
+  100% {
+    opacity: 1;
+  }
+  8%,
+  32% {
+    opacity: 0.2;
+  }
+}
+
+/* Au défilement (niveau `full`) : la dépanneuse part vers la droite quand la scène sort de
+   l'écran. Avant, elle est garée (état de base). */
+@supports (animation-timeline: view()) {
+  :global(html[data-motion="full"]) .openTruckLane {
+    animation: truck-leave linear both;
+    animation-timeline: view();
+    animation-range: exit 5% exit 90%;
+  }
+  :global(html[data-motion="full"]) .openTruckLane [data-wheel] {
+    animation: wheel-roll linear both;
+    animation-timeline: view();
+    animation-range: exit 5% exit 90%;
+  }
+}
+@keyframes truck-leave {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(42%);
+  }
+}
+@keyframes wheel-roll {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 540deg;
+  }
+}
+
+/* ═══ PK 01 · Le plan technique ══════════════════════════════════════════════ */
+
+.sheet {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  border-radius: 6px;
+  color: var(--color-xenon);
+  background:
+    /* Quadrillage : traits fins tous les 24 px, traits forts tous les 120 px. */
+    linear-gradient(to right, color-mix(in srgb, var(--color-xenon) 11%, transparent) 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-xenon) 11%, transparent) 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(to right, color-mix(in srgb, var(--color-xenon) 5%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-xenon) 5%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    radial-gradient(90% 80% at 50% 40%, color-mix(in srgb, var(--color-xenon) 7%, var(--color-blueprint)), var(--color-blueprint) 70%);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 14%, transparent),
+    0 40px 90px -40px color-mix(in srgb, var(--color-night-950) 80%, transparent);
+}
+/* Double filet du cadre et repères d'angle. */
+.sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0.75rem;
+  z-index: 0;
+  border: 1px solid color-mix(in srgb, var(--color-xenon) 26%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.sheetCorner {
+  position: absolute;
+  z-index: 1;
+  width: 1.5rem;
+  height: 1.5rem;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--color-xenon) 55%, transparent);
+}
+.sheetCorner::before,
+.sheetCorner::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.sheetCorner::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.sheetCorner::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+/* Le plan : le dessin, puis (mobile) les annotations et le cartouche dessous ; à partir de `md`,
+   annotations et cartouche sont placés sur le dessin (position absolue dans `.plan`). */
+.plan {
+  position: relative;
+  /* Mobile : le cartouche reste au-dessus des repères d'angle du bas. Une marge ne suffirait pas :
+     `overflow: clip` ne crée pas de contexte de bloc, la marge sortirait du cadre. */
+  padding-bottom: 2rem;
+}
+@media (min-width: 768px) {
+  .plan {
+    padding-bottom: 0;
+  }
+}
+/* Zone du dessin : même repère que le SVG des lignes de rappel. */
+.drawing {
+  position: relative;
+  aspect-ratio: 400 / 230;
+  margin: 1.25rem 1.25rem 0;
+}
+@media (min-width: 768px) {
+  .drawing {
+    aspect-ratio: 1200 / 560;
+    margin: 0;
+  }
+}
+.drawingTruck {
+  position: absolute;
+  left: 10%;
+  top: 17.4%;
+  width: 80%;
+  color: color-mix(in srgb, var(--color-xenon) 88%, transparent);
+}
+@media (min-width: 768px) {
+  .drawingTruck {
+    left: 25%;
+    top: 24%;
+    width: 50%;
+  }
+}
+.drawingTruck svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.leadersWide {
+  display: none;
+}
+@media (min-width: 768px) {
+  .leadersWide {
+    display: block;
+  }
+  .leadersNarrow {
+    display: none;
+  }
+}
+.leaderLine {
+  fill: none;
+  stroke: var(--color-signal-500);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.leaderDot {
+  fill: var(--color-blueprint);
+  stroke: var(--color-signal-500);
+  stroke-width: 2;
+}
+.leaderArrow {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-xenon) 70%, transparent);
+  stroke-width: 1.5;
+}
+.letterDisc {
+  fill: var(--color-signal-500);
+}
+.letterText {
+  fill: var(--color-asphalt-950);
+  font-weight: 900;
+  font-stretch: 75%;
+}
+
+/* Ligne de balayage : une lumière verticale passe sur le dessin pendant qu'il « s'imprime ».
+   Même boîte que la dépanneuse ; l'élément fait toute la largeur et glisse de 100 %. */
+.scanBox {
+  position: absolute;
+  left: 10%;
+  top: 17.4%;
+  width: 80%;
+  aspect-ratio: 360 / 150;
+  overflow: clip;
+  pointer-events: none;
+}
+@media (min-width: 768px) {
+  .scanBox {
+    left: 25%;
+    top: 24%;
+    width: 50%;
+  }
+}
+.scan {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.scan::before {
+  content: "";
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 2px;
+  background: var(--color-xenon);
+  box-shadow: 0 0 18px 4px color-mix(in srgb, var(--color-xenon) 45%, transparent);
+}
+
+/* Annotations : liste sous le dessin sur mobile, placées autour du dessin à partir de `md`. */
+.notes {
+  display: grid;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 1.75rem 1.25rem 1.5rem;
+  list-style: none;
+}
+@media (min-width: 768px) {
+  .notes {
+    display: block;
+    padding: 0;
+  }
+  .note {
+    position: absolute;
+  }
+  .noteA {
+    left: 4%;
+    top: 7%;
+    width: 27%;
+  }
+  .noteC {
+    right: 4%;
+    top: 7%;
+    width: 27%;
+  }
+  .noteB {
+    right: 4%;
+    top: 77%;
+    width: 30%;
+  }
+}
+.note {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.85rem;
+  align-items: start;
+}
+.noteLetter {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: 0.1rem;
+  border-radius: 999px;
+  font-weight: 900;
+  font-stretch: 75%;
+  font-size: 0.95rem;
+  color: var(--color-asphalt-950);
+  background: var(--color-signal-500);
+}
+.noteTitle {
+  @apply font-plate text-plate;
+  display: block;
+  margin-top: 0.35rem;
+  /* « Un interlocuteur direct » passe sur deux lignes sur mobile : de l'air entre les lignes. */
+  line-height: 1.45;
+  color: var(--color-signal-400);
+}
+.noteText {
+  @apply text-body;
+  display: block;
+  grid-column: 2;
+  margin-top: 0.4rem;
+  color: var(--color-asphalt-100);
+  text-wrap: pretty;
+}
+.noteText strong {
+  font-weight: 700;
+  color: var(--color-chalk);
+}
+
+/* Cartouche du plan : losange, nom, objet. Décoratif (le titre de la section le dit déjà). */
+.cartouche {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-xenon) 30%, transparent);
+  color: color-mix(in srgb, var(--color-xenon) 80%, transparent);
+}
+@media (min-width: 768px) {
+  .cartouche {
+    position: absolute;
+    left: 4%;
+    bottom: 7%;
+    margin: 0;
+  }
+}
+.cartoucheMark {
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+  rotate: 45deg;
+  border: 2px solid var(--color-signal-500);
+  border-radius: 3px;
+}
+.cartoucheText {
+  display: grid;
+  gap: 0.2rem;
+}
+.cartoucheText > span:first-child {
+  font-weight: 900;
+  font-stretch: 112%;
+  letter-spacing: 0.08em;
+  color: var(--color-chalk);
+}
+.cartoucheText > span:last-child {
+  @apply font-plate text-plate;
+}
+
+/* ─── Mouvements du plan (à l'entrée dans l'écran, une fois) ─── */
+
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet:not([data-inview]) .drawingTruck {
+  clip-path: inset(0 100% 0 0);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet:not([data-inview]) .leaderLine,
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet:not([data-inview]) .leaderArrow {
+  --draw: 0;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet:not([data-inview]) .leaderDot,
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet:not([data-inview]) .letter,
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet:not([data-inview]) .note {
+  opacity: 0;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet[data-inview] .drawingTruck {
+  animation: print-truck 700ms var(--ease-beam) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet[data-inview] .scan {
+  animation: scan-pass 700ms var(--ease-beam) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet[data-inview] .leaderDot,
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet[data-inview] .letter {
+  animation: dot-pop 300ms var(--ease-out-back) calc(250ms + var(--k, 0) * 90ms) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet[data-inview] .leaderLine,
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet[data-inview] .leaderArrow {
+  animation: draw-in 650ms var(--ease-out-expo) calc(300ms + var(--k, 0) * 90ms) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sheet[data-inview] .note {
+  animation: note-in 420ms var(--ease-out-expo) calc(100ms + var(--k, 0) * 80ms) both;
+}
+.leaderDot,
+.letter {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes print-truck {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes scan-pass {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  12%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+@keyframes dot-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes draw-in {
+  from {
+    --draw: 0;
+  }
+  to {
+    --draw: 1;
+  }
+}
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-dy));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ═══ PK 02 · Les engagements ════════════════════════════════════════════════ */
+
+.pledges {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Le mât : les six panneaux ronds y sont fixés, l'un sous l'autre. */
+.pledges::before {
+  content: "";
+  position: absolute;
+  top: 2.5rem;
+  bottom: 2.5rem;
+  left: calc(0.25rem + 1.875rem - 3px);
+  width: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--color-asphalt-600), var(--color-asphalt-800) 60%, var(--color-night-950));
+  pointer-events: none;
+}
+@media (min-width: 1024px) {
+  .pledges::before {
+    left: calc(0.5rem + 2.75rem - 3px);
+  }
+}
+.pledge {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem 1.15rem;
+  align-items: start;
+  padding: 1.75rem 0.25rem 1.85rem;
+}
+@media (min-width: 1024px) {
+  .pledge {
+    grid-template-columns: 6.5rem minmax(0, 5fr) minmax(0, 6fr);
+    gap: 2.5rem;
+    align-items: center;
+    padding: 2.25rem 1.5rem 2.25rem 0.5rem;
+  }
+}
+/* Marquage au sol entre deux lignes (tirets 60/60) : il se trace au défilement. */
+.pledge::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 20%, transparent) 0 60px, transparent 60px 120px);
+}
+
+/* Le panneau rond : liseré craie, pictogramme jaune (orange pour la sécurité). L'enveloppe porte
+   le halo ; le panneau porte le reflet (P6), découpé en rond par son `overflow: clip`. */
+.pledgeSignWrap {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  color: var(--color-signal-500);
+  width: 3.75rem;
+  height: 3.75rem;
+  grid-row: span 2;
+}
+@media (min-width: 1024px) {
+  .pledgeSignWrap {
+    width: 5.5rem;
+    height: 5.5rem;
+    grid-row: auto;
+  }
+}
+.pledgeSign {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-night-950);
+  box-shadow:
+    inset 0 0 0 3px var(--color-chalk),
+    inset 0 0 0 6px var(--color-night-950),
+    inset 0 0 0 7px color-mix(in srgb, var(--color-reflect) 18%, transparent);
+}
+.pledgeSign svg {
+  position: relative;
+  z-index: 1;
+  width: 44%;
+  height: 44%;
+}
+.pledgeSafety .pledgeSignWrap {
+  color: var(--color-beacon-500);
+}
+/* Halo du panneau éclairé par les phares (opacité seulement). */
+.pledgeGlow {
+  position: absolute;
+  inset: -55%;
+  z-index: -1;
+  border-radius: 50%;
+  /* `closest-side` : le halo s'éteint avant les bords de sa boîte (aucun bord carré visible). */
+  background: radial-gradient(closest-side, color-mix(in srgb, currentColor 38%, transparent), transparent);
+  opacity: 0.55;
+}
+.pledgeTitle {
+  @apply font-step text-step;
+  align-self: center;
+  color: var(--color-chalk);
+  text-wrap: balance;
+}
+.pledgeText {
+  @apply text-body;
+  grid-column: 2;
+  max-width: 42ch;
+  color: var(--color-asphalt-200);
+  text-wrap: pretty;
+}
+@media (min-width: 1024px) {
+  .pledgeText {
+    grid-column: auto;
+    max-width: 44ch;
+  }
+}
+
+/* Au défilement (niveau `full`) : le panneau s'éclaire en traversant le milieu de l'écran et le
+   marquage se trace. État de base : éclairé, marquage complet. */
+@supports (animation-timeline: view()) {
+  :global(html[data-motion="full"]) .pledgeGlow {
+    animation: pledge-light linear both;
+    animation-timeline: view();
+    animation-range: cover 20% cover 80%;
+  }
+  :global(html[data-motion="full"]) .pledge::before {
+    animation: mark-trace linear both;
+    animation-timeline: view();
+    animation-range: entry 40% cover 55%;
+  }
+  /* Le titre s'éclaire en montant vers le milieu de l'écran (toujours lisible : 0,6 au départ). */
+  :global(html[data-motion="full"]) .pledgeTitle {
+    animation: title-lit linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 40%;
+  }
+}
+@keyframes title-lit {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pledge-light {
+  0% {
+    opacity: 0.12;
+  }
+  45%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+@keyframes mark-trace {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Faisceau des phares (statique) qui balaie la liste depuis la gauche, sur ordinateur. */
+.pledgesWrap {
+  position: relative;
+}
+.pledgesBeam {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .pledgesBeam {
+    display: block;
+    position: absolute;
+    z-index: -1;
+    left: -8rem;
+    right: -4rem;
+    top: -6rem;
+    bottom: -6rem;
+    pointer-events: none;
+    background: radial-gradient(70% 42% at 0% 50%, color-mix(in srgb, var(--color-xenon) 8%, transparent), transparent 75%);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .sheet {
+    background: var(--color-blueprint);
+  }
+}
+@media (forced-colors: active) {
+  .openFrame {
+    display: none;
+  }
+}

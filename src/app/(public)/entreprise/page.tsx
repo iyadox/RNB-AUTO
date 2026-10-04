@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import { TowTruck } from "@/components/brand/tow-truck";
-import { CtaBand, FeatureGrid, PageHero, Section } from "@/components/public/page-blocks";
+import { PageTransition } from "@/components/motion/page-transition";
+import { CallLink, PrimaryLink } from "@/components/public/actions";
+import { DawnCta, NextExit, OpeningShot, RelatedFaq, Section } from "@/components/public/page-blocks";
+import { RoadLine } from "@/components/public/road-line";
+import { Blueprint } from "@/components/pages/entreprise/blueprint";
+import { Commitments } from "@/components/pages/entreprise/commitments";
+import { DepotOpening } from "@/components/pages/entreprise/depot-opening";
+import styles from "@/components/pages/entreprise/entreprise.module.css";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 
 export const metadata: Metadata = {
@@ -10,53 +16,80 @@ export const metadata: Metadata = {
   alternates: { canonical: "/entreprise" },
 };
 
+/** Repères de la ligne de route (D.3), un par section. */
+const MARKERS = [
+  { id: "ouverture", pk: "00", label: "L'entreprise" },
+  { id: "depanneuse", pk: "01", label: "Notre dépanneuse" },
+  { id: "engagements", pk: "02", label: "Notre façon de travailler" },
+  { id: "questions-liees", pk: "03", label: "Questions" },
+] as const;
+
+/**
+ * /entreprise « Le dépôt, avant le départ » (docs/09, F.6) : la façade du dépôt la nuit, le plan
+ * technique de la dépanneuse (sans aucune dimension), les six engagements comme des panneaux de
+ * bord de route, puis questions liées, prochaine sortie (Contact) et aube. Aucune personne,
+ * aucun chiffre, aucune année.
+ */
 export default async function CompanyPage() {
   const info = await getPublicSiteInfo();
   return (
     <>
-      <PageHero
-        eyebrow="L'entreprise"
-        icon="shield"
-        title={
-          <>
-            RNB AUTO, <span className="text-signal-500">dépannage à Bobigny.</span>
-          </>
-        }
-        lead="Une entreprise de dépannage et de remorquage installée au cœur de la Seine-Saint-Denis, avec une conviction simple : quand on est en panne, on a besoin d'une réponse rapide et d'un prix clair."
-      />
-
-      <Section eyebrow="Notre dépanneuse" title="Un plateau prêt à partir">
-        <div className="grid items-center gap-10 lg:grid-cols-2">
-          <div className="space-y-5 text-lg leading-relaxed text-asphalt-300" data-reveal>
-            <p>
-              Notre dépanneuse plateau part de <strong className="text-chalk">{info.depotLabel}</strong>. Le chargement sur
-              plateau protège votre véhicule pendant le transport, qu&apos;il roule ou non.
-            </p>
-            <p>
-              Chaque demande est traitée directement par RNB AUTO : la personne qui vous rappelle est celle qui organise
-              l&apos;intervention.
-            </p>
-          </div>
-          <div className="rounded-[2rem] border border-white/10 bg-asphalt-850 p-8" data-reveal data-pause-offscreen>
-            <TowTruck loaded moving headlights id="company-truck" />
-          </div>
-        </div>
-      </Section>
-
-      <Section tone="darker" eyebrow="Notre façon de travailler" title="Ce sur quoi vous pouvez compter">
-        <FeatureGrid
-          items={[
-            { icon: "euro", title: "Un prix clair", text: "Une estimation avant la demande, un prix confirmé avant l'intervention." },
-            { icon: "phone", title: "Un interlocuteur direct", text: "Vous parlez à RNB AUTO, sans plateforme intermédiaire." },
-            { icon: "route", title: "Le vrai trajet", text: "Les distances sont calculées sur les routes, pas à vol d'oiseau." },
-            { icon: "shield", title: "Votre véhicule protégé", text: "Chargement soigné sur plateau, état du véhicule vérifié avec vous." },
-            { icon: "clock", title: "Une réponse rapide", text: "Appel, WhatsApp ou demande en ligne : nous vous rappelons vite." },
-            { icon: "alert", title: "La sécurité d'abord", text: "Sur l'autoroute, nous vous orientons vers le dépanneur agréé puis prenons le relais." },
-          ]}
+      <RoadLine markers={MARKERS} />
+      <PageTransition>
+        <OpeningShot
+          eyebrow="L'entreprise"
+          pictogram="shield"
+          title={
+            <span className={styles.heroTitle}>
+              RNB AUTO,{" "}
+              <em data-beam="load" className="not-italic">
+                dépannage à Bobigny.
+              </em>
+            </span>
+          }
+          lead="Une entreprise de dépannage et de remorquage installée au cœur de la Seine-Saint-Denis, avec une conviction simple : quand on est en panne, on a besoin d'une réponse rapide et d'un prix clair."
+          actions={
+            <div className="flex flex-wrap items-center gap-3">
+              <PrimaryLink href="/demande">Demander un dépannage</PrimaryLink>
+              <CallLink phone={info.phone} size="lg" className="max-sm:hidden" />
+            </div>
+          }
+          scene={<DepotOpening />}
         />
-      </Section>
 
-      <CtaBand info={info} />
+        <Section
+          id="depanneuse"
+          pk="01"
+          label="Notre dépanneuse"
+          title={
+            <>
+              Un plateau <em>prêt à partir</em>
+            </>
+          }
+          split
+        >
+          <Blueprint depotLabel={info.depotLabel} />
+        </Section>
+
+        <Section
+          id="engagements"
+          pk="02"
+          label="Notre façon de travailler"
+          sky="bleue"
+          title={
+            <>
+              Ce sur quoi vous pouvez <em>compter</em>
+            </>
+          }
+          split
+        >
+          <Commitments />
+        </Section>
+
+        <RelatedFaq ids={["calcul-du-prix", "vehicules", "sans-le-site"]} />
+        <NextExit from="/entreprise" />
+        <DawnCta info={info} title="Besoin d'une dépanneuse maintenant ?" truck="empty" />
+      </PageTransition>
     </>
   );
 }

@@ -1,0 +1,629 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   /contact « La borne d'appel » (docs/09, F.7, lot L6b). Page calme, sans GSAP.
+   - PK 00 : titre, accroche, puis tout de suite la façade de la borne : trois grandes touches
+     (Téléphone, WhatsApp, Demande en ligne), visibles et immobiles dès la première image. Seules
+     les ondes radio autour de l'icône du téléphone bougent (P14). Sur ordinateur, la borne
+     elle-même se dresse à droite, enseigne allumée (décor statique).
+   - PK 01 : l'adresse sur un plan de quartier éclairé (plan du dépôt, statique), l'email sur
+     une plaque. Disponibilité seulement si elle est réglée.
+   Primitives autorisées (C.6) : ciel (P1), ondes (P14), transition de page (P19). Aucune
+   apparition (P2), aucun reflet animé (P6), aucune animation liée au défilement.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem;
+  padding-inline: 1rem;
+}
+@media (min-width: 640px) {
+  .container {
+    padding-inline: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: 2rem;
+  }
+}
+
+/* ═══ PK 00 · La borne ═══════════════════════════════════════════════════════ */
+
+.opening {
+  position: relative;
+  padding-top: calc(var(--header-h, 4rem) + 1.5rem);
+  padding-bottom: 3.5rem;
+}
+@media (min-width: 1024px) {
+  .opening {
+    padding-top: calc(var(--header-h, 5rem) + 3rem);
+    padding-bottom: 5rem;
+  }
+}
+/* Ligne de rive en tirets (60/60) au bas de l'ouverture, comme sur les autres pages. */
+.opening::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-reflect) 16%, transparent) 0 60px, transparent 60px 120px);
+  pointer-events: none;
+}
+.openingGrid {
+  position: relative;
+}
+@media (min-width: 1024px) {
+  .openingGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    gap: 2.5rem;
+    align-items: end;
+  }
+}
+@media (min-width: 1280px) {
+  .openingGrid {
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    gap: 3.5rem;
+  }
+}
+.title {
+  @apply font-display;
+  margin-top: 1rem;
+  font-size: clamp(2.9rem, 1.1rem + 6.4vw, 7.25rem);
+  line-height: 0.95;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+.title em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+.lead {
+  @apply text-lead;
+  margin-top: 1rem;
+  max-width: 54ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+@media (min-width: 1024px) {
+  .lead {
+    margin-top: 1.25rem;
+  }
+}
+
+/* ─── La façade : trois touches dans un cadre vissé ─── */
+
+.panel {
+  position: relative;
+  margin-top: 1.25rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 0.7rem 0.7rem, color-mix(in srgb, var(--color-reflect) 28%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 0.7rem) 0.7rem, color-mix(in srgb, var(--color-reflect) 28%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 0.7rem calc(100% - 0.7rem), color-mix(in srgb, var(--color-reflect) 28%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 0.7rem) calc(100% - 0.7rem), color-mix(in srgb, var(--color-reflect) 28%, transparent) 0 2px, transparent 2.5px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-night-800) 92%, transparent), color-mix(in srgb, var(--color-night-950) 92%, transparent));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-reflect) 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-reflect) 14%, transparent),
+    0 30px 70px -30px color-mix(in srgb, var(--color-night-950) 85%, transparent);
+}
+@media (min-width: 640px) {
+  .panel {
+    padding: 0.75rem;
+  }
+}
+@media (min-width: 1024px) {
+  .panel {
+    margin-top: 2rem;
+    padding: 1rem 1.15rem;
+  }
+}
+.keys {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 768px) {
+  .keys {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+  .keyPhone {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Une touche : puits rond à gauche, inscription, flèche. 88 px de haut au moins. */
+.key {
+  position: relative;
+  display: grid;
+  /* Mobile : puits et flèche resserrés pour que « Écrire sur WhatsApp » tienne sur une ligne et
+     que les trois touches tiennent au-dessus de la barre d'action à 390 × 844. */
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 5.5rem;
+  height: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 0.7rem;
+  border-radius: 6px;
+  color: var(--color-chalk);
+  background: linear-gradient(to bottom, var(--color-night-900), var(--color-night-950));
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 14%, transparent),
+    inset 0 -3px 0 color-mix(in srgb, var(--color-night-950) 35%, transparent);
+  transition: transform var(--dur-tap) var(--ease-out-expo);
+}
+/* Liseré allumé au survol et au focus (opacité seulement). */
+.key::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--color-signal-500);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-ui) var(--ease-out-expo);
+}
+.keyWhatsapp::before {
+  box-shadow: inset 0 0 0 2px var(--color-whatsapp);
+}
+@media (min-width: 640px) {
+  .key {
+    grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+    gap: 0.95rem;
+    padding: 0.85rem 1rem 0.85rem 0.85rem;
+  }
+}
+@media (min-width: 1024px) {
+  .key {
+    padding: 1rem 1.35rem 1rem 1rem;
+    gap: 1.15rem;
+    grid-template-columns: 3.75rem minmax(0, 1fr) auto;
+  }
+  .keyPhone {
+    min-height: 6.75rem;
+  }
+}
+a.key:hover::before,
+a.key:focus-visible::before {
+  opacity: 1;
+}
+a.key:active {
+  transform: scale(0.985);
+}
+
+.well {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+}
+@media (min-width: 640px) {
+  .well {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .well {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+}
+.well svg {
+  position: relative;
+  z-index: 1;
+}
+/* Téléphone : le seul jaune plein de l'écran (l'action principale ici : appeler). */
+.wellPhone {
+  color: var(--color-asphalt-950);
+  background: var(--color-signal-500);
+  box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--color-signal-500) 60%, transparent);
+}
+.wellMissing {
+  color: var(--color-beacon-400);
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-beacon-500) 55%, transparent);
+}
+.wellWhatsapp {
+  color: var(--color-asphalt-950);
+  background: var(--color-whatsapp);
+}
+.wellRequest {
+  color: var(--color-signal-500);
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 2px var(--color-signal-500);
+}
+
+/* Ondes radio autour de l'icône du téléphone (le numéro, lui, n'est jamais animé). */
+.wave {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-signal-500) 70%, transparent);
+  opacity: 0;
+  animation: radio-wave 2.4s var(--ease-out-expo) infinite;
+}
+.wave + .wave {
+  animation-delay: 1.2s;
+}
+@keyframes radio-wave {
+  0% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wave {
+    display: none;
+  }
+}
+:global(html[data-motion="off"]) .wave {
+  display: none;
+}
+
+.keyBody {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.keyLabel {
+  @apply font-plate text-plate;
+  color: var(--color-signal-400);
+}
+@media (max-width: 639px) {
+  .keyLabel {
+    letter-spacing: 0.14em;
+  }
+}
+.keyWhatsapp .keyLabel {
+  color: var(--color-whatsapp);
+}
+.number {
+  @apply font-figure;
+  font-size: clamp(2rem, 1.1rem + 3.6vw, 2.5rem);
+  line-height: 1;
+  white-space: nowrap;
+  word-spacing: 0.08em;
+  color: var(--color-chalk);
+}
+@media (min-width: 1024px) {
+  .number {
+    font-size: 3rem;
+  }
+}
+.keyMain {
+  @apply font-step;
+  font-size: clamp(1.3rem, 1.05rem + 0.9vw, 1.6rem);
+  line-height: 1.1;
+  color: var(--color-chalk);
+}
+.keyHelp {
+  @apply text-body;
+  color: var(--color-asphalt-200);
+  text-wrap: pretty;
+}
+/* Ordinateur : deux touches côte à côte, l'aide tient sur deux lignes. */
+@media (min-width: 1024px) {
+  .keyHelp {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+.keyGo {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  color: var(--color-chalk);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 22%, transparent);
+  transition:
+    translate var(--dur-ui) var(--ease-out-expo),
+    color var(--dur-ui) var(--ease-out-expo);
+}
+a.key:hover .keyGo {
+  translate: 3px 0;
+  color: var(--color-signal-400);
+}
+a.keyWhatsapp:hover .keyGo {
+  color: var(--color-whatsapp);
+}
+
+/* Disponibilité (seulement si l'administrateur l'a réglée). */
+.availability {
+  @apply text-body;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  color: var(--color-asphalt-200);
+}
+.availability svg {
+  flex: none;
+  color: var(--color-signal-400);
+}
+
+/* ─── La borne (ordinateur, décor statique) ─── */
+
+.callBox {
+  display: none;
+  position: relative;
+  pointer-events: none;
+}
+@media (min-width: 1024px) {
+  .callBox {
+    display: block;
+    align-self: stretch;
+  }
+}
+.callBoxSvg {
+  position: absolute;
+  bottom: -1.5rem;
+  left: 50%;
+  translate: -50% 0;
+  height: calc(100% + 4rem);
+  max-height: 46rem;
+  width: auto;
+  overflow: visible;
+}
+
+/* ═══ PK 01 · Adresse et email ═══════════════════════════════════════════════ */
+
+.details {
+  position: relative;
+  padding-block: var(--spacing-section);
+}
+.detailsGrid {
+  display: grid;
+  gap: 4rem;
+}
+@media (min-width: 1024px) {
+  .detailsGrid {
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4.5fr);
+    gap: 4rem;
+    align-items: start;
+  }
+}
+/* L'adresse du dépôt, en grandes lettres de panneau. */
+.addressTitle {
+  @apply font-display;
+  margin-top: 1rem;
+  font-size: clamp(2.4rem, 1.6rem + 3vw, 4.25rem);
+  line-height: 0.96;
+  max-width: 12em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  color: var(--color-chalk);
+}
+
+/* Adresse : texte puis plan de quartier (sur mobile), côte à côte à partir de `md`. */
+.address {
+  display: grid;
+  gap: 2rem;
+}
+@media (min-width: 768px) {
+  .address {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 17.5rem);
+    align-items: center;
+    gap: 2.5rem;
+  }
+}
+.mapLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  margin-top: 1rem;
+  font-weight: 800;
+  color: var(--color-signal-400);
+  text-underline-offset: 0.25em;
+}
+.mapLink:hover {
+  text-decoration: underline;
+}
+
+/* Le plan de quartier : panneau sur deux pieds, éclairé par une petite lampe au sodium. */
+.board {
+  position: relative;
+  width: 100%;
+  max-width: 17.5rem;
+  padding-bottom: 3.25rem;
+  justify-self: start;
+}
+@media (min-width: 768px) {
+  .board {
+    justify-self: end;
+  }
+}
+/* Potence de la lampe : un bras sombre, une réglette au sodium, un cône de lumière. */
+.boardLamp {
+  position: absolute;
+  left: 50%;
+  top: -1.1rem;
+  width: 5.5rem;
+  height: 0.5rem;
+  translate: -50% 0;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-asphalt-700), var(--color-night-800));
+}
+.boardLamp::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-sodium);
+  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--color-sodium) 55%, transparent);
+}
+.boardLight {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: -0.6rem;
+  height: 70%;
+  clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-sodium) 20%, transparent), transparent 85%);
+  pointer-events: none;
+}
+.boardFace {
+  position: relative;
+  padding: 0.6rem;
+  border-radius: 6px;
+  background: var(--color-night-950);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 16%, transparent),
+    0 24px 50px -24px color-mix(in srgb, var(--color-night-950) 90%, transparent);
+}
+.boardMap {
+  overflow: clip;
+  border-radius: 3px;
+  /* Les bords du plan se perdent dans la nuit : un nom de commune coupé par le cadre s'efface au
+     lieu d'être tranché net. */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent);
+}
+/* Plan statique (F.7) : aucune apparition ni balayage sur cette page. */
+.boardMap :global(*) {
+  transition: none !important;
+  animation: none !important;
+}
+.boardCaption {
+  @apply font-plate text-plate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.25rem 0.1rem;
+  color: var(--color-asphalt-300);
+}
+.boardCaption svg {
+  color: var(--color-signal-500);
+}
+.boardLegs {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 3.25rem;
+  background:
+    linear-gradient(var(--color-asphalt-700), var(--color-asphalt-800)) 0 0 / 6px 100% no-repeat,
+    linear-gradient(var(--color-asphalt-700), var(--color-asphalt-800)) 100% 0 / 6px 100% no-repeat;
+}
+.boardLegs::after {
+  /* Sol mouillé et reflet de la lampe. */
+  content: "";
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--color-reflect) 22%, transparent), transparent);
+}
+
+/* Email : une plaque vissée, comme celle du dépôt. */
+.mailPlate {
+  position: relative;
+  margin-top: 2rem;
+  padding: 1.5rem 1.35rem 1.5rem;
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 0.8rem 0.8rem, color-mix(in srgb, var(--color-reflect) 30%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 0.8rem) 0.8rem, color-mix(in srgb, var(--color-reflect) 30%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 0.8rem calc(100% - 0.8rem), color-mix(in srgb, var(--color-reflect) 30%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 0.8rem) calc(100% - 0.8rem), color-mix(in srgb, var(--color-reflect) 30%, transparent) 0 2px, transparent 2.5px),
+    linear-gradient(to bottom, var(--color-night-900), var(--color-night-950));
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 14%, transparent),
+    0 24px 50px -24px color-mix(in srgb, var(--color-night-950) 90%, transparent);
+}
+@media (min-width: 1024px) {
+  .mailPlate {
+    padding: 1.85rem 1.75rem;
+  }
+}
+.mailSlot {
+  display: block;
+  width: 42%;
+  height: 0.45rem;
+  margin-bottom: 1.35rem;
+  border-radius: 999px;
+  background: var(--color-night-950);
+  box-shadow:
+    inset 0 2px 3px color-mix(in srgb, var(--color-night-950) 80%, transparent),
+    0 1px 0 color-mix(in srgb, var(--color-reflect) 12%, transparent);
+}
+.mailRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+.mailIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  color: var(--color-signal-500);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 20%, transparent);
+}
+.mailTitle {
+  margin: 0;
+}
+.mailLink {
+  @apply font-step;
+  display: inline-block;
+  min-height: 3rem;
+  padding-top: 0.55rem;
+  font-size: clamp(1.25rem, 1rem + 1vw, 1.6rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  color: var(--color-signal-400);
+  text-underline-offset: 0.2em;
+}
+.mailLink:hover {
+  text-decoration: underline;
+}
+.mailHelp {
+  @apply text-body;
+  margin-top: 0.85rem;
+  color: var(--color-asphalt-200);
+}
+.mailMissing {
+  display: inline-block;
+  padding-top: 0.6rem;
+  font-size: 1.0625rem;
+}
+
+@media (forced-colors: active) {
+  .callBox,
+  .boardLight,
+  .wave {
+    display: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .key,
+  .panel,
+  .mailPlate {
+    box-shadow: inset 0 0 0 2px var(--color-chalk);
+  }
+}

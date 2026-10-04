@@ -1,0 +1,1079 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   /demande : habillage du parcours (docs/09, F.8). La logique du parcours est intacte ;
+   ce fichier ne fait que la mise en scène.
+
+   - Décor (`RequestBackdrop`) : une route en perspective sous un horizon de ville, fixe
+     derrière le parcours et découpée par lui (`clip-path`). Les tirets avancent d'un cran à
+     chaque étape (400 ms) et ne roulent que pendant le calcul (`data-computing`).
+   - Route des étapes (`StepRoad`) : six bornes, une mini-dépanneuse qui avance, la silhouette
+     du véhicule posée sur le plateau.
+   - Feuille de route (`RouteSheet`) : colonne collante sur ordinateur, barre dépliable sur
+     mobile, récapitulatif des coordonnées.
+   - Changement d'étape : glissement de 24 px selon le sens (`data-dir`), 220 ms.
+
+   Règles : état de base = état final ; animations seulement sous `html.motion-ready`, jamais
+   en `off` ; aucune action cachée ni retardée ; couleurs par jetons uniquement.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Racine et grille ─────────────────────────────────────────────────────── */
+
+.flow {
+  position: relative;
+  min-height: 100svh;
+  /* Le glissement d'étape (24 px) ne doit jamais élargir la page sur mobile. */
+  overflow-x: clip;
+  /* Le décor est fixe : la découpe le limite au parcours (il disparaît sous le pied de page). */
+  clip-path: inset(0);
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2rem;
+  width: 100%;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: calc(var(--header-h, 4rem) + 1.25rem) 1rem 3.5rem;
+}
+@media (min-width: 640px) {
+  .shell {
+    padding-inline: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    column-gap: clamp(3rem, 6vw, 6.5rem);
+    padding: calc(var(--header-h, 5rem) + 2.5rem) 2rem 5rem;
+  }
+  .shellDone {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.main {
+  min-width: 0;
+  width: 100%;
+  max-width: 42rem;
+}
+@media (min-width: 1024px) {
+  .main {
+    justify-self: end;
+  }
+  .shellDone .main {
+    max-width: none;
+    justify-self: stretch;
+  }
+}
+
+/* ─── Décor : la route de nuit ─────────────────────────────────────────────── */
+
+.backdrop {
+  --horizon: 30%;
+  --road-x: 50vw;
+  position: fixed;
+  inset: 0 0 auto;
+  height: 100lvh;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+@media (min-width: 1024px) {
+  .backdrop {
+    --horizon: 40%;
+  }
+  /* Axe de la route au milieu de l'allée entre les deux colonnes de .shell (largeur utile
+     76rem − 2 × 2rem, colonne de droite 22rem, écart clamp(3rem, 6vw, 6.5rem)). */
+  .backdrop[data-align="gap"] {
+    --road-x: calc(50vw + min(38rem, 50vw) - 2rem - 22rem - clamp(3rem, 6vw, 6.5rem) / 2);
+  }
+}
+/* Lueur de la ville au ras de l'horizon (sa source : les fenêtres de l'horizon). */
+.backdropGlow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--horizon) - 18%);
+  height: 30%;
+  background:
+    radial-gradient(38% 46% at var(--road-x) 62%, color-mix(in srgb, var(--color-sodium) 16%, transparent), transparent 72%),
+    radial-gradient(64% 60% at var(--road-x) 70%, color-mix(in srgb, var(--color-beacon-500) 7%, transparent), transparent 75%);
+}
+.backdropCity {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% - var(--horizon));
+  height: 9%;
+  opacity: 0.5;
+}
+@media (min-width: 1024px) {
+  .backdropCity {
+    height: 11%;
+    opacity: 0.42;
+  }
+}
+/* Plan de la route : même technique que GroundText (un plan 3D pivoté autour de son bord
+   proche, le bout lointain touche l'horizon). Tailles en unités du cadre. */
+.roadFrame {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--horizon);
+  bottom: 0;
+  container-type: size;
+  perspective: 62cqh;
+  perspective-origin: var(--road-x) 0%;
+  overflow: clip;
+  opacity: 0.2;
+}
+.roadPlane {
+  position: absolute;
+  left: var(--road-x);
+  bottom: 0;
+  width: 150cqi;
+  height: 576cqh;
+  margin-left: -75cqi;
+  overflow: clip;
+  transform-origin: 50% 100%;
+  transform: rotateX(80deg);
+  background:
+    /* Plots rétroréfléchissants le long des lignes de rive. */
+    radial-gradient(circle, var(--color-reflect) 0 0.5cqi, transparent 0.7cqi) 18.6% 0 / 2cqi 30cqh repeat-y,
+    radial-gradient(circle, var(--color-reflect) 0 0.5cqi, transparent 0.7cqi) 81.4% 0 / 2cqi 30cqh repeat-y,
+    /* Lignes de rive */
+    linear-gradient(90deg, transparent 17%, var(--color-chalk) 17% 17.8%, transparent 17.8% 82.2%, var(--color-chalk) 82.2% 83%, transparent 83%),
+    /* Chaussée mouillée : la lueur de la ville s'y reflète au loin. */
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-sodium) 45%, transparent), transparent 22%),
+    linear-gradient(to bottom, var(--color-asphalt-700), var(--color-asphalt-800) 60%, var(--color-asphalt-900));
+  -webkit-mask-image: linear-gradient(90deg, transparent 16%, #000 16.4% 83.6%, transparent 84%);
+  mask-image: linear-gradient(90deg, transparent 16%, #000 16.4% 83.6%, transparent 84%);
+}
+@media (min-width: 1024px) {
+  .roadPlane {
+    width: 90cqi;
+    margin-left: -45cqi;
+  }
+}
+/* Tirets de l'axe : plus longs que le plan, ils glissent d'une période (88 cqh). */
+.roadDashes {
+  position: absolute;
+  left: 50%;
+  top: -88cqh;
+  bottom: -88cqh;
+  width: 1.4cqi;
+  margin-left: -0.7cqi;
+  background: repeating-linear-gradient(to bottom, var(--color-chalk) 0 44cqh, transparent 44cqh 88cqh);
+}
+/* Voile du bas : la route s'efface sous le texte du premier plan. */
+.backdropVeil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--color-night-950) 70%, transparent), transparent 45%),
+    radial-gradient(60% 50% at var(--road-x) var(--horizon), transparent 40%, color-mix(in srgb, var(--color-night-950) 35%, transparent));
+}
+/* Un cran par étape (400 ms) : la dépanneuse a avancé d'une borne. Sens inverse au retour. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .roadDashes[data-advance="forward"] {
+  animation: dash-step 400ms var(--ease-out-expo) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .roadDashes[data-advance="back"] {
+  animation: dash-step 400ms var(--ease-out-expo) reverse both;
+}
+/* Calcul en cours : les tirets défilent lentement, seulement pendant l'attente. */
+/* (Sélecteur renforcé : il doit l'emporter sur le cran d'étape ci-dessus, posé au même moment.) */
+:global(html:not([data-motion="off"])) [data-computing] .roadDashes,
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) [data-computing] .roadDashes[data-advance] {
+  animation: dash-roll 1.4s linear infinite;
+}
+@keyframes dash-step {
+  from {
+    translate: 0 -88cqh;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes dash-roll {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 88cqh;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .roadDashes {
+    animation: none !important;
+  }
+}
+@media (forced-colors: active) {
+  .backdrop {
+    display: none;
+  }
+}
+
+/* ─── Route des étapes (StepRoad) ──────────────────────────────────────────── */
+
+/* Profondeur : les bornes se tiennent sur l'accotement du fond, la dépanneuse roule sur la voie
+   du premier plan (elle passe DEVANT les bornes, sans jamais cacher leur numéro, porté en haut
+   du fût comme sur une vraie borne kilométrique). Le nom de l'étape est écrit sous la chaussée. */
+.stepRoad {
+  --truck-w: 5rem;
+  --post-w: 1.125rem;
+  --band-b: 1.5rem;
+  --band-h: 1.5rem;
+  position: relative;
+}
+@media (min-width: 1024px) {
+  .stepRoad {
+    --truck-w: 6.5rem;
+    --post-w: 1.375rem;
+    --band-b: 1.75rem;
+    --band-h: 1.75rem;
+  }
+}
+.stepRoadTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3rem;
+}
+.road {
+  position: relative;
+  height: calc(var(--band-b) + var(--band-h) + 3px + var(--post-w) * 2 + 0.25rem);
+  margin-top: 0.25rem;
+}
+/* Chaussée vue de profil : rives claires, axe en tirets (marquage 60/60 réduit), bitume. */
+.roadBand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--band-b);
+  height: var(--band-h);
+  border-radius: 2px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-chalk) 34%, transparent), color-mix(in srgb, var(--color-chalk) 34%, transparent)) 0 0 / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--color-chalk) 22%, transparent), color-mix(in srgb, var(--color-chalk) 22%, transparent)) 0 100% / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-chalk) 42%, transparent) 0 0.625rem, transparent 0.625rem 1.25rem) 0 50% / 100% 2px no-repeat,
+    linear-gradient(var(--color-asphalt-800), var(--color-asphalt-900));
+}
+/* Le trajet parcouru, en jaune sur l'axe jusqu'à la borne courante : un départ fixe (jusqu'à
+   la première borne) puis un tronçon mis à l'échelle (transform, jamais la largeur). */
+.roadFillStub,
+.roadFill {
+  position: absolute;
+  bottom: calc(var(--band-b) + var(--band-h) / 2 - 1px);
+  height: 2px;
+  background: var(--color-signal-500);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-signal-500) 55%, transparent);
+}
+.roadFillStub {
+  left: 0;
+  width: calc(var(--truck-w) + var(--post-w) / 2);
+}
+.roadFill {
+  left: calc(var(--truck-w) + var(--post-w) / 2);
+  width: calc(100% - var(--truck-w) - var(--post-w));
+  transform-origin: 0 50%;
+  scale: calc(var(--i) / var(--n)) 1;
+  transition: scale 400ms var(--ease-out-expo);
+}
+@media (prefers-reduced-motion: reduce) {
+  .roadFill {
+    transition: none;
+  }
+}
+:global(html[data-motion="off"]) .roadFill {
+  transition: none;
+}
+.posts {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Borne kilométrique sur l'accotement : fût clair, tête colorée, numéro en haut du fût. */
+.post {
+  position: absolute;
+  bottom: calc(var(--band-b) + var(--band-h) + 3px);
+  left: calc(var(--truck-w) + (100% - var(--truck-w) - var(--post-w)) * var(--k) / var(--n));
+  width: var(--post-w);
+  height: calc(var(--post-w) * 2);
+  border-radius: 0.55rem 0.55rem 2px 2px;
+  background: var(--color-asphalt-600);
+  box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--color-night-950) 40%, transparent);
+}
+.postHead {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 30%;
+  border-radius: 0.55rem 0.55rem 0 0;
+  background: var(--color-asphalt-500);
+}
+.postNum {
+  position: absolute;
+  top: 32%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.15;
+  color: var(--color-asphalt-300);
+}
+@media (min-width: 1024px) {
+  .postNum {
+    font-size: 0.875rem;
+  }
+}
+.post[data-state="passed"],
+.post[data-state="current"] {
+  background: var(--color-chalk);
+}
+.post[data-state="passed"] .postHead,
+.post[data-state="current"] .postHead {
+  background: var(--color-signal-500);
+}
+.post[data-state="passed"] .postNum,
+.post[data-state="current"] .postNum {
+  color: var(--color-ink);
+}
+/* Borne courante : prise dans les phares de la dépanneuse. */
+.post[data-state="current"] {
+  box-shadow:
+    inset 0 -3px 0 color-mix(in srgb, var(--color-night-950) 25%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--color-signal-500) 22%, transparent),
+    0 0 22px color-mix(in srgb, var(--color-xenon) 45%, transparent);
+}
+/* Nom de l'étape, sous la chaussée, à l'aplomb de sa borne. */
+.postLabel {
+  position: absolute;
+  top: calc(100% + 3px + var(--band-h) + 0.3rem);
+  left: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
+  color: var(--color-asphalt-300);
+}
+.post:first-child .postLabel {
+  left: 0;
+  translate: 0 0;
+}
+.post:last-child .postLabel {
+  left: auto;
+  right: 0;
+  translate: 0 0;
+}
+@media (min-width: 1024px) {
+  /* « Prix » s'écarte de « Coordonnées », aligné à droite sous la dernière borne. */
+  .post:nth-child(5) .postLabel {
+    translate: -80% 0;
+  }
+}
+.post[data-state="current"] .postLabel {
+  color: var(--color-signal-400);
+}
+/* Mobile : seul le nom de l'étape en cours est écrit (les autres bornes portent leur numéro). */
+@media (max-width: 1023px) {
+  .post:not([data-state="current"]) .postLabel {
+    display: none;
+  }
+  .post:nth-child(2) .postLabel {
+    left: 0;
+    translate: 0 0;
+  }
+  .post:nth-child(5) .postLabel {
+    left: auto;
+    right: 0;
+    translate: 0 0;
+  }
+}
+/* Mini-dépanneuse : le rail couvre l'intervalle des bornes, le chariot avance d'un cran. */
+.truckRail {
+  position: absolute;
+  left: 0;
+  /* Roues sur la voie du premier plan (moitié basse de la chaussée). */
+  bottom: calc(var(--band-b) + 2px);
+  width: calc(100% - var(--truck-w) - var(--post-w));
+  height: calc(var(--truck-w) * 150 / 360);
+}
+.truckMover {
+  position: absolute;
+  inset: 0;
+  translate: calc(100% * var(--i) / var(--n)) 0;
+  transition: translate 400ms var(--ease-out-expo);
+}
+@media (prefers-reduced-motion: reduce) {
+  .truckMover {
+    transition: none;
+  }
+}
+:global(html[data-motion="off"]) .truckMover {
+  transition: none;
+}
+.truck {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--truck-w);
+  height: 100%;
+}
+.truck > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Silhouette du véhicule posée sur le plateau (repère de TowTruck : 360 × 150). */
+.truckCargo {
+  position: absolute;
+  left: 13.5%;
+  top: -9.5%;
+  width: 42%;
+  height: 62.5%;
+  color: var(--color-signal-400);
+  --wheel-bg: var(--color-asphalt-900);
+}
+.truckCargo > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .truckCargo {
+  animation: cargo-drop 420ms var(--ease-out-back) both;
+}
+@keyframes cargo-drop {
+  from {
+    translate: 0 -55%;
+    opacity: 0;
+  }
+  to {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+/* ─── Changement d'étape ───────────────────────────────────────────────────── */
+
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .stage[data-dir="forward"] {
+  animation: stage-in-forward var(--dur-ui) var(--ease-out-expo) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .stage[data-dir="back"] {
+  animation: stage-in-back var(--dur-ui) var(--ease-out-expo) both;
+}
+@keyframes stage-in-forward {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+@keyframes stage-in-back {
+  from {
+    opacity: 0;
+    translate: -24px 0;
+  }
+}
+
+/* Titre d'étape : il reçoit le focus après un changement d'étape (jamais de contour au clic). */
+.stepTitle:focus {
+  outline: none;
+}
+.stepTitle:focus-visible {
+  outline: 3px solid var(--color-signal-500);
+  outline-offset: 6px;
+}
+
+/* ─── Objets communs ───────────────────────────────────────────────────────── */
+
+/* Plaque sombre (6 px, liseré intérieur) : remplace les anciennes cartes arrondies. */
+@layer components {
+  .panel {
+    position: relative;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--color-night-950) 78%, transparent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-reflect) 12%, transparent),
+      0 24px 48px -28px color-mix(in srgb, var(--color-night-950) 90%, transparent);
+  }
+}
+
+/* Consignes de sécurité de la branche autoroute : fond presque opaque (la route du décor ne
+   passe pas sous le texte), teinte orange, aucune animation. */
+.safetyBox {
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-beacon-500) 10%, transparent), color-mix(in srgb, var(--color-beacon-500) 10%, transparent)),
+    color-mix(in srgb, var(--color-night-950) 92%, transparent);
+}
+
+/* Séparateur « ou » : marquage au sol en tirets 60/60. */
+.orRule {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.orRule::before,
+.orRule::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-chalk) 28%, transparent) 0 14px, transparent 14px 28px);
+}
+
+/* Choix (Oui / Non / Je ne sais pas…) : liseré jaune et coche quand choisi, jamais un aplat
+   jaune (le seul jaune plein de l'écran est le bouton principal). */
+.choice {
+  position: relative;
+  transition:
+    border-color var(--dur-ui) ease,
+    background-color var(--dur-ui) ease,
+    translate var(--dur-tap) ease;
+}
+.choice:active {
+  translate: 0 1px;
+}
+.choice[aria-pressed="true"] {
+  box-shadow: 0 0 24px -6px color-mix(in srgb, var(--color-signal-500) 45%, transparent);
+}
+
+/* Pictogramme « autoroute » : petit panneau bleu (le bleu ne dit que l'autoroute). */
+.motorwayChip {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.25rem;
+  border-radius: 3px;
+  background: var(--color-motorway-600);
+  box-shadow: inset 0 0 0 1.5px var(--color-chalk);
+  color: var(--color-chalk);
+  font-size: 0.625rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* ─── Lieu : localisation (sonar) et épingle ───────────────────────────────── */
+
+.locateIcon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+.sonar {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: -1.25rem 0 0 -1.25rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-signal-500);
+  opacity: 0;
+  pointer-events: none;
+}
+:global(html:not([data-motion="off"])) .sonar {
+  animation: sonar 1.6s var(--ease-out-expo) infinite;
+}
+:global(html:not([data-motion="off"])) .sonar:nth-child(2) {
+  animation-delay: 0.53s;
+}
+:global(html:not([data-motion="off"])) .sonar:nth-child(3) {
+  animation-delay: 1.06s;
+}
+@keyframes sonar {
+  from {
+    scale: 0.3;
+    opacity: 0.85;
+  }
+  to {
+    scale: 3.2;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sonar {
+    display: none;
+  }
+}
+.foundPin {
+  flex: none;
+  width: 2.25rem;
+  height: 2.75rem;
+  overflow: visible;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .foundPin {
+  animation: pin-drop 520ms var(--ease-out-back) both;
+}
+@keyframes pin-drop {
+  from {
+    translate: 0 -1.25rem;
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+}
+
+/* ─── Destination : petit tracé de l'épingle au drapeau ────────────────────── */
+
+.tripSketch {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* ─── Véhicule : places de parking ─────────────────────────────────────────── */
+
+/* Chaque gabarit est garé dans une place peinte au sol (lignes latérales, butée de roue), sous
+   un lampadaire au sodium : pas de cartes. La place choisie est prise dans les phares. */
+.parking {
+  position: relative;
+  padding-block: 0.25rem;
+}
+.vehicleTile {
+  --bay-line: color-mix(in srgb, var(--color-chalk) 30%, transparent);
+  --bay-left: var(--bay-line);
+  --bay-right: transparent;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  min-height: 8.5rem;
+  padding: 1.25rem 0.75rem 1rem;
+  border-radius: 2px;
+  text-align: center;
+  background:
+    /* Lignes de la place, plus franches près du sol. Deux places voisines partagent une ligne :
+       chaque place peint sa ligne gauche, la dernière de la rangée peint aussi la droite. */
+    linear-gradient(to top, var(--bay-left), transparent) 0 100% / 2px 100% no-repeat,
+    linear-gradient(to top, var(--bay-right), transparent) 100% 100% / 2px 100% no-repeat,
+    /* Flaque de lumière du lampadaire, au sol. */
+    radial-gradient(60% 38% at 50% 100%, color-mix(in srgb, var(--color-sodium) 9%, transparent), transparent 72%),
+    linear-gradient(to top, color-mix(in srgb, var(--color-night-950) 72%, transparent), transparent);
+  transition: translate var(--dur-ui) var(--ease-out-expo);
+  --wheel-bg: var(--color-night-950);
+}
+.vehicleTile:nth-child(2n),
+.vehicleTile:last-child {
+  --bay-right: var(--bay-line);
+}
+@media (min-width: 640px) {
+  .vehicleTile:nth-child(2n) {
+    --bay-right: transparent;
+  }
+  .vehicleTile:nth-child(3n),
+  .vehicleTile:last-child {
+    --bay-right: var(--bay-line);
+  }
+}
+.vehicleTile[data-selected] {
+  --bay-line: var(--color-signal-500);
+  --bay-right: var(--bay-line);
+}
+/* La ligne droite de la place choisie remplace la ligne gauche de sa voisine de rangée. */
+@media (max-width: 639px) {
+  .vehicleTile[data-selected]:nth-child(2n + 1) + .vehicleTile {
+    --bay-left: transparent;
+  }
+}
+@media (min-width: 640px) {
+  .vehicleTile[data-selected]:not(:nth-child(3n)) + .vehicleTile {
+    --bay-left: transparent;
+  }
+}
+/* Butée de roue au fond de la place. */
+.vehicleTile::before {
+  content: "";
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: 0.4rem;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-chalk) 18%, transparent);
+  transition: background-color var(--dur-ui) ease;
+}
+/* Cône du lampadaire, allumé au survol (ordinateur) et sur la place choisie. */
+.vehicleTile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 55% at 50% 0%, color-mix(in srgb, var(--color-xenon) 14%, transparent), transparent 75%),
+    radial-gradient(55% 30% at 50% 100%, color-mix(in srgb, var(--color-signal-500) 16%, transparent), transparent 75%);
+  opacity: 0;
+  transition: opacity var(--dur-ui) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .vehicleTile:hover {
+    translate: 0 -2px;
+  }
+  .vehicleTile:hover::after {
+    opacity: 0.7;
+  }
+}
+.vehicleTile[data-selected]::after {
+  opacity: 1;
+}
+.vehicleTile[data-selected]::before {
+  background: var(--color-signal-500);
+}
+.vehicleSilhouette {
+  position: relative;
+  width: 5.5rem;
+  height: 3.5rem;
+  color: var(--color-asphalt-200);
+  transition: color var(--dur-ui) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .vehicleTile:hover .vehicleSilhouette {
+    color: var(--color-signal-400);
+  }
+}
+.vehicleTile[data-selected] .vehicleSilhouette {
+  color: var(--color-signal-400);
+}
+/* Le véhicule se tient sur une ligne de sol, avec son reflet sur la chaussée mouillée. */
+.vehicleSilhouette::after {
+  content: "";
+  position: absolute;
+  left: -14%;
+  right: -14%;
+  bottom: 2%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-chalk) 30%, transparent), transparent);
+}
+
+/* ─── Problème : tableau de bord ───────────────────────────────────────────── */
+
+.dashboard {
+  position: relative;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background:
+    radial-gradient(90% 60% at 50% 0%, color-mix(in srgb, var(--color-night-800) 70%, transparent), transparent 70%),
+    color-mix(in srgb, var(--color-night-950) 88%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-reflect) 10%, transparent),
+    inset 0 18px 30px -24px color-mix(in srgb, var(--color-reflect) 25%, transparent);
+}
+.voyantButton {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
+  min-height: 4.75rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  text-align: left;
+  transition: background-color var(--dur-ui) ease;
+}
+@media (min-width: 640px) {
+  .voyantButton {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.875rem;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .voyantButton:hover {
+    background: color-mix(in srgb, var(--color-reflect) 5%, transparent);
+  }
+}
+.voyantButton[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-beacon-500) 9%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-beacon-400) 70%, transparent);
+}
+/* Mise du contact : tous les témoins s'allument un instant à l'arrivée sur l'étape. */
+.ignition {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-beacon-400) 55%, transparent), transparent 80%);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .ignition {
+  animation: ignition 640ms linear calc(var(--k, 0) * var(--stagger-group) + 120ms) both;
+}
+@keyframes ignition {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  34% {
+    opacity: 0.35;
+  }
+  52% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ─── Calcul ───────────────────────────────────────────────────────────────── */
+
+.calcScreen {
+  position: relative;
+  overflow: clip;
+}
+/* Pendant le calcul, seuls le trajet et la route bougent : warnings et onde figés (2 boucles au plus). */
+.calcScreen :global(.hazard),
+.calcScreen :global(.animate-pulse-ring),
+[data-computing] .sheetPlan :global(.hazard) {
+  animation: none !important;
+}
+.calcScreen :global(.animate-pulse-ring),
+.sheetPlan :global(.animate-pulse-ring) {
+  display: none;
+}
+.scanLine {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-signal-500) 70%, transparent), transparent);
+  opacity: 0;
+}
+
+/* ─── Prix : imprimante et ticket ──────────────────────────────────────────── */
+
+.printer {
+  position: relative;
+  z-index: 1;
+  height: 0.875rem;
+  margin-inline: -0.75rem;
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(var(--color-asphalt-700), var(--color-asphalt-850));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-reflect) 16%, transparent),
+    0 10px 18px -8px color-mix(in srgb, var(--color-night-950) 90%, transparent);
+}
+/* Fente de sortie du papier, éclairée de l'intérieur. */
+.printer::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.2rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-night-950);
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--color-sodium) 35%, transparent);
+}
+.ticketSlot {
+  position: relative;
+  width: 100%;
+  max-width: 24rem;
+  margin-top: -0.35rem;
+}
+
+/* ─── Feuille de route ─────────────────────────────────────────────────────── */
+
+@media (min-width: 1024px) {
+  .sheetColumn {
+    position: sticky;
+    top: calc(var(--header-h, 5rem) + 1.5rem);
+    align-self: start;
+  }
+}
+.sheetPlan {
+  position: relative;
+  overflow: clip;
+}
+.sheetRows {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Le fil de la route qui relie les étapes de la feuille. */
+.sheetRows::before {
+  content: "";
+  position: absolute;
+  top: 1.5rem;
+  bottom: 1.5rem;
+  left: 1.25rem;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--color-chalk) 30%, transparent) 0 6px, transparent 6px 12px);
+}
+.sheetRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  border-radius: 6px;
+  text-align: left;
+  transition: background-color var(--dur-ui) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.sheetRow:hover {
+    background: color-mix(in srgb, var(--color-reflect) 5%, transparent);
+  }
+}
+.sheetNode {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 6px;
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-reflect) 16%, transparent);
+  color: var(--color-signal-400);
+  --wheel-bg: var(--color-night-950);
+}
+.sheetNode svg {
+  overflow: visible;
+}
+.sheetEdit {
+  flex: none;
+  color: var(--color-asphalt-300);
+  opacity: 0.7;
+  transition:
+    color var(--dur-ui) ease,
+    translate var(--dur-ui) var(--ease-out-expo);
+}
+button.sheetRow:hover .sheetEdit,
+button.sheetRow:focus-visible .sheetEdit {
+  color: var(--color-signal-400);
+  opacity: 1;
+  translate: -2px 0;
+}
+
+/* Barre mobile (non collante), dépliable. */
+.sheetBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.sheetChevron {
+  flex: none;
+  transition: rotate var(--dur-ui) var(--ease-out-expo);
+}
+.sheetBar[aria-expanded="true"] .sheetChevron {
+  rotate: 180deg;
+}
+
+/* ─── Demande reçue ────────────────────────────────────────────────────────── */
+
+.doneBadge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+}
+/* Balayage unique du gyrophare (conique, 1,2 s) derrière la pastille. */
+.doneSweep {
+  position: absolute;
+  inset: -3.5rem;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 62%, color-mix(in srgb, var(--color-beacon-500) 10%, transparent) 78%, color-mix(in srgb, var(--color-beacon-400) 45%, transparent) 99%, transparent 100%);
+  -webkit-mask-image: radial-gradient(closest-side, transparent 38%, #000 42%, transparent 100%);
+  mask-image: radial-gradient(closest-side, transparent 38%, #000 42%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .doneSweep {
+  animation: done-sweep 1.2s var(--ease-beam) 120ms both;
+}
+@keyframes done-sweep {
+  0% {
+    opacity: 0;
+    rotate: -40deg;
+  }
+  15% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    rotate: 320deg;
+  }
+}
+.doneHalo {
+  position: absolute;
+  inset: -2.5rem;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-signal-500) 22%, transparent), transparent 75%);
+  pointer-events: none;
+}
+.doneDisc {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--color-signal-500);
+  color: var(--color-asphalt-950);
+  box-shadow:
+    inset 0 -6px 0 color-mix(in srgb, var(--color-signal-700) 45%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--color-signal-500) 14%, transparent);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .doneDisc {
+  animation: pop 0.5s var(--ease-out-back) both;
+}
+/* Référence : une plaque d'immatriculation, un seul reflet (texte statique). */
+.referencePlate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+  border-radius: 6px;
+  background: var(--color-night-950);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--color-reflect) 26%, transparent),
+    inset 0 0 0 4px var(--color-night-950),
+    inset 0 0 0 5px color-mix(in srgb, var(--color-reflect) 10%, transparent);
+}
+.referenceBand {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  min-width: 1.5rem;
+  padding-inline: 0.25rem;
+  border-radius: 3px;
+  background: var(--color-signal-500);
+  color: var(--color-asphalt-950);
+}
+
+/* Bornes d'appel en bas de chaque étape. */
+.callBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+@media (forced-colors: active) {
+  .post,
+  .roadFill,
+  .truckRail,
+  .doneSweep,
+  .doneHalo,
+  .ignition {
+    forced-color-adjust: auto;
+  }
+  .doneSweep,
+  .ignition,
+  .sonar {
+    display: none;
+  }
+}

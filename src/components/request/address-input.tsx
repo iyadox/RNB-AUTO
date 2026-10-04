@@ -110,7 +110,7 @@ export function AddressInput({
       <div
         className={cn(
           "flex items-center gap-3 rounded-2xl border-2 px-4 transition-colors focus-within:border-signal-500",
-          dark ? "border-white/15 bg-asphalt-850" : "border-asphalt-200 bg-white",
+          dark ? "border-chalk/15 bg-night-950/80" : "border-asphalt-200 bg-white",
         )}
       >
         <Icon name="pin" size={22} className={dark ? "shrink-0 text-signal-500" : "shrink-0 text-asphalt-500"} />
@@ -168,7 +168,7 @@ export function AddressInput({
               setSuggestions([]);
               onChange(null);
             }}
-            className={cn("shrink-0 rounded-full p-1.5", dark ? "text-asphalt-300 hover:bg-white/10" : "text-asphalt-500 hover:bg-asphalt-100")}
+            className={cn("shrink-0 rounded-full", dark ? "-mr-2 grid h-12 w-12 place-items-center text-asphalt-300 hover:bg-chalk/10" : "p-1.5 text-asphalt-500 hover:bg-asphalt-100")}
             aria-label="Effacer l'adresse"
           >
             <Icon name="x" size={18} />
@@ -181,7 +181,7 @@ export function AddressInput({
           role="listbox"
           className={cn(
             "absolute inset-x-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border shadow-2xl",
-            dark ? "border-white/10 bg-asphalt-850" : "border-asphalt-200 bg-white",
+            dark ? "border-chalk/12 bg-night-900" : "border-asphalt-200 bg-white",
           )}
         >
           {visible.map((suggestion, index) => (

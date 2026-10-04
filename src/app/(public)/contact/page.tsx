@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { whatsappHref, whatsappRequestMessage } from "@/core/contact";
-import { PageHero, Section, ToComplete } from "@/components/public/page-blocks";
-import { Icon, WhatsAppIcon } from "@/components/ui/icon";
+import { PageTransition } from "@/components/motion/page-transition";
+import { Plate } from "@/components/public/page-blocks";
+import { RoadLine } from "@/components/public/road-line";
+import { CallBox } from "@/components/pages/contact/call-box";
+import { Channels } from "@/components/pages/contact/channels";
+import { ContactDetails } from "@/components/pages/contact/contact-details";
+import styles from "@/components/pages/contact/contact.module.css";
+import { Icon } from "@/components/ui/icon";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 
 export const metadata: Metadata = {
@@ -11,89 +15,52 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
+/** Repères de la ligne de route (D.3), un par section. */
+const MARKERS = [
+  { id: "ouverture", pk: "00", label: "Contact" },
+  { id: "adresse", pk: "01", label: "Adresse" },
+  { id: "email", pk: "02", label: "Email" },
+] as const;
+
+/**
+ * /contact « La borne d'appel » (docs/09, F.7), page calme et sans GSAP : le titre, puis tout de
+ * suite les trois canaux (Téléphone, WhatsApp, Demande en ligne), sans animation d'entrée ; la
+ * borne se dresse à droite sur ordinateur. Puis l'adresse sur un plan de quartier et l'email.
+ * Ni « Prochaine sortie » ni aube. « À COMPLÉTER » partout où une information manque.
+ */
 export default async function ContactPage() {
   const info = await getPublicSiteInfo();
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.depotLabel)}`;
   return (
     <>
-      <PageHero
-        eyebrow="Contact"
-        icon="phone"
-        title={
-          <>
-            On vous répond <span className="text-signal-500">tout de suite.</span>
-          </>
-        }
-        lead="Le plus rapide : appelez-nous ou écrivez sur WhatsApp. Vous pouvez aussi faire votre demande en ligne et obtenir une estimation immédiate."
-      />
-      <Section tone="darker">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-asphalt-850 p-7" data-reveal>
-            <Icon name="phone" size={28} className="text-signal-500" />
-            <h2 className="mt-4 text-2xl font-extrabold">Téléphone</h2>
-            {info.phone ? (
-              <a href={info.phone.href} className="mt-3 block text-3xl font-extrabold tabular text-signal-400">
-                {info.phone.display}
-              </a>
-            ) : (
-              <p className="mt-3">
-                <ToComplete label="numéro de téléphone" />
+      <RoadLine markers={MARKERS} />
+      <PageTransition>
+        <section id="ouverture" data-sky="minuit" className={styles.opening}>
+          <div className={`${styles.container} ${styles.openingGrid}`}>
+            <div>
+              <Plate pk="00" pictogram="phone">
+                Contact
+              </Plate>
+              <h1 className={styles.title}>
+                On vous répond <em>tout de suite.</em>
+              </h1>
+              <p className={styles.lead}>
+                Le plus rapide : appelez-nous ou écrivez sur WhatsApp. Vous pouvez aussi faire votre demande en ligne et
+                obtenir une estimation immédiate.
               </p>
-            )}
-            {info.availability ? <p className="mt-2 text-asphalt-300">{info.availability}</p> : null}
+              <Channels info={info} />
+              {info.availability ? (
+                <p className={styles.availability}>
+                  <Icon name="clock" size={20} strokeWidth={2.2} />
+                  {info.availability}
+                </p>
+              ) : null}
+            </div>
+            <CallBox />
           </div>
-          <div className="rounded-3xl border border-white/10 bg-asphalt-850 p-7" data-reveal style={{ "--reveal-delay": "90ms" } as React.CSSProperties}>
-            <WhatsAppIcon size={28} className="text-whatsapp" />
-            <h2 className="mt-4 text-2xl font-extrabold">WhatsApp</h2>
-            {info.whatsapp ? (
-              <a
-                href={whatsappHref(info.whatsapp.e164, whatsappRequestMessage({}))}
-                className="mt-4 inline-flex h-12 items-center gap-2 rounded-2xl bg-whatsapp px-5 font-extrabold text-asphalt-950"
-              >
-                Écrire sur WhatsApp
-                <Icon name="arrowRight" size={18} strokeWidth={2.6} />
-              </a>
-            ) : (
-              <p className="mt-3">
-                <ToComplete label="numéro WhatsApp" />
-              </p>
-            )}
-            <p className="mt-3 text-asphalt-300">Pratique pour nous envoyer des photos du véhicule.</p>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-asphalt-850 p-7" data-reveal style={{ "--reveal-delay": "180ms" } as React.CSSProperties}>
-            <Icon name="truck" size={28} className="text-signal-500" />
-            <h2 className="mt-4 text-2xl font-extrabold">Demande en ligne</h2>
-            <p className="mt-3 text-asphalt-300">Votre prix estimé en moins d&apos;une minute.</p>
-            <Link href="/demande" className="mt-4 inline-flex h-12 items-center gap-2 rounded-2xl bg-signal-500 px-5 font-extrabold text-asphalt-950">
-              Faire une demande
-              <Icon name="arrowRight" size={18} strokeWidth={2.6} />
-            </Link>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-asphalt-850 p-7 md:col-span-2" data-reveal>
-            <Icon name="pin" size={28} className="text-signal-500" />
-            <h2 className="mt-4 text-2xl font-extrabold">Adresse</h2>
-            <p className="mt-2 text-xl text-asphalt-100">{info.depotLabel}</p>
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 font-bold text-signal-400">
-              Voir sur la carte
-              <Icon name="external" size={16} />
-            </a>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-asphalt-850 p-7" data-reveal>
-            <Icon name="mail" size={28} className="text-signal-500" />
-            <h2 className="mt-4 text-2xl font-extrabold">Email</h2>
-            {info.email ? (
-              <a href={`mailto:${info.email}`} className="mt-3 block break-all text-lg font-bold text-signal-400">
-                {info.email}
-              </a>
-            ) : (
-              <p className="mt-3">
-                <ToComplete label="email" />
-              </p>
-            )}
-            <p className="mt-2 text-asphalt-300">Pour les demandes non urgentes.</p>
-          </div>
-        </div>
-      </Section>
+        </section>
+
+        <ContactDetails info={info} />
+      </PageTransition>
     </>
   );
 }

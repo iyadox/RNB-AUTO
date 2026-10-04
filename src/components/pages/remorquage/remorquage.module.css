@@ -1,0 +1,1122 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   /remorquage « Le chargement » (docs/09, F.2, lot L3).
+   - Ouverture : la séquence de chargement sous un lampadaire au sodium, liée au défilement
+     sur ordinateur (60 vh), jouée une fois sur mobile.
+   - PK 01 : scène collante (ordinateur) ; vignettes de 64 px sur mobile, rien de collant.
+   - PK 02 : le portique de gabarit ; le catalogue passe dessous.
+   - PK 03 : les trois trajets, les facteurs du prix, le ticket qui sort de la borne.
+   Règles : couleurs par jetons, ni flou ni `overflow: hidden` au-dessus d'un élément collant ;
+   les états de base sont les états finaux (sans JavaScript, `off`) ; les animations liées au
+   défilement sont coupées explicitement en `off`.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Ouverture : l'aire de chargement ──────────────────────────────────────── */
+
+/* Titre principal : sur ordinateur, sa taille suit aussi la hauteur de l'écran, pour que le
+   bouton reste dans le premier écran (texte, accroche et bouton immobiles dès la première image). */
+.heroTitle {
+  display: block;
+}
+@media (max-width: 1023px) {
+  .heroTitle {
+    font-size: min(var(--text-hero), 16vw);
+    line-height: 0.95;
+  }
+}
+@media (min-width: 1024px) {
+  .heroTitle {
+    font-size: min(var(--text-hero), 12.5vh);
+    line-height: 0.95;
+  }
+}
+/* Entre 1 024 et 1 279 px, la colonne est étroite : le titre passe sur quatre lignes. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .heroTitle {
+    font-size: min(var(--text-hero), 11vh, 8vw);
+  }
+}
+/* Cadre de la scène : une unité du monde = 1cqw. Sur ordinateur, la scène déborde jusqu'au
+   bord droit de l'écran (moins 20 px pour une barre de défilement classique ; bord fondu). */
+.openFrame {
+  position: relative;
+  container-type: inline-size;
+  isolation: isolate;
+}
+@media (min-width: 1024px) {
+  .openFrame {
+    margin-left: -3rem;
+    margin-right: calc(-1 * (max(2rem, (100vw - 80rem) / 2 + 2rem) - 1.25rem));
+  }
+}
+.openStage {
+  position: relative;
+  /* Monde de 100 × 70 unités ancré en bas : sur mobile, le haut (tête du lampadaire) est rogné. */
+  height: min(66cqw, 34svh);
+  overflow: clip;
+  pointer-events: none;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 6%, #000 94%, transparent),
+    linear-gradient(to bottom, transparent, #000 20%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 6%, #000 94%, transparent),
+    linear-gradient(to bottom, transparent, #000 20%);
+  mask-composite: intersect;
+}
+@media (min-width: 1024px) {
+  .openStage {
+    height: min(64cqw, 66vh);
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, #000 12%, #000 95%, transparent),
+      linear-gradient(to bottom, transparent, #000 12%);
+    mask-image:
+      linear-gradient(to right, transparent, #000 12%, #000 95%, transparent),
+      linear-gradient(to bottom, transparent, #000 12%);
+  }
+}
+/* Lueur de la ville au ras de l'horizon, et lumière du lampadaire sur l'aire (sources : la ville,
+   le lampadaire). */
+.openGlow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(34cqw 22cqw at 29% calc(100% - 14cqw), rgb(255 210 122 / 0.12), transparent 70%),
+    radial-gradient(80cqw 18cqw at 55% calc(100% - 15cqw), rgb(255 210 122 / 0.07), transparent 75%);
+}
+.openSkylineWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 15.4cqw;
+  height: 20cqw;
+  opacity: 0.6;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+}
+.openSkyline {
+  position: absolute;
+  inset: 0;
+}
+/* Boîte du monde : c'est elle qui donne l'unité (1cqw). Sur mobile, elle est un peu plus large
+   que la scène : on cadre plus serré sur les véhicules (le panneau, à droite, n'y est pas). */
+.openWorldBox {
+  position: absolute;
+  left: -3%;
+  bottom: 0;
+  width: 114%;
+  height: 100%;
+  container-type: inline-size;
+}
+@media (min-width: 640px) {
+  .openWorldBox {
+    left: 0;
+    width: 100%;
+  }
+}
+.openWorld {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* Séquence (rapport 640 × 176, sol à 90,9 %) : son sol tombe sur le bord de la chaussée
+   (14cqw du bas). Dépanneuse de 23 à 74cqw, voiture au pied de la rampe, sous le lampadaire. */
+.openLoading {
+  position: absolute;
+  left: -1cqw;
+  bottom: 11.75cqw;
+  width: 90cqw;
+}
+/* Panneau de direction sans texte (garage, domicile, toute adresse), sur le trottoir. */
+.openSign {
+  position: absolute;
+  right: 2.5cqw;
+  bottom: 15cqw;
+  display: none;
+  width: 10.5cqw;
+  min-width: 4.5rem;
+  flex-direction: column;
+  align-items: center;
+}
+@media (min-width: 640px) {
+  .openSign {
+    display: flex;
+  }
+}
+.openSignPlate {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.55rem 0.5rem;
+  border-radius: 6px;
+  color: var(--color-chalk);
+  background:
+    repeating-linear-gradient(60deg, rgb(255 253 246 / 0.04) 0 1px, transparent 1px 6px),
+    linear-gradient(to bottom, var(--color-night-800), var(--color-night-950));
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.16),
+    inset 0 0 0 5px var(--color-night-950),
+    inset 0 0 0 6.5px rgb(255 253 246 / 0.55),
+    0 20px 40px -18px rgb(0 0 0 / 0.9);
+}
+.openSignRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.15rem 0.35rem;
+}
+.openSignRow + .openSignRow {
+  background: linear-gradient(to right, rgb(255 253 246 / 0.22), rgb(255 253 246 / 0.22)) 0 0 / 100% 1px no-repeat;
+  padding-top: 0.4rem;
+}
+.openSignPost {
+  width: 6px;
+  height: 9cqw;
+  background: linear-gradient(to right, var(--color-asphalt-600), var(--color-asphalt-800));
+}
+
+/* ─── PK 01 · Les situations : scène collante (ordinateur) ou vignettes (mobile) ── */
+
+.stage {
+  position: relative;
+}
+.steps {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  counter-reset: step;
+}
+/* Fil de la route à gauche des vignettes : tirets craie, remplissage jaune au défilement. */
+.steps::before,
+.steps::after {
+  content: "";
+  position: absolute;
+  left: 31px;
+  top: 2rem;
+  bottom: 2rem;
+  width: 2px;
+  pointer-events: none;
+}
+.steps::before {
+  background: repeating-linear-gradient(to bottom, rgb(255 253 246 / 0.22) 0 14px, transparent 14px 28px);
+}
+.steps::after {
+  background: var(--color-signal-500);
+  box-shadow: 0 0 10px rgb(255 196 0 / 0.5);
+  transform-origin: 50% 0;
+  scale: 1 1;
+}
+@supports (animation-timeline: view()) {
+  /* Liée au défilement : niveau `full` seulement (C.3 : rien de lié au défilement en `lite`). */
+  :global(html[data-motion="full"]) .steps::after {
+    animation: steps-fill linear both;
+    animation-timeline: --steps;
+    animation-range: entry 30% exit 60%;
+  }
+  .steps {
+    view-timeline-name: --steps;
+  }
+}
+@keyframes steps-fill {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+.step {
+  position: relative;
+}
+.stepInner {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 1.15rem;
+  align-items: start;
+  padding: 1.15rem 0;
+}
+.stepVignette {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  color: var(--color-chalk);
+  background:
+    radial-gradient(90% 90% at 50% 0%, rgb(255 210 122 / 0.08), transparent 70%),
+    linear-gradient(to bottom, var(--color-night-800), var(--color-night-950));
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.14),
+    0 14px 30px -14px rgb(0 0 0 / 0.9);
+  transition:
+    box-shadow var(--dur-ui) var(--ease-out-expo),
+    scale var(--dur-ui) var(--ease-out-expo);
+}
+.stepVignette svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.stepNumber {
+  @apply font-figure;
+  display: block;
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--color-signal-500);
+}
+.stepTitle {
+  @apply font-step;
+  margin-top: 0.35rem;
+  font-size: clamp(1.375rem, 1.1rem + 1vw, 2rem);
+  line-height: 1.1;
+  text-wrap: balance;
+  color: var(--color-chalk);
+  transition: color var(--dur-ui) var(--ease-out-expo);
+}
+.stepText {
+  @apply text-body;
+  margin-top: 0.5rem;
+  max-width: 34ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-300);
+}
+
+/* Le visuel collant n'existe que sur ordinateur (pointeur fin), avec JavaScript, hors `off`.
+   Sans cela : chaque texte garde sa vignette (P9 `off` : visuels à côté de chaque texte). */
+.stageVisual {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 3rem;
+    row-gap: 1.5rem;
+  }
+  .steps::before,
+  .steps::after {
+    display: none;
+  }
+  .stepInner {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 1.6rem;
+  }
+  .stepVignette {
+    width: 112px;
+    height: 112px;
+  }
+}
+
+@media (min-width: 1024px) and (pointer: fine) {
+  :global(html.js:not([data-motion="off"])) .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 3.5rem;
+    align-items: start;
+  }
+  :global(html.js:not([data-motion="off"])) .steps {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+    /* La dernière situation au centre de l'écran : la scène reste centrée, elle ne remonte pas. */
+    padding-bottom: 10vh;
+  }
+  :global(html.js:not([data-motion="off"])) .steps::before,
+  :global(html.js:not([data-motion="off"])) .steps::after {
+    display: block;
+    left: 35px;
+    top: 0;
+    bottom: 0;
+  }
+  :global(html.js:not([data-motion="off"])) .step {
+    display: flex;
+    align-items: center;
+    min-height: 80vh;
+  }
+  :global(html.js:not([data-motion="off"])) .stepInner {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 1.75rem;
+  }
+  :global(html.js:not([data-motion="off"])) .stepVignette {
+    width: 72px;
+    height: 72px;
+  }
+  /* Temps de la scène : l'étape au centre de l'écran s'allume, les autres restent lisibles. */
+  .stage[data-beat] .step:not([data-active]) .stepTitle {
+    color: var(--color-asphalt-300);
+  }
+  .stage[data-beat] .step:not([data-active]) .stepNumber {
+    color: var(--color-asphalt-300);
+  }
+  .stage[data-beat] .step[data-active] .stepVignette {
+    scale: 1.06;
+    box-shadow:
+      inset 0 0 0 2px var(--color-signal-500),
+      0 0 0 6px rgb(255 196 0 / 0.12),
+      0 18px 40px -16px rgb(0 0 0 / 0.9);
+  }
+  :global(html.js:not([data-motion="off"])) .stageVisual {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    height: 100vh;
+    padding-top: var(--header-h, 5rem);
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/* ─── La scène du plateau (ordinateur) ──────────────────────────────────────── */
+
+.art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 640 / 500;
+  isolation: isolate;
+}
+.artLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Le décor se fond dans le ciel : aucun bord dur. */
+.artBackdrop {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 14%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 14%);
+  mask-composite: intersect;
+}
+.artLayer > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.artSkyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46%;
+  height: 36%;
+  z-index: -1;
+  opacity: 0.5;
+  translate: calc(var(--stage-progress, 0) * -48px) 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+/* Grand numéro de l'étape, en contour, derrière la scène. */
+.artNumerals {
+  position: absolute;
+  right: 2%;
+  top: -2%;
+  z-index: -1;
+  height: 11rem;
+  overflow: clip;
+  pointer-events: none;
+}
+.artNumerals span {
+  @apply font-figure;
+  display: block;
+  font-size: 11rem;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgb(255 253 246 / 0.16);
+}
+.artNumerals span:not(:first-child) {
+  position: absolute;
+  inset: 0 0 auto auto;
+}
+.artTruckLoading,
+.artTruckDeliver,
+.artCar {
+  position: absolute;
+}
+.artTruckLoading svg,
+.artTruckDeliver svg,
+.artCar svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* Repère 640 × 500, sol à y = 410. */
+.artTruckLoading {
+  left: 40.94%;
+  top: 54.8%;
+  width: 56.25%;
+}
+.artCar {
+  left: 6.95%;
+  top: 63.6%;
+  width: 37.5%;
+}
+.artTruckDeliver {
+  left: 4.69%;
+  top: 54.8%;
+  width: 56.25%;
+}
+
+/* Temps : chaque couche porte `data-show="1 2 …"`. Sans temps posé (avant le chargement de
+   GSAP), le premier temps. */
+.art [data-show] {
+  opacity: 0;
+  transition:
+    opacity var(--dur-scene) var(--ease-out-expo),
+    translate var(--dur-scene) var(--ease-out-expo);
+}
+.stage:not([data-beat]) .art [data-show~="1"],
+.stage[data-beat="1"] .art [data-show~="1"],
+.stage[data-beat="2"] .art [data-show~="2"],
+.stage[data-beat="3"] .art [data-show~="3"],
+.stage[data-beat="4"] .art [data-show~="4"],
+.stage[data-beat="5"] .art [data-show~="5"],
+.stage[data-beat="6"] .art [data-show~="6"] {
+  opacity: 1;
+  translate: 0 0;
+}
+/* La dépanneuse chargée arrive de la gauche ; le décor de destination glisse un peu. */
+.artTruckDeliver[data-show] {
+  translate: -14% 0;
+}
+.art g[data-show] {
+  translate: 0 6px;
+}
+.artNumerals span[data-show] {
+  translate: 0 30%;
+}
+/* Coins de cadrage, façon viseur. */
+.artCorner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: rgb(255 253 246 / 0.32);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+.artCorner:nth-of-type(1) {
+  left: 0;
+  top: 6%;
+  border-left-width: 2px;
+  border-top-width: 2px;
+}
+.artCorner:nth-of-type(2) {
+  right: 0;
+  top: 6%;
+  border-right-width: 2px;
+  border-top-width: 2px;
+}
+.artCorner:nth-of-type(3) {
+  left: 0;
+  bottom: 0;
+  border-left-width: 2px;
+  border-bottom-width: 2px;
+}
+.artCorner:nth-of-type(4) {
+  right: 0;
+  bottom: 0;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+.artHud {
+  position: absolute;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.artPips {
+  display: flex;
+  gap: 6px;
+}
+.artPips span {
+  width: 26px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgb(255 253 246 / 0.2);
+  transition: background-color var(--dur-ui) var(--ease-out-expo);
+}
+.stage:not([data-beat]) .artPips span:first-child,
+.stage[data-beat="1"] .artPips span:nth-child(-n + 1),
+.stage[data-beat="2"] .artPips span:nth-child(-n + 2),
+.stage[data-beat="3"] .artPips span:nth-child(-n + 3),
+.stage[data-beat="4"] .artPips span:nth-child(-n + 4),
+.stage[data-beat="5"] .artPips span:nth-child(-n + 5),
+.stage[data-beat="6"] .artPips span:nth-child(-n + 6) {
+  background: var(--color-signal-500);
+}
+.artCaption {
+  @apply font-plate text-plate;
+  position: relative;
+  flex: 1;
+  height: 1.2em;
+  text-align: right;
+  color: var(--color-chalk);
+}
+.artCaption span {
+  position: absolute;
+  inset: 0;
+}
+
+/* ─── PK 02 · Le portique de gabarit ────────────────────────────────────────── */
+
+.gauge {
+  position: relative;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: max(1rem, calc(50vw - 40rem + 2rem));
+}
+@media (max-width: 1023px) {
+  .gauge {
+    padding-inline: max(1rem, calc(50vw - 40rem + 1.5rem));
+  }
+}
+@media (max-width: 639px) {
+  .gauge {
+    padding-inline: 1rem;
+  }
+}
+.gaugeYard {
+  position: relative;
+  padding-top: 7.5rem;
+}
+/* Portique : poutre, montants balisés, barre de hauteur suspendue à deux chaînes. */
+.gantry {
+  position: absolute;
+  inset: 0 0 0 0;
+  pointer-events: none;
+}
+.gantryBeam {
+  position: absolute;
+  left: -2rem;
+  right: -2rem;
+  top: 0;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-asphalt-500), var(--color-asphalt-750) 60%, var(--color-asphalt-850));
+  box-shadow:
+    inset 0 1px 0 rgb(255 253 246 / 0.25),
+    0 10px 24px -10px rgb(0 0 0 / 0.9);
+}
+.gantryPost {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background:
+    repeating-linear-gradient(-45deg, var(--color-signal-500) 0 9px, var(--color-asphalt-950) 9px 18px) 0 calc(100% - 0px) / 100% 7rem no-repeat,
+    linear-gradient(to right, var(--color-asphalt-500), var(--color-asphalt-750) 55%, var(--color-asphalt-850));
+  box-shadow: inset -1px 0 0 rgb(0 0 0 / 0.5);
+}
+.gantryPostLeft {
+  left: -1.75rem;
+}
+.gantryPostRight {
+  right: -1.75rem;
+}
+.gantryChain {
+  position: absolute;
+  top: 14px;
+  width: 2px;
+  height: 2.25rem;
+  background: repeating-linear-gradient(to bottom, var(--color-asphalt-300) 0 4px, transparent 4px 7px);
+}
+.gantryBar {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: calc(14px + 2.25rem);
+  height: 22px;
+  border-radius: 3px;
+  background-image: repeating-linear-gradient(-45deg, var(--color-signal-500) 0 12px, var(--color-asphalt-950) 12px 24px);
+  box-shadow:
+    inset 0 0 0 1.5px rgb(8 9 11 / 0.8),
+    inset 0 2px 0 rgb(255 253 246 / 0.3),
+    0 14px 26px -12px rgb(0 0 0 / 0.95);
+  transform-origin: 50% 0;
+}
+/* La barre se balance une fois quand le portique entre dans l'écran (comme frôlée). */
+:global(html.motion-ready[data-motion="full"]) .gauge[data-inview] .gantryBar,
+:global(html.motion-ready[data-motion="lite"]) .gauge[data-inview] .gantryBar {
+  animation: bar-swing 1.6s var(--ease-out-expo) 0.2s both;
+}
+@keyframes bar-swing {
+  0% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: 0.9deg;
+  }
+  45% {
+    rotate: -0.6deg;
+  }
+  70% {
+    rotate: 0.25deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+.gantryPlaque {
+  position: absolute;
+  left: 50%;
+  top: calc(14px + 2.25rem + 22px + 6px);
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 2.25rem;
+  margin-left: -1.5rem;
+  border-radius: 5px;
+  color: var(--color-chalk);
+  background: var(--color-night-950);
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.7),
+    0 10px 20px -10px rgb(0 0 0 / 0.9);
+}
+.gantryPlaque::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 2px;
+  height: 6px;
+  margin-left: -1px;
+  background: var(--color-asphalt-400);
+}
+/* Lampes au sodium sous la poutre : chacune éclaire la file en dessous. */
+.gantryLamp {
+  position: absolute;
+  top: 14px;
+  width: 40px;
+  height: 6px;
+  margin-left: -20px;
+  border-radius: 0 0 6px 6px;
+  background: var(--color-sodium);
+  box-shadow: 0 2px 12px rgb(255 210 122 / 0.6);
+}
+.gantryLamp::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: min(22rem, 28vw);
+  height: 30rem;
+  translate: -50% 0;
+  background: linear-gradient(to bottom, rgb(255 210 122 / 0.13), transparent 85%);
+  clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
+}
+.convoy {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+}
+.vehicle {
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.12) 0 18px, transparent 18px 36px) 0 100% / 100% 1px no-repeat;
+}
+.vehicleArt {
+  position: relative;
+  display: block;
+  color: var(--color-asphalt-200);
+  --wheel-bg: var(--color-night-950);
+  transition:
+    translate 600ms var(--ease-brake),
+    opacity 600ms var(--ease-out-expo),
+    color var(--dur-ui) var(--ease-out-expo);
+}
+.vehicleArt svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+/* Ombre au sol et petit faisceau des phares (la silhouette regarde à droite). */
+.vehicleArt::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -2px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.7), transparent);
+}
+.vehicleArt::after {
+  content: "";
+  position: absolute;
+  left: 92%;
+  top: 48%;
+  width: 46%;
+  height: 34%;
+  background: linear-gradient(to right, rgb(227 236 255 / 0.28), transparent);
+  clip-path: polygon(0 40%, 100% 0, 100% 100%, 0 60%);
+}
+/* Pictogramme générique (« ? », véhicule sans silhouette dans VehicleIcon : son premier tracé est
+   un cercle) : ni phares ni ombre de caisse. */
+.vehicleArt:has(> svg > circle:first-child)::after {
+  display: none;
+}
+/* Silhouettes toutes en craie sombre : seul le badge porte le sens (un seul jaune plein par écran,
+   la barre à chevrons est déjà jaune). */
+.vehicle:hover .vehicleArt {
+  color: var(--color-chalk);
+}
+/* Mobile : chaque silhouette glisse de 24 px à son entrée. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .vehicle:not([data-inview]) .vehicleArt {
+  opacity: 0;
+  translate: 24px 0;
+}
+.vehicleName {
+  @apply font-step;
+  display: block;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  color: var(--color-chalk);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  padding: 0.3rem 0.8rem 0.3rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.badgeOnline {
+  color: var(--color-chalk);
+  box-shadow: inset 0 0 0 1.5px rgb(255 253 246 / 0.6);
+}
+.badgeRequest {
+  color: var(--color-signal-400);
+  box-shadow: inset 0 0 0 1.5px var(--color-signal-500);
+}
+.gaugeRoad {
+  position: relative;
+  height: 2.5rem;
+  margin-top: 0.5rem;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 253 246 / 0.24) 0 40px, transparent 40px 80px) 0 55% / 100% 2px no-repeat,
+    linear-gradient(to bottom, rgb(11 18 34 / 0.85), transparent);
+}
+.gaugeNote {
+  @apply text-body;
+  max-width: 62ch;
+  margin-top: 2rem;
+  text-wrap: pretty;
+  color: var(--color-asphalt-300);
+}
+.gaugeNote strong {
+  color: var(--color-chalk);
+}
+
+@media (min-width: 768px) {
+  .convoy {
+    grid-template-columns: repeat(var(--lane, 5), minmax(0, 1fr));
+    column-gap: 1.25rem;
+    row-gap: 2.75rem;
+  }
+  .vehicle {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 0.9rem;
+    padding: 0 0 1.25rem;
+  }
+  .vehicleArt {
+    width: min(100%, 10.5rem);
+  }
+  .vehicleName {
+    font-size: 1.375rem;
+  }
+  .badge {
+    font-size: 0.9375rem;
+  }
+  .gaugeYard {
+    padding-top: 9.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .convoy {
+    --lane: 3 !important;
+  }
+}
+/* Ordinateur : la file glisse sous le portique, liée au défilement (sans épinglage). */
+@media (min-width: 1024px) {
+  @supports (animation-timeline: view()) {
+    :global(html[data-motion="full"]) .vehicle {
+      animation: convoy-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 42%;
+    }
+  }
+}
+@keyframes convoy-in {
+  from {
+    translate: calc(26vw + var(--col, 0) * 5vw) 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@media (max-width: 767px) {
+  .gaugeYard {
+    padding-top: 6.25rem;
+  }
+  .gantryPost {
+    display: none;
+  }
+  .gantryBar {
+    left: 4%;
+    right: 4%;
+  }
+  .gantryLamp::after {
+    width: 16rem;
+    height: 18rem;
+  }
+  /* Bord de voie vertical : la file avance vers le bas. */
+  .convoy::before {
+    content: "";
+    position: absolute;
+    left: -0.25rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: repeating-linear-gradient(to bottom, rgb(255 253 246 / 0.22) 0 14px, transparent 14px 28px);
+  }
+}
+
+/* ─── PK 03 · Le prix : trois trajets, facteurs, ticket ─────────────────────── */
+
+.price {
+  display: grid;
+  gap: 2rem;
+}
+.priceText {
+  @apply text-body;
+  max-width: 60ch;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+.priceText strong {
+  color: var(--color-chalk);
+}
+.priceMap {
+  position: relative;
+  padding: 1rem 0.25rem 0.5rem;
+}
+/* Cadre de plan : coins de cadrage, quadrillage très léger. */
+.priceMap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background:
+    linear-gradient(to right, rgb(255 253 246 / 0.04) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(to bottom, rgb(255 253 246 / 0.04) 1px, transparent 1px) 0 0 / 40px 40px;
+  -webkit-mask-image: radial-gradient(75% 70% at 50% 45%, #000, transparent);
+  mask-image: radial-gradient(75% 70% at 50% 45%, #000, transparent);
+  pointer-events: none;
+}
+.mapCorner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 0 solid rgb(255 253 246 / 0.3);
+  pointer-events: none;
+}
+.mapCorner:nth-of-type(1) {
+  left: 0;
+  top: 0;
+  border-left-width: 2px;
+  border-top-width: 2px;
+}
+.mapCorner:nth-of-type(2) {
+  right: 0;
+  top: 0;
+  border-right-width: 2px;
+  border-top-width: 2px;
+}
+.mapCorner:nth-of-type(3) {
+  left: 0;
+  bottom: 0;
+  border-left-width: 2px;
+  border-bottom-width: 2px;
+}
+.mapCorner:nth-of-type(4) {
+  right: 0;
+  bottom: 0;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+/* Puces des facteurs du prix : elles s'allument au contact (P15). */
+.factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.factor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0.5rem 1.1rem 0.5rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-chalk);
+  background: rgb(5 7 13 / 0.55);
+  box-shadow: inset 0 0 0 1.5px rgb(255 253 246 / 0.2);
+}
+.factorLamp {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-signal-500);
+  box-shadow: 0 0 10px 1px rgb(255 196 0 / 0.65);
+}
+/* Borne : le ticket sort de sa fente (impression P12). */
+.priceTicket {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  max-width: 26rem;
+}
+.borne {
+  position: relative;
+  width: 100%;
+  height: 4.25rem;
+  border-radius: 10px 10px 4px 4px;
+  background:
+    linear-gradient(to bottom, rgb(255 253 246 / 0.1), transparent 30%),
+    linear-gradient(to bottom, var(--color-asphalt-700), var(--color-asphalt-850));
+  box-shadow:
+    inset 0 0 0 1.5px rgb(255 253 246 / 0.12),
+    0 24px 40px -22px rgb(0 0 0 / 0.95);
+}
+.borneScreen {
+  position: absolute;
+  left: 1rem;
+  top: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 1.4rem;
+  padding: 0 0.55rem;
+  border-radius: 3px;
+  color: var(--color-signal-500);
+  background: var(--color-night-950);
+  box-shadow: inset 0 0 0 1px rgb(255 253 246 / 0.12);
+}
+.borneScreen i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.borneScreen i:nth-child(2) {
+  opacity: 0.5;
+}
+.borneScreen i:nth-child(3) {
+  opacity: 0.25;
+}
+.borneSlot {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.7rem;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-asphalt-950);
+  box-shadow:
+    0 1px 0 rgb(255 253 246 / 0.16),
+    inset 0 2px 3px rgb(0 0 0 / 0.9);
+}
+/* Fente éclairée de l'intérieur (une lueur a toujours sa source : la borne). */
+.borneSlot::after {
+  content: "";
+  position: absolute;
+  inset: 0 12%;
+  border-radius: 3px;
+  background: linear-gradient(to right, transparent, rgb(255 210 122 / 0.35), transparent);
+}
+/* Les trois garanties sont du texte courant : 17 px au moins (le ticket du kit les écrit en 15 px). */
+.ticket ul {
+  font-size: 1.0625rem;
+}
+.ticket {
+  width: calc(100% - 2rem);
+  margin: -0.65rem auto 0;
+  justify-self: center;
+  rotate: -0.6deg;
+}
+/* Ombre du ticket sur le sol (le papier est découpé par un masque : pas d'ombre portée). */
+.ticketShadow {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -1.5rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.55), transparent);
+  pointer-events: none;
+}
+.priceAction {
+  display: flex;
+}
+
+@media (min-width: 1024px) {
+  .price {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 2rem;
+    row-gap: 2.25rem;
+    align-items: start;
+  }
+  .price > * {
+    grid-column: 1 / span 5;
+  }
+  .priceMap {
+    grid-column: 6 / span 7;
+    grid-row: 1 / span 6;
+    position: sticky;
+    top: calc(var(--header-h, 5rem) + 6vh);
+    padding: 1.5rem 1rem 0.75rem;
+  }
+  .priceTicket {
+    margin-top: 0.75rem;
+  }
+}
+
+/* ─── Niveau `off` : aucune animation liée au défilement ────────────────────── */
+
+:global(html[data-motion="off"]) .steps::after,
+:global(html[data-motion="off"]) .vehicle,
+:global(html[data-motion="off"]) .gantryBar {
+  animation: none !important;
+}
+:global(html[data-motion="off"]) .artSkyline {
+  translate: none;
+}
+
+@media (forced-colors: active) {
+  .gantry,
+  .openGlow,
+  .vehicleArt::after,
+  .gantryLamp::after {
+    display: none;
+  }
+}

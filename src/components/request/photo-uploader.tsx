@@ -55,12 +55,15 @@ export function PhotoUploader({
   interventionId,
   max,
   tone = "dark",
+  frame,
   onUploaded,
 }: {
   token?: string;
   interventionId?: string;
   max: number;
   tone?: "dark" | "light";
+  /** `viewfinder` : le bouton d'ajout est posé dans les coins de cadrage d'un viseur (/demande). */
+  frame?: "viewfinder";
   onUploaded?: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -118,21 +121,40 @@ export function PhotoUploader({
     if (inputRef.current) inputRef.current.value = "";
   };
 
+  const addButton = (
+    <button
+      type="button"
+      disabled={remaining === 0}
+      onClick={() => inputRef.current?.click()}
+      className={
+        frame === "viewfinder"
+          ? "flex h-20 w-full items-center justify-center gap-3 rounded-[6px] text-lg font-extrabold text-chalk transition-colors hover:text-signal-400 disabled:opacity-50"
+          : cn(
+              "flex h-16 items-center justify-center gap-3 rounded-2xl border-2 border-dashed text-lg font-extrabold transition-colors disabled:opacity-50",
+              dark ? "border-white/25 text-chalk hover:border-signal-500 hover:text-signal-400" : "border-asphalt-300 text-asphalt-800 hover:border-asphalt-900",
+            )
+      }
+    >
+      <Icon name="camera" size={22} />
+      {items.length === 0 ? "Ajouter des photos" : remaining > 0 ? "Ajouter d'autres photos" : "Nombre maximum atteint"}
+    </button>
+  );
+
   return (
     <div className="grid gap-3">
       <input ref={inputRef} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(event) => void onFiles(event.target.files)} />
-      <button
-        type="button"
-        disabled={remaining === 0}
-        onClick={() => inputRef.current?.click()}
-        className={cn(
-          "flex h-16 items-center justify-center gap-3 rounded-2xl border-2 border-dashed text-lg font-extrabold transition-colors disabled:opacity-50",
-          dark ? "border-white/25 text-chalk hover:border-signal-500 hover:text-signal-400" : "border-asphalt-300 text-asphalt-800 hover:border-asphalt-900",
-        )}
-      >
-        <Icon name="camera" size={22} />
-        {items.length === 0 ? "Ajouter des photos" : remaining > 0 ? "Ajouter d'autres photos" : "Nombre maximum atteint"}
-      </button>
+      {frame === "viewfinder" ? (
+        // Coins de cadrage d'un viseur d'appareil photo (décor).
+        <div className="relative p-3">
+          <span aria-hidden="true" className="pointer-events-none absolute left-0 top-0 h-5 w-5 border-l-2 border-t-2 border-signal-500" />
+          <span aria-hidden="true" className="pointer-events-none absolute right-0 top-0 h-5 w-5 border-r-2 border-t-2 border-signal-500" />
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-5 w-5 border-b-2 border-l-2 border-signal-500" />
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-0 right-0 h-5 w-5 border-b-2 border-r-2 border-signal-500" />
+          {addButton}
+        </div>
+      ) : (
+        addButton
+      )}
       {items.length > 0 ? (
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-live="polite">
           {items.map((item) => (

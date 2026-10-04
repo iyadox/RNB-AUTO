@@ -1,0 +1,1194 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   /zones-d-intervention « Vue du ciel » (docs/09, F.3).
+   Ouverture : le Plan RNB en grand, balayé par le gyrophare du dépôt, qui recule lentement.
+   PK 01 : la recherche de commune et son panneau de localité (masqués sans JavaScript).
+   PK 02 : les quatre secteurs ; sur ordinateur, le plan collant allume une zone par temps.
+   PK 03 : plus loin, le relais d'autoroute.
+   États de base = états finaux ; les états cachés n'existent que sous html.motion-ready.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Ouverture ─────────────────────────────────────────────────────────────── */
+
+.opening {
+  position: relative;
+  padding-top: calc(var(--header-h, 4rem) + 1.5rem);
+  padding-bottom: 2.5rem;
+  overflow-x: clip;
+}
+@media (min-width: 1024px) {
+  .opening {
+    display: flex;
+    align-items: center;
+    min-height: min(93vh, 62rem);
+    padding-top: calc(var(--header-h, 5rem) + 3rem);
+    padding-bottom: 4.5rem;
+  }
+}
+.openingText {
+  position: relative;
+  z-index: 2;
+}
+@media (min-width: 1024px) {
+  .openingText {
+    max-width: min(40rem, 50%);
+  }
+}
+.title {
+  @apply font-display;
+  margin-top: 1.1rem;
+  /* Titre long (« L'ÎLE-DE-FRANCE ») : un cran sous text-hero sur mobile, pour que le bouton
+     reste dans le premier écran (U4). */
+  font-size: clamp(2.5rem, 14vw, 5.5rem);
+  line-height: 1;
+  text-wrap: balance;
+  color: var(--color-chalk);
+}
+/* Ordinateur : le titre suit la largeur de sa colonne (moitié du conteneur), pour que
+   « L'ÎLE-DE-FRANCE. » (insécable) n'entre jamais sous la carte, de 1 024 à 1 440 px et plus. */
+@media (min-width: 1024px) {
+  .title {
+    font-size: min(5.5rem, 7.4vw);
+  }
+}
+.title em {
+  font-style: normal;
+  color: var(--color-signal-500);
+}
+.lead {
+  @apply text-lead;
+  margin-top: 1.1rem;
+  max-width: 34rem;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.6rem;
+}
+
+/* Voile sombre sous le texte (ordinateur) : la carte passe derrière sans gêner la lecture. */
+.veil {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .veil {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-night-950) 92%, transparent) 0%,
+      color-mix(in srgb, var(--color-night-950) 70%, transparent) 34%,
+      transparent 58%
+    );
+    -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
+    mask-image: linear-gradient(to bottom, #000 72%, transparent);
+  }
+}
+
+/* La carte : 60svh sur mobile (après le texte), 80vh à droite sur ordinateur. */
+.mapStage {
+  position: relative;
+  margin-top: 2.25rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+}
+@media (min-width: 1024px) {
+  .mapStage {
+    position: absolute;
+    z-index: 0;
+    top: calc(50% + var(--header-h, 5rem) / 2 + 0.5rem);
+    right: max(1rem, calc(50vw - 41rem));
+    width: min(76vh, 50vw, 50rem);
+    margin-top: 0;
+    translate: 0 -50%;
+  }
+}
+/* Petit ordinateur : la carte laisse un couloir libre à droite du texte et des boutons. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .mapStage {
+    width: min(76vh, 45vw);
+  }
+}
+.mapParallax {
+  position: relative;
+  width: min(100% - 2.5rem, 60svh);
+}
+@media (min-width: 1024px) {
+  .mapParallax {
+    width: 100%;
+  }
+}
+/* En quittant l'ouverture, la caméra bascule : le plan se couche vers l'horizon (niveau full). */
+.mapTilt {
+  position: relative;
+  transform-origin: 50% 100%;
+}
+@supports (animation-timeline: view()) {
+  :global(html[data-motion="full"]) .mapTilt {
+    animation: map-tilt linear both;
+    animation-timeline: view();
+    animation-range: exit 0% exit 100%;
+  }
+}
+@keyframes map-tilt {
+  to {
+    transform: perspective(1400px) rotateX(38deg) scale(0.92);
+    opacity: 0.35;
+  }
+}
+.mapRecoil {
+  position: relative;
+  transform-origin: 62% 40%;
+}
+/* Lent recul de la caméra (1,12 → 1 en 2,4 s, une fois), dès la première image : jamais en
+   « moins d'animations », jamais sans JavaScript (état final = échelle 1). */
+@media (prefers-reduced-motion: no-preference) {
+  :global(html.js:not([data-motion="off"])) .mapRecoil {
+    animation: map-recoil 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+@keyframes map-recoil {
+  from {
+    scale: 1.12;
+  }
+  to {
+    scale: 1;
+  }
+}
+/* Lueur de la ville sous le disque (statique, source : l'agglomération). */
+.mapGlow {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  background:
+    radial-gradient(closest-side, color-mix(in srgb, var(--color-sodium) 13%, transparent), transparent 72%),
+    radial-gradient(closest-side at 62% 40%, color-mix(in srgb, var(--color-signal-500) 9%, transparent), transparent 40%);
+}
+/* Viseur : quatre coins, comme l'écran d'une caméra embarquée. */
+.corner {
+  position: absolute;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0 solid color-mix(in srgb, var(--color-chalk) 34%, transparent);
+  pointer-events: none;
+}
+.corner:nth-of-type(1) {
+  top: -0.25rem;
+  left: -0.25rem;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.corner:nth-of-type(2) {
+  top: -0.25rem;
+  right: -0.25rem;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+.corner:nth-of-type(3) {
+  bottom: -0.25rem;
+  left: -0.25rem;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+.corner:nth-of-type(4) {
+  bottom: -0.25rem;
+  right: -0.25rem;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+.mapCaption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--color-asphalt-300);
+}
+.mapCaption > span:first-child {
+  @apply font-plate text-plate;
+}
+/* Ordinateur : mention et bouton empilés dans l'angle haut droit du viseur, à côté du coin
+   (jamais dessus) et hors du disque. */
+@media (min-width: 1024px) {
+  .mapCaption {
+    position: absolute;
+    right: 2.6rem;
+    top: 0.15rem;
+    z-index: 3;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+}
+.edgeLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 60px, transparent 60px 120px);
+}
+
+/* ─── PK 01 · Recherche de commune ──────────────────────────────────────────── */
+
+/* Sans JavaScript, la recherche n'existe pas : les listes complètes suivent (F.3). */
+:global(html:not(.js)) .searchSection {
+  display: none;
+}
+.search {
+  display: grid;
+  gap: 2rem;
+  grid-template-areas: "form" "result" "sign" "legend";
+}
+@media (min-width: 1024px) {
+  .search {
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+    grid-template-areas: "form sign" "result sign" "legend sign";
+    grid-template-rows: auto auto 1fr;
+    column-gap: 4rem;
+    align-items: start;
+  }
+}
+.searchForm {
+  grid-area: form;
+}
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-night-950) 82%, transparent);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-chalk) 22%, transparent),
+    0 24px 60px -30px rgb(0 0 0 / 0.8);
+  transition: box-shadow var(--dur-ui) var(--ease-out-expo);
+}
+.field:focus-within {
+  box-shadow:
+    inset 0 0 0 2px var(--color-signal-500),
+    0 0 0 6px color-mix(in srgb, var(--color-signal-500) 16%, transparent),
+    0 24px 60px -30px rgb(0 0 0 / 0.8);
+}
+.fieldIcon {
+  position: absolute;
+  left: 1.1rem;
+  color: var(--color-asphalt-300);
+  pointer-events: none;
+}
+.input {
+  @apply font-step;
+  width: 100%;
+  min-height: 4rem;
+  padding: 0 3.75rem 0 3.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-chalk);
+  font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.75rem);
+  outline: none;
+}
+.input::placeholder {
+  color: var(--color-asphalt-300);
+  opacity: 1;
+}
+.input::-webkit-search-cancel-button {
+  display: none;
+}
+.clear {
+  position: absolute;
+  right: 0.4rem;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  color: var(--color-asphalt-200);
+  transition: color var(--dur-ui);
+}
+.clear:hover,
+.clear:focus-visible {
+  color: var(--color-chalk);
+}
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.suggestButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  color: var(--color-chalk);
+  background: color-mix(in srgb, var(--color-night-900) 85%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-chalk) 18%, transparent);
+  transition:
+    box-shadow var(--dur-ui),
+    color var(--dur-ui);
+}
+.suggestButton:hover,
+.suggestButton:focus-visible {
+  color: var(--color-signal-400);
+  box-shadow: inset 0 0 0 1.5px var(--color-signal-500);
+}
+.suggestButton svg {
+  color: var(--color-asphalt-300);
+}
+.result {
+  grid-area: result;
+  min-height: 1px;
+}
+.resultText {
+  @apply text-lead;
+  max-width: 32rem;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+/* « Oui, nous intervenons à » en surtitre, puis la commune en grand, comme sur le panneau. */
+.resultYes {
+  @apply font-step;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  color: var(--color-chalk);
+}
+.resultPlace {
+  @apply font-display;
+  display: block;
+  margin-top: 0.35rem;
+  font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3.5rem);
+  line-height: 0.98;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  color: var(--color-signal-500);
+}
+.resultYes strong {
+  font-weight: inherit;
+}
+.resultAction {
+  margin-top: 1.25rem;
+}
+.resultIn {
+  animation: result-in var(--dur-reveal) var(--ease-out-expo) both;
+}
+@keyframes result-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+:global(html[data-motion="off"]) .resultIn {
+  animation: none;
+}
+
+/* Panneau de localité, version nuit, au bord d'une rue mouillée : deux lampadaires au sodium
+   (les sources de sa lumière), l'horizon de la ville derrière. Décor : le texte est à côté. */
+.sign {
+  grid-area: sign;
+  position: relative;
+  height: clamp(21rem, 52vw, 27rem);
+  overflow: clip;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+@media (min-width: 1024px) {
+  .sign {
+    height: 28rem;
+    margin-top: -1rem;
+  }
+}
+.signSkyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22%;
+  height: 34%;
+  opacity: 0.75;
+}
+.signLamps {
+  position: absolute;
+  inset: 0;
+}
+/* Chaussée mouillée : ligne de rive, tirets, reflet de la ville. */
+.signRoad {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22%;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 253 246 / 0.24) 0 30px, transparent 30px 60px) 0 58% / 100% 2px no-repeat,
+    linear-gradient(to bottom, rgb(255 253 246 / 0.22), transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-sodium) 7%, var(--color-night-900)), var(--color-night-950));
+  /* La chaussée se fond dans la nuit vers le bas (aucun bord franc avant la section suivante). */
+  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
+  mask-image: linear-gradient(to bottom, #000 45%, transparent);
+}
+.signStand {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  width: min(80%, 23rem);
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+}
+.signPlate {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1.25rem 1rem 1.1rem;
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-sodium) 9%, transparent), transparent 55%),
+    var(--color-night-950);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-chalk) 14%, transparent),
+    inset 0 0 0 7px var(--color-night-950),
+    inset 0 0 0 9px color-mix(in srgb, var(--color-chalk) 30%, transparent),
+    0 30px 60px -28px rgb(0 0 0 / 0.9);
+  overflow: clip;
+  transition: box-shadow 600ms var(--ease-out-expo);
+}
+.sign[data-state="found"] .signPlate {
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-reflect) 30%, transparent),
+    inset 0 0 0 7px var(--color-night-950),
+    inset 0 0 0 9px color-mix(in srgb, var(--color-reflect) 85%, transparent),
+    0 0 60px -14px color-mix(in srgb, var(--color-sodium) 55%, transparent),
+    0 30px 60px -28px rgb(0 0 0 / 0.9);
+}
+.signName {
+  @apply font-sign;
+  min-height: 1.05em;
+  max-width: 100%;
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  color: var(--color-asphalt-300);
+  transition: color 300ms;
+}
+.sign[data-state="found"] .signName {
+  color: var(--color-reflect);
+}
+.signArea {
+  @apply font-plate text-plate;
+  min-height: 1.2em;
+  color: var(--color-asphalt-300);
+}
+.sign[data-state="found"] .signArea {
+  color: var(--color-signal-400);
+}
+.signRings {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+/* Balayage rétroréfléchissant au moment où la commune est trouvée (remonté à chaque commune). */
+.signSweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--color-reflect) 55%, transparent) 50%, transparent 62%);
+  translate: 110% 0;
+  animation: sign-sweep 900ms var(--ease-beam) both;
+}
+@keyframes sign-sweep {
+  from {
+    translate: -110% 0;
+  }
+  to {
+    translate: 110% 0;
+  }
+}
+:global(html[data-motion="off"]) .signSweep {
+  display: none;
+}
+/* Arrivée dans l'écran (niveaux full et lite) : les lampadaires s'allument en grésillant, puis
+   le panneau s'éclaire. État de base = état final (sans JavaScript, en `off`). Les trois
+   premiers enfants d'un lampadaire du socle sont sa lumière (cône, flaque, reflet) ; le mât
+   reste visible. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign:not([data-inview]) .signLamps :global(.lamp) > span:nth-child(-n + 3),
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign:not([data-inview]) .signPlate {
+  opacity: 0;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign[data-inview] .signLamps :global(.lamp) > span:nth-child(-n + 3) {
+  animation: lamp-on 1100ms linear both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign[data-inview] .signLamps :global(.lamp:nth-child(2)) > span:nth-child(-n + 3) {
+  animation-delay: 220ms;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .sign[data-inview] .signPlate {
+  animation: plate-on 900ms var(--ease-out-expo) 550ms both;
+}
+@keyframes lamp-on {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.7;
+  }
+  18% {
+    opacity: 0.1;
+  }
+  30% {
+    opacity: 0.85;
+  }
+  36% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes plate-on {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+.signPosts {
+  display: flex;
+  justify-content: space-between;
+  width: min(62%, 15rem);
+  height: clamp(3.5rem, 12vw, 5.5rem);
+}
+.signPosts span {
+  width: 0.5rem;
+  background: linear-gradient(90deg, var(--color-asphalt-700), var(--color-asphalt-500) 45%, var(--color-asphalt-800));
+}
+
+/* Légende des secteurs : un index de bord de route (liens vers les listes du PK 02), lignes
+   séparées par des tirets de chaussée, sans cadre. */
+.legend {
+  grid-area: legend;
+  align-self: start;
+  border-top: 1px dashed rgb(255 253 246 / 0.16);
+}
+.legend li {
+  border-bottom: 1px dashed rgb(255 253 246 / 0.16);
+}
+.legendLink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 3.6rem;
+  padding: 0.45rem 0.25rem;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+  color: var(--color-asphalt-200);
+  transition: color var(--dur-ui);
+}
+/* Trait de lumière sous la ligne au survol, au focus et pour le secteur trouvé. */
+.legendLink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--color-signal-500);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 450ms var(--ease-out-expo);
+}
+.legendLink:hover,
+.legendLink:focus-visible,
+.legendLink[data-on] {
+  color: var(--color-chalk);
+}
+.legendLink:hover::after,
+.legendLink:focus-visible::after,
+.legendLink[data-on]::after {
+  transform: scaleX(1);
+}
+.legendLabel {
+  flex: 1;
+}
+.legendRings {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+}
+.legendArrow {
+  flex: none;
+  rotate: 90deg;
+  color: var(--color-asphalt-300);
+  transition:
+    translate var(--dur-ui) var(--ease-out-expo),
+    color var(--dur-ui);
+}
+.legendLink:hover .legendArrow,
+.legendLink:focus-visible .legendArrow,
+.legendLink[data-on] .legendArrow {
+  color: var(--color-signal-500);
+  translate: 0 3px;
+}
+:global(html[data-motion="off"]) .legendLink::after,
+:global(html[data-motion="off"]) .legendArrow {
+  transition: none;
+}
+
+/* ─── Anneaux (pictogramme des quatre secteurs) ─────────────────────────────── */
+
+.rings {
+  display: block;
+  overflow: visible;
+}
+.ringsBase {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-chalk) 26%, transparent);
+  stroke-width: 1.5;
+}
+.ringsOn {
+  fill: color-mix(in srgb, var(--color-signal-500) 18%, transparent);
+  stroke: var(--color-signal-500);
+  stroke-width: 2;
+}
+.ringsDepot {
+  fill: var(--color-asphalt-300);
+}
+.ringsDepotOn {
+  fill: var(--color-signal-500);
+}
+
+/* ─── PK 02 · Secteurs ──────────────────────────────────────────────────────── */
+
+.stage {
+  position: relative;
+}
+.areaList {
+  display: grid;
+  gap: 1.25rem;
+}
+@media (min-width: 1024px) {
+  .areaList {
+    gap: 1.75rem;
+  }
+}
+.areaItem {
+  position: relative;
+}
+.plaque {
+  position: relative;
+  padding: 1.5rem 1.25rem 1.6rem;
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-chalk) 4%, transparent), transparent 30%),
+    color-mix(in srgb, var(--color-night-950) 88%, transparent);
+  box-shadow:
+    inset 0 0 0 2px rgb(255 253 246 / 0.12),
+    0 30px 70px -40px rgb(0 0 0 / 0.9);
+}
+@media (min-width: 640px) {
+  .plaque {
+    padding: 2rem 2rem 2.1rem;
+  }
+}
+/* Bande gauche : la couleur du secteur allumé (jaune pour la zone en cours). */
+.plaque::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.25rem;
+  bottom: 1.25rem;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-signal-500);
+  opacity: 0.85;
+  transition: opacity var(--dur-ui);
+}
+.plaqueHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem 1.25rem;
+}
+.vignette {
+  display: block;
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 50%;
+  background: var(--color-night-950);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-chalk) 14%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--color-night-950) 70%, transparent),
+    0 0 0 7px color-mix(in srgb, var(--color-chalk) 10%, transparent);
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .vignette {
+    width: 8rem;
+    height: 8rem;
+  }
+}
+.areaMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.areaRings {
+  display: none;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.areaNumber {
+  @apply font-figure;
+  display: block;
+  font-size: 1.0625rem;
+  letter-spacing: 0.14em;
+  color: var(--color-asphalt-300);
+}
+.areaTitle {
+  @apply font-step text-step;
+  margin-top: 0.15rem;
+  text-wrap: balance;
+  color: var(--color-chalk);
+  transition: color var(--dur-ui);
+}
+.areaText {
+  @apply text-body;
+  margin-top: 0.35rem;
+  color: var(--color-asphalt-300);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.4rem;
+}
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.95rem 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-asphalt-100);
+  background: color-mix(in srgb, var(--color-night-800) 75%, transparent);
+  box-shadow: inset 0 0 0 1px rgb(255 253 246 / 0.1);
+  transition:
+    box-shadow 400ms var(--ease-out-expo),
+    color 400ms;
+}
+/* Lampe de la puce : elle s'allume en cascade quand la plaque entre dans l'écran. */
+.chip::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-sodium);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-sodium) 70%, transparent);
+  transition:
+    opacity 350ms var(--ease-out-expo) calc(var(--i, 0) * 25ms + 150ms),
+    scale 350ms var(--ease-out-expo) calc(var(--i, 0) * 25ms + 150ms);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .chips:not([data-inview]) .chip::before {
+  opacity: 0;
+  scale: 0.2;
+}
+.chipMore {
+  color: var(--color-asphalt-200);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgb(255 253 246 / 0.22);
+}
+.chipMore::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-sodium);
+}
+/* Commune trouvée par la recherche (PK 01) : la puce s'éclaire dans la liste. */
+.chip[data-found] {
+  color: var(--color-asphalt-950);
+  background: var(--color-chalk);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-chalk) 18%, transparent);
+}
+.chip[data-found]::before {
+  background: var(--color-asphalt-950);
+  box-shadow: none;
+}
+
+/* Plan collant (ordinateur, avec JavaScript, hors `off`) */
+.stageVisual {
+  display: none;
+}
+.stagePlanFrame {
+  position: relative;
+  width: min(100%, calc(100svh - var(--header-h, 5rem) - 9rem));
+  aspect-ratio: 1;
+}
+/* Bandeau sous le plan (jamais sur le disque, même sur un écran bas). */
+.stageHud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+}
+/* Mention dans l'angle haut gauche du cadre carré, hors du disque. */
+.stageCaption {
+  @apply font-plate text-plate;
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  color: var(--color-asphalt-300);
+}
+.stageCurrent {
+  position: relative;
+  display: grid;
+  min-height: 1.5em;
+}
+.stageCurrent span {
+  @apply font-sign;
+  white-space: nowrap;
+  grid-area: 1 / 1;
+  font-size: 1.125rem;
+  color: var(--color-signal-400);
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity 400ms var(--ease-out-expo),
+    translate 400ms var(--ease-out-expo);
+}
+.pips {
+  display: flex;
+  gap: 0.35rem;
+}
+.pips span {
+  width: 1.4rem;
+  height: 0.25rem;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-chalk) 18%, transparent);
+  transition: background-color 400ms;
+}
+
+/* Même condition que l'aide des scènes collantes du runtime (ordinateur = écran large ET
+   pointeur fin) : une tablette tactile en paysage garde la version mobile (vignettes), au lieu
+   d'un plan collant qui ne changerait jamais de temps. */
+@media (min-width: 1024px) and (pointer: fine) {
+  :global(html.js:not([data-motion="off"])) .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 3.5rem;
+  }
+  :global(html.js:not([data-motion="off"])) .areaList {
+    gap: 0;
+  }
+  :global(html.js:not([data-motion="off"])) .areaItem {
+    display: flex;
+    align-items: center;
+    min-height: 80vh;
+  }
+  :global(html.js:not([data-motion="off"])) .areaItem:first-child {
+    min-height: 62vh;
+    align-items: flex-start;
+  }
+  :global(html.js:not([data-motion="off"])) .areaItem:last-child {
+    min-height: 70vh;
+  }
+  :global(html.js:not([data-motion="off"])) .plaque {
+    width: 100%;
+  }
+  :global(html.js:not([data-motion="off"])) .vignette {
+    display: none;
+  }
+  /* Sans vignette, le titre prend toute la largeur (« Seine-Saint-Denis (93) » sur une ligne). */
+  :global(html.js:not([data-motion="off"])) .plaqueHead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :global(html.js:not([data-motion="off"])) .areaRings {
+    display: block;
+  }
+  :global(html.js:not([data-motion="off"])) .stageVisual {
+    display: grid;
+    place-items: center;
+    position: sticky;
+    top: var(--header-h, 5rem);
+    height: calc(100svh - var(--header-h, 5rem));
+    padding-block: 1.5rem 2.5rem;
+  }
+
+  /* Étape en cours : plaque allumée, les autres en veilleuse (texte toujours lisible). */
+  .stage[data-beat] .areaItem:not([data-active]) .plaque::before {
+    opacity: 0.15;
+  }
+  .stage[data-beat] .areaItem:not([data-active]) .areaTitle {
+    color: var(--color-asphalt-200);
+  }
+  .stage[data-beat] .areaItem[data-active] .plaque {
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, var(--color-chalk) 26%, transparent),
+      0 30px 80px -40px color-mix(in srgb, var(--color-signal-500) 30%, transparent);
+  }
+}
+
+/* HUD : nom de la zone en cours (sans temps : la dernière zone, « toute l'Île-de-France »). */
+.stage:not([data-beat]) .stageCurrent span:last-child,
+.stage[data-beat="1"] .stageCurrent span:nth-child(1),
+.stage[data-beat="2"] .stageCurrent span:nth-child(2),
+.stage[data-beat="3"] .stageCurrent span:nth-child(3),
+.stage[data-beat="4"] .stageCurrent span:nth-child(4) {
+  opacity: 1;
+  translate: 0 0;
+}
+.stage:not([data-beat]) .pips span,
+.stage[data-beat="1"] .pips span:nth-child(-n + 1),
+.stage[data-beat="2"] .pips span:nth-child(-n + 2),
+.stage[data-beat="3"] .pips span:nth-child(-n + 3),
+.stage[data-beat="4"] .pips span:nth-child(-n + 4) {
+  background: var(--color-signal-500);
+}
+
+/* ─── Calques des zones sur le plan ─────────────────────────────────────────── */
+
+.zoneLayer {
+  transition: opacity 600ms var(--ease-out-expo);
+}
+.zoneFill {
+  --zone-fill: 0.17;
+  fill: var(--color-signal-500);
+  fill-opacity: 0.13;
+  transition: fill-opacity 600ms var(--ease-out-expo);
+}
+.zoneFill93 {
+  transition: opacity 600ms var(--ease-out-expo);
+}
+.zoneEdge {
+  stroke: var(--color-signal-500);
+  stroke-opacity: 0.7;
+  stroke-width: 1.8;
+  transition: stroke-opacity 600ms var(--ease-out-expo);
+}
+.zoneCityHalo {
+  fill: var(--color-sodium);
+  fill-opacity: 0.2;
+}
+.zoneCityDot {
+  fill: var(--color-signal-500);
+  stroke: var(--color-night-950);
+  stroke-width: 1.4;
+}
+.zoneCity {
+  transition: opacity 400ms var(--ease-out-expo) calc(var(--i, 0) * 60ms + 200ms);
+}
+.routeMask {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+}
+.zoneTruck {
+  transform-origin: 0 0;
+  scale: 0.95;
+  transition:
+    opacity 400ms var(--ease-out-expo) 650ms,
+    scale 400ms var(--ease-out-expo) 650ms;
+}
+
+/* Plan collant : par défaut, toute l'Île-de-France allumée, sans trajet. */
+.stagePlanFrame .zoneRoute {
+  opacity: 0;
+}
+.stage[data-beat] .stagePlanFrame .zoneLayer {
+  opacity: 0;
+}
+.stage[data-beat] .stagePlanFrame .routeMask {
+  stroke-dashoffset: 1;
+}
+.stage[data-beat] .stagePlanFrame .zoneTruck {
+  opacity: 0;
+  scale: 0.6;
+}
+/* Zones déjà parcourues : en veilleuse. */
+.stage[data-beat="2"] .stagePlanFrame [data-order="1"],
+.stage[data-beat="3"] .stagePlanFrame :is([data-order="1"], [data-order="2"]),
+.stage[data-beat="4"] .stagePlanFrame :is([data-order="1"], [data-order="2"], [data-order="3"]) {
+  opacity: 0.55;
+}
+.stage[data-beat] .stagePlanFrame :is([data-order]) .zoneFill {
+  fill-opacity: 0.05;
+}
+.stage[data-beat] .stagePlanFrame :is([data-order]) .zoneEdge {
+  stroke-opacity: 0.3;
+}
+.stage[data-beat] .stagePlanFrame [data-order] .zoneCity {
+  opacity: 0.35;
+}
+/* Zone en cours : allumée, trajet tracé depuis le dépôt, dépanneuse à l'arrivée. */
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"],
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"],
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"],
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] {
+  opacity: 1;
+}
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"] .zoneFill,
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"] .zoneFill,
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"] .zoneFill,
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] .zoneFill {
+  fill-opacity: var(--zone-fill);
+}
+/* Grande couronne : la plus grande surface, allumée plus doucement (jamais un aplat jaune). */
+[data-zone="grande-couronne"] .zoneFill {
+  --zone-fill: 0.085;
+  fill-opacity: 0.07;
+}
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"] .zoneEdge,
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"] .zoneEdge,
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"] .zoneEdge,
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] .zoneEdge {
+  stroke-opacity: 0.9;
+}
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"] .zoneCity,
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"] .zoneCity,
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"] .zoneCity,
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] .zoneCity {
+  opacity: 1;
+}
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"] .zoneRoute,
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"] .zoneRoute,
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"] .zoneRoute,
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] .zoneRoute {
+  opacity: 1;
+}
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"] .routeMask,
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"] .routeMask,
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"] .routeMask,
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] .routeMask {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 900ms var(--ease-beam) 120ms;
+}
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"] .zoneTruck,
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"] .zoneTruck,
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"] .zoneTruck,
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] .zoneTruck {
+  opacity: 1;
+  scale: 0.95;
+}
+
+/* Onde : un anneau part du dépôt à chaque zone allumée (une fois, au changement de temps). */
+.zonePing {
+  fill: none;
+  stroke: var(--color-beacon-500);
+  stroke-width: 2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.stage[data-beat="1"] .stagePlanFrame [data-order="1"] .zonePing,
+.stage[data-beat="2"] .stagePlanFrame [data-order="2"] .zonePing,
+.stage[data-beat="3"] .stagePlanFrame [data-order="3"] .zonePing,
+.stage[data-beat="4"] .stagePlanFrame [data-order="4"] .zonePing {
+  animation: zone-ping 1.4s var(--ease-out-expo) both;
+}
+@keyframes zone-ping {
+  from {
+    opacity: 0.9;
+    scale: 0.2;
+  }
+  to {
+    opacity: 0;
+    scale: 4.2;
+  }
+}
+:global(html[data-motion="off"]) .zonePing {
+  animation: none !important;
+}
+
+/* Vignettes (mobile) : elles se posent en tournant légèrement à l'entrée (niveau full). */
+@supports (animation-timeline: view()) {
+  :global(html[data-motion="full"]) .vignette {
+    animation: vignette-in linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 35%;
+  }
+}
+@keyframes vignette-in {
+  from {
+    rotate: -24deg;
+    scale: 0.82;
+  }
+}
+
+/* ─── PK 03 · Plus loin ─────────────────────────────────────────────────────── */
+
+.further {
+  display: grid;
+  gap: 2.5rem;
+}
+.further > * {
+  min-width: 0;
+}
+@media (min-width: 1024px) {
+  .further {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: center;
+    gap: 4rem;
+  }
+}
+.furtherText {
+  @apply text-lead;
+  max-width: 34rem;
+  text-wrap: pretty;
+  color: var(--color-asphalt-200);
+}
+.furtherNote {
+  @apply text-body;
+  position: relative;
+  max-width: 34rem;
+  margin-top: 1.5rem;
+  padding-left: 1.25rem;
+  color: var(--color-asphalt-200);
+}
+.furtherNote::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  bottom: 0.3em;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-motorway-600);
+}
+.furtherSign {
+  margin-top: 2rem;
+  max-width: 34rem;
+}
+.relayFrame {
+  position: relative;
+  padding: 1.5rem 0.75rem;
+  /* Ombre portée douce sous le schéma (jamais un aplat de carte) : il se lit sur le ciel bleu. */
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-night-950) 62%, transparent),
+    color-mix(in srgb, var(--color-night-950) 30%, transparent) 70%,
+    transparent
+  );
+}
+@media (min-width: 640px) {
+  .relayFrame {
+    padding: 2.25rem 2rem;
+  }
+}

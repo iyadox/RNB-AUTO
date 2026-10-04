@@ -1,5 +1,6 @@
 /**
- * Défilement doux (Lenis) : ordinateur, niveau `full`, hors routes calmes (docs/09, C.4).
+ * Défilement doux (Lenis) : ordinateur, niveau `full`, hors routes et pages calmes (docs/09, C.4).
+ * Seul endroit du site qui crée un Lenis (une instance à la fois, recréée à chaque page).
  * Import dynamique ; branché sur ScrollTrigger quand GSAP est chargé. Il s'arrête quand le
  * menu est ouvert. Quand un champ a le focus, il cède la molette au défilement natif (au lieu de
  * s'arrêter : un Lenis arrêté bloque la molette et fige toute la page). Retourne la fonction
@@ -16,9 +17,6 @@ export function startLenis(kit: GsapKit | null): () => void {
   import("lenis")
     .then(({ default: Lenis }) => {
       if (disposed) return;
-      // Une page qui a déjà son propre Lenis (accueil encore servi par home-motion.tsx jusqu'à
-      // L1) le garde : deux instances se disputeraient la molette.
-      if (document.documentElement.classList.contains("lenis")) return;
       const lenis = new Lenis({ anchors: true, lerp: 0.11, smoothWheel: true, autoRaf: !kit });
 
       let tick: ((time: number) => void) | null = null;

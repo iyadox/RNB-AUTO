@@ -250,7 +250,8 @@
   html {
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
-    scroll-padding-top: 5rem;
+    /* Les ancres s'arrêtent sous l'en-tête : sa hauteur réelle est écrite par la coque (--header-h). */
+    scroll-padding-top: var(--header-h, 5rem);
   }
   body {
     background: var(--color-asphalt-950);
@@ -326,12 +327,6 @@
 }
 /* Grain de bitume : tuile PNG statique de 128 px (docs/09, B.5), jamais animée. */
 @utility grain {
-  background-image: url("/textures/grain.png");
-  background-size: 128px 128px;
-  background-repeat: repeat;
-}
-/* Ancien nom, gardé comme alias jusqu'à la recette (L9). Il n'est plus utilisé par aucune page. */
-@utility asphalt-grain {
   background-image: url("/textures/grain.png");
   background-size: 128px 128px;
   background-repeat: repeat;

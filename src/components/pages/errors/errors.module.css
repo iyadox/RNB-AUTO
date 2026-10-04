@@ -475,3 +475,19 @@
     border: 1px solid CanvasText;
   }
 }
+
+/* ─── Page d'erreur : la phrase qui désigne les boutons d'appel ─────────────────
+   Téléphone : la barre d'action (Appeler, WhatsApp) est en bas de l'écran. À partir de 768 px,
+   la barre n'existe plus : Appeler est dans l'en-tête, seulement si le numéro est réglé (lien
+   `tel:` dans l'en-tête). Sans numéro, la phrase est omise plutôt que fausse. */
+.leadDesktop {
+  display: none;
+}
+@media (min-width: 768px) {
+  .leadMobile {
+    display: none;
+  }
+  :global(body:has(header a[href^="tel:"])) .leadDesktop {
+    display: inline;
+  }
+}

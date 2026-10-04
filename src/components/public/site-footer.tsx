@@ -147,7 +147,7 @@ export function SiteFooter({ info }: { info: PublicSiteInfo }) {
                     <Icon name="mail" size={19} strokeWidth={2.2} />
                     <span className="sr-only">Email</span>
                   </dt>
-                  <dd className="min-w-0 text-asphalt-200">
+                  <dd className="min-w-0 flex-1 text-asphalt-200">
                     {info.email ? (
                       <a href={`mailto:${info.email}`} className="break-all hover:text-chalk">
                         {info.email}

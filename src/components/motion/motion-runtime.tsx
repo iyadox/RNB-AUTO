@@ -9,10 +9,10 @@
  */
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useState } from "react";
-import { isCalmRoute } from "@/content/site-map";
+import { CALM_MARKER, isCalmRoute, isNoHaloRoute } from "@/content/site-map";
 import { MOTION_CHANGE_EVENT, applyMotionLevel, currentMotionLevel } from "./level";
 import { startHalo } from "./runtime/halo";
-import { observeInView, observePause, observeSky, trackScrollProgress } from "./runtime/observers";
+import { observeInView, observePause, observeRetro, observeSky, onDomChange, trackScrollProgress } from "./runtime/observers";
 import { installTransitionOrigin } from "./runtime/transition-origin";
 import type { GsapKit, MotionLevel } from "./types";
 
@@ -35,6 +35,16 @@ const run = (fn: () => Cleanup | void, cleanups: Cleanup[]) => {
     if (process.env.NODE_ENV !== "production") console.warn("[motion]", error);
   }
 };
+
+/**
+ * Marqueur de page calme posé par la page elle-même (404, erreur : leur adresse est quelconque) :
+ * `data-calm` ou `data-calm="full"` = ni Lenis ni halo ; `data-calm="halo"` = pas de halo.
+ */
+function readCalmMarker(): "full" | "halo" | null {
+  const el = document.querySelector(`[${CALM_MARKER}]`);
+  if (!el) return null;
+  return el.getAttribute(CALM_MARKER) === "halo" ? "halo" : "full";
+}
 
 /** Premier moment calme : `requestIdleCallback` (1 500 ms au plus), premier défilement ou toucher. */
 function whenIdle(callback: () => void): Cleanup {
@@ -70,9 +80,14 @@ function startPage(pathname: string): Cleanup {
   const html = document.documentElement;
   const level: MotionLevel = currentMotionLevel() ?? applyMotionLevel();
   const desktop = window.matchMedia(DESKTOP_QUERY).matches;
-  const calm = isCalmRoute(pathname);
+  // Routes calmes : ni Lenis ni halo ; routes sans halo (/panne-autoroute) : Lenis seulement (C.6).
+  const calmRoute = isCalmRoute(pathname);
+  const haloRoute = !isNoHaloRoute(pathname);
   const cleanups: Cleanup[] = [];
   let disposed = false;
+  let stopHalo: Cleanup | null = null;
+  let stopLenis: Cleanup | null = null;
+  const lenisAllowed = () => desktop && level === "full" && !calmRoute && readCalmMarker() !== "full";
 
   // 1. Observateurs ; les éléments déjà visibles sont marqués avant `.motion-ready`.
   run(() => observeInView(document), cleanups);
@@ -82,12 +97,57 @@ function startPage(pathname: string): Cleanup {
 
   // 2. Les états cachés n'existent qu'à partir d'ici, et jamais en `off`.
   html.classList.toggle("motion-ready", level !== "off");
-  if (level === "off") return () => cleanups.reverse().forEach((cleanup) => cleanup());
+  const dispose = () => {
+    disposed = true;
+    for (const cleanup of cleanups.reverse()) {
+      try {
+        cleanup();
+      } catch {
+        // Nettoyage suivant.
+      }
+    }
+    cleanups.length = 0;
+  };
+  if (level === "off") return dispose;
 
-  // 3. Halo des phares : ordinateur, niveau `full`, hors routes calmes.
-  if (desktop && level === "full" && !calm) run(startHalo, cleanups);
+  // 3. Reflet des plaques (P6) : une fois au milieu de l'écran.
+  run(() => observeRetro(document), cleanups);
 
-  // 4. Chargement différé : aides, GSAP si la page en a besoin, scènes, Lenis.
+  // 4. Halo des phares : ordinateur, niveau `full`, hors routes calmes ou sans halo, hors page
+  //    marquée calme. Un marqueur qui apparaît après coup (page d'erreur) coupe halo et Lenis.
+  const haloAllowed = desktop && level === "full" && haloRoute;
+  const startHaloOnce = () => {
+    if (stopHalo || disposed) return;
+    try {
+      stopHalo = startHalo();
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") console.warn("[motion]", error);
+    }
+  };
+  if (haloAllowed && !readCalmMarker()) startHaloOnce();
+  const calmWatch = () => {
+    const marker = readCalmMarker();
+    // Marqueur retiré (page d'erreur refermée par « Réessayer », sans changer d'adresse) : le
+    // halo revient. Lenis, lui, attend la page suivante (il faudrait recharger ses modules).
+    if (!marker) {
+      if (haloAllowed) startHaloOnce();
+      return;
+    }
+    stopHalo?.();
+    stopHalo = null;
+    if (marker === "full") {
+      stopLenis?.();
+      stopLenis = null;
+    }
+  };
+  run(() => onDomChange(calmWatch), cleanups);
+  cleanups.push(() => {
+    stopHalo?.();
+    stopLenis?.();
+    stopHalo = stopLenis = null;
+  });
+
+  // 5. Chargement différé : aides, GSAP si la page en a besoin, scènes, Lenis.
   cleanups.push(
     whenIdle(() => {
       void (async () => {
@@ -109,10 +169,17 @@ function startPage(pathname: string): Cleanup {
         }
         run(() => helpers.initRoutes(document, kit, context), cleanups);
         run(() => helpers.initScenes(document, context), cleanups);
-        if (desktop && level === "full" && !calm) {
+        if (lenisAllowed()) {
           const { startLenis } = await import("./runtime/lenis");
           if (disposed) return;
-          run(() => startLenis(kit), cleanups);
+          // Le marqueur calme a pu apparaître pendant le chargement du module.
+          if (lenisAllowed()) {
+            try {
+              stopLenis = startLenis(kit);
+            } catch (error) {
+              if (process.env.NODE_ENV !== "production") console.warn("[motion]", error);
+            }
+          }
         }
         if (kit) {
           const { ScrollTrigger } = kit;
@@ -127,16 +194,7 @@ function startPage(pathname: string): Cleanup {
     }),
   );
 
-  return () => {
-    disposed = true;
-    for (const cleanup of cleanups.reverse()) {
-      try {
-        cleanup();
-      } catch {
-        // Nettoyage suivant.
-      }
-    }
-  };
+  return dispose;
 }
 
 export function MotionRuntime(): null {

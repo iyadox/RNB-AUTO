@@ -22,7 +22,10 @@ type Variant = "solid" | "outline" | "ghost";
 const BASE =
   "inline-flex shrink-0 items-center justify-center gap-2.5 whitespace-nowrap rounded-2xl font-extrabold transition-[translate,background-color,color,box-shadow] duration-(--dur-ui) ease-(--ease-out-expo) active:scale-[0.98]";
 
-/** Bouton principal jaune (« Demander un dépannage »). Un seul par écran (B.1). */
+/**
+ * Bouton principal jaune (« Demander un dépannage »). Un seul par écran (B.1). Porte
+ * `data-primary` : la plaque à pictogramme de sa section passe au trait (voir `Plate`).
+ */
 export function PrimaryLink({
   href,
   children,
@@ -40,6 +43,8 @@ export function PrimaryLink({
     <Link
       href={href}
       transitionTypes={transitionTypes}
+      // Repère du bouton principal jaune : une plaque à pictogramme de la même section passe au trait.
+      data-primary=""
       className={cn(
         BASE,
         styles.glint,

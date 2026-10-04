@@ -4,7 +4,8 @@
  * (`data-sky` sur chaque section, recopié sur <html> par le runtime). Sans JavaScript : minuit.
  *
  * Couches, de l'arrière vers l'avant : dégradé du ciel, étoiles fixes (12 sur mobile, 24 sur
- * ordinateur plus une poussière d'étoiles très fines, six qui scintillent), nappes de nuages
+ * ordinateur plus une poussière d'étoiles très fines, six qui scintillent à l'arrivée puis se
+ * figent : ce n'est pas une boucle), nappes de nuages
  * éclairées par la ville (elles s'éteignent avec elle), lueur de la ville sur l'horizon, brume
  * basse, grain de bitume, halo des phares (P21). Tout est décoratif : `aria-hidden`, sans pointeur.
  * Styles et états : src/styles/motion.css (« P1 · NightSky »).

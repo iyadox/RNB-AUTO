@@ -92,10 +92,11 @@
     --tilt-from: 60deg;
   }
 }
-/* /demande : impression et compteur plus vifs (le vrai prix est attendu). */
+/* /demande : impression et compteur plus vifs (le vrai prix est attendu). Le compteur finit à
+   600 ms : chiffre final lisible avant 700 ms (U8), le vrai texte étant dans le DOM dès le rendu. */
 [data-page="demande"] {
   --dur-print: 450ms;
-  --dur-odometer: 700ms;
+  --dur-odometer: 600ms;
 }
 html[data-motion="lite"] {
   --dur-sky: 400ms;
@@ -209,7 +210,10 @@ html[data-sky="aube"] .night-sky {
     display: block;
   }
 }
-/* Six étoiles scintillent, sur ordinateur et en niveau `full` seulement. */
+/* Six étoiles scintillent à l'arrivée sur le site, sur ordinateur et en niveau `full` seulement :
+   quatre allers-retours (12 à 20 s), puis le ciel se fige. Ce n'est pas une boucle infinie : elle
+   ne compte pas dans les deux boucles visibles d'un écran (C.1-8). Aucun scintillement en `lite`,
+   en `off`, avec la préférence « moins d'animations » ni sans JavaScript. */
 .night-sky__twinkle {
   position: absolute;
   width: 5px;
@@ -225,7 +229,7 @@ html[data-sky="aube"] .night-sky {
     display: block;
   }
   html[data-motion="full"] .night-sky__twinkle {
-    animation: sky-twinkle var(--tw-dur, 4s) ease-in-out var(--tw-delay, 0s) infinite alternate;
+    animation: sky-twinkle var(--tw-dur, 4s) ease-in-out var(--tw-delay, 0s) 4 alternate;
   }
 }
 @keyframes sky-twinkle {
@@ -265,6 +269,12 @@ html[data-sky="aube"] .night-sky {
 }
 .night-sky__halo[data-on] {
   opacity: 1;
+}
+/* Sans souris fine (téléphone, tablette) : aucun calque réservé pour le halo. */
+@media not ((min-width: 1024px) and (pointer: fine)) {
+  .night-sky__halo {
+    display: none;
+  }
 }
 
 @media (prefers-contrast: more) {
@@ -372,8 +382,12 @@ html.motion-ready[data-motion]:not([data-motion="off"]) [data-reveal]:not([data-
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
-   P6 · Retroreflect : une bande blanche traverse la plaque au milieu de l'écran.
-   CSS seul (timeline de vue) ; repli : une fois quand le runtime pose `data-inview`.
+   P6 · Retroreflect : une bande blanche traverse la plaque UNE fois, au milieu de l'écran.
+   Balayage dans le temps (900 ms), déclenché par le runtime (`data-retro-play`, observers.ts) :
+   au milieu de l'écran, ou dès l'entrée si la page ne défile pas assez pour l'y amener.
+   Au repos, la bande est hors de la plaque : jamais de reflet figé (une animation liée au
+   défilement restait à mi-course, en bande blanche, sur une page immobile comme /demande).
+   Sans JavaScript et en `off` : liseré allumé, sans balayage.
    ═════════════════════════════════════════════════════════════════════════════ */
 
 @layer components {
@@ -398,27 +412,13 @@ html.motion-ready[data-motion]:not([data-motion="off"]) [data-reveal]:not([data-
   mask-image: linear-gradient(105deg, transparent 34%, #000 50%, transparent 66%);
   translate: -110% 0;
 }
-@supports not (animation-timeline: view()) {
-  html.motion-ready[data-motion]:not([data-motion="off"]) [data-retro][data-inview]::after {
-    animation: retro-sweep 900ms var(--ease-beam) both;
-  }
+html.motion-ready:not([data-motion="off"]) [data-retro][data-retro-play]::after {
+  animation: retro-sweep 900ms var(--ease-beam) both;
 }
-/* `prefers-reduced-motion` : utile sans JavaScript (aucun `data-motion` posé), où la règle
-   globale de globals.css ne neutralise pas une animation liée au défilement. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html:not([data-motion="off"]) [data-retro]::after {
-      animation: retro-sweep linear both;
-      animation-timeline: view();
-      animation-range: cover 35% cover 65%;
-    }
-  }
-}
-/* Sur ordinateur, le reflet se rejoue au survol et au focus. */
+/* Sur ordinateur, le reflet se rejoue au survol et au focus (aussi sans JavaScript). Un balayage
+   en cours (règle ci-dessus, plus précise) n'est pas interrompu. */
 @media (hover: hover) and (pointer: fine) {
-  html:not([data-motion="off"]) [data-retro]:hover::after,
-  html:not([data-motion="off"]) [data-retro]:focus-visible::after,
-  html:not([data-motion="off"]) [data-retro]:has(:focus-visible)::after {
+  html:not([data-motion="off"]) [data-retro]:is(:hover, :focus-visible, :has(:focus-visible))::after {
     animation: retro-sweep-hover 900ms var(--ease-beam) both;
   }
 }

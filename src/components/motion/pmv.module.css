@@ -10,9 +10,11 @@
   }
 }
 
-/* Le caisson : liseré métallique, rivets, fond noir profond. */
+/* Le caisson : liseré métallique, rivets, fond noir profond. C'est le conteneur de mesure de la
+   taille des LED (container query) : le panneau prend la largeur de son conteneur. */
 .housing {
   position: relative;
+  container-type: inline-size;
   padding: 0.5rem;
   border-radius: 6px;
   background: linear-gradient(180deg, #1b1f26, #0c0e12);
@@ -42,11 +44,12 @@
 
 /* La matrice : points éteints sur une trame de 4 px, lueur ambre statique sur le parent. */
 .matrix {
+  --pmv-pad-x: 1rem;
   position: relative;
   display: grid;
   place-items: center;
   min-height: calc(2 * 1.15em + 1.5rem);
-  padding: 0.75rem 1rem;
+  padding: 0.75rem var(--pmv-pad-x);
   border-radius: 3px;
   background-color: var(--color-night-950);
   background-image: radial-gradient(circle, var(--color-led-off) 1.25px, transparent 1.6px);
@@ -54,11 +57,39 @@
   overflow: clip;
   filter: drop-shadow(0 0 6px rgb(255 178 26 / 0.55));
 }
+/* Taille des LED : celle qui fait tenir la plus longue ligne (`--pmv-em`, calculée par le
+   composant) dans la largeur utile, entre 20 px et la taille du rôle. */
 .md .matrix {
-  font-size: var(--text-led);
+  font-size: clamp(1.25rem, (100cqi - 2 * var(--pmv-pad-x)) / var(--pmv-em, 20), var(--text-led));
 }
 .lg .matrix {
-  font-size: clamp(1.75rem, 1.1rem + 2.6vw, 3.25rem);
+  font-size: clamp(1.25rem, (100cqi - 2 * var(--pmv-pad-x)) / var(--pmv-em, 20), clamp(1.75rem, 1.1rem + 2.6vw, 3.25rem));
+}
+/* Panneau étroit (téléphone) : police plus étroite et marges réduites, pour garder des LED de
+   20 px au moins sans débordement (vérifié à 360 px). */
+@container (max-width: 30rem) {
+  .matrix {
+    --pmv-pad-x: 0.625rem;
+    --pmv-em: var(--pmv-em-narrow);
+    font-stretch: 75%;
+    font-variation-settings: "wdth" 75;
+    letter-spacing: 0.04em;
+  }
+}
+/* `joinFrom="lg"` : à partir de 1 024 px, les deux parties d'un message sur une seule ligne. */
+@media (min-width: 64rem) {
+  .joinLg .matrix {
+    --pmv-em: var(--pmv-em-joined);
+    min-height: calc(1.15em + 1.5rem);
+  }
+  .joinLg .message {
+    display: flex;
+    justify-content: center;
+  }
+  .joinLg .part,
+  .joinLg .joiner {
+    display: inline;
+  }
 }
 
 .message {
@@ -66,15 +97,23 @@
   justify-items: center;
   color: var(--color-led);
   font-weight: 900;
-  text-align: center;
-  white-space: nowrap;
-}
-.line {
-  display: block;
   line-height: 1.15;
-  /* Points allumés : le texte n'est visible qu'à travers la trame (≥ 20 px seulement). */
+  text-align: center;
+  white-space: pre;
+  /* Points allumés : le texte n'est visible qu'à travers la trame (≥ 20 px seulement). Une seule
+     trame pour tout le message : les points des deux parties restent alignés. */
   -webkit-mask: radial-gradient(circle, #000 1.45px, transparent 1.8px) 0 0 / 4px 4px;
   mask: radial-gradient(circle, #000 1.45px, transparent 1.8px) 0 0 / 4px 4px;
+}
+.part {
+  display: block;
+}
+.line {
+  line-height: 1.15;
+}
+/* Séparateur des deux parties : seulement quand elles sont réunies sur une ligne. */
+.joiner {
+  display: none;
 }
 
 /* Effacement puis écriture, colonne par colonne (steps(10), 280 ms chacun). */
@@ -132,7 +171,7 @@
   .matrix {
     filter: none;
   }
-  .line {
+  .message {
     -webkit-mask: none;
     mask: none;
   }

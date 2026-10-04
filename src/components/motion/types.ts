@@ -25,13 +25,21 @@ export type SceneContext = {
   level: Exclude<MotionLevel, "off">;
   /** (min-width: 1024px) and (pointer: fine) */
   desktop: boolean;
-  /** Non nul si le module déclare `needsGsap`. */
+  /** Non nul si le module déclare `needsGsap` (ou si sa fonction `needsGsap` a répondu vrai). */
   kit: GsapKit | null;
   helpers: SceneHelpers;
 };
 
+/** Ce que le runtime sait AVANT d'initialiser une scène (pour décider de charger GSAP). */
+export type SceneGsapQuery = { level: Exclude<MotionLevel, "off">; desktop: boolean };
+
 export type SceneModule = {
-  needsGsap?: boolean;
+  /**
+   * La scène a-t-elle besoin de GSAP (`ctx.kit` non nul) ? Booléen, ou fonction appelée avec le
+   * niveau et le format : par exemple `({ level, desktop }) => level === "full" && desktop`
+   * charge GSAP pour la version liée au défilement sans l'imposer en `lite` sur mobile.
+   */
+  needsGsap?: boolean | ((query: SceneGsapQuery) => boolean);
   /** Appelé quand la racine approche de l'écran. Retourne une fonction de nettoyage (facultative). */
   init(root: HTMLElement, ctx: SceneContext): void | (() => void);
 };

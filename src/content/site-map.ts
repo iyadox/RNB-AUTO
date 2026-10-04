@@ -1,6 +1,6 @@
 /**
  * Plan du site public : navigation, menu mobile, pied de page, enchaînement des pages et
- * routes calmes (docs/09, C.6, D.5, D.6, D.8). Aucune page ne réécrit ces listes.
+ * routes calmes ou sans halo (docs/09, C.6, D.5, D.6, D.8). Aucune page ne réécrit ces listes.
  */
 
 export type NavItem = { href: string; label: string; help: string };
@@ -79,7 +79,31 @@ export const CALM_ROUTES: readonly string[] = [
   "/conditions-d-intervention",
 ];
 
+/**
+ * Routes sans halo des phares, mais avec Lenis (C.6 : « Lenis seulement »). Les routes calmes
+ * n'ont pas de halo non plus : inutile de les répéter ici.
+ * La 404 et la page d'erreur, dont l'adresse est quelconque, se déclarent elles-mêmes calmes
+ * avec l'attribut `data-calm` (voir `CALM_MARKER`).
+ */
+export const NO_HALO_ROUTES: readonly string[] = ["/panne-autoroute"];
+
+/**
+ * Marqueur de page calme, posé par la page elle-même sur un de ses éléments (lu par le runtime,
+ * même s'il apparaît après coup, comme la page d'erreur) :
+ * - `data-calm` ou `data-calm="full"` : ni Lenis, ni halo (404, erreur) ;
+ * - `data-calm="halo"` : pas de halo, Lenis gardé.
+ */
+export const CALM_MARKER = "data-calm";
+
+const matches = (routes: readonly string[], pathname: string) =>
+  routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+
 /** Vrai si la route (ou une de ses sous-routes) est calme. */
 export function isCalmRoute(pathname: string): boolean {
-  return CALM_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  return matches(CALM_ROUTES, pathname);
+}
+
+/** Vrai si la route n'a pas de halo des phares : route calme ou route de `NO_HALO_ROUTES`. */
+export function isNoHaloRoute(pathname: string): boolean {
+  return isCalmRoute(pathname) || matches(NO_HALO_ROUTES, pathname);
 }

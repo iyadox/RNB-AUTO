@@ -6,6 +6,9 @@
  * - `<details data-menu>` natif : il s'ouvre et se ferme sans JavaScript ; aucune case à cocher.
  * - Panneau fixe sous l'en-tête, jusqu'en bas de l'écran ; la barre d'action (z 60) reste
  *   par-dessus et le panneau lui garde sa place. Défilement de la page bloqué en CSS (`:has`).
+ * - Le bouton jaune et la rangée Appeler / WhatsApp sont toujours visibles sans faire défiler :
+ *   sur un écran bas (790 px et moins), les lignes se resserrent (48 px, aide en 14 px) ; plus
+ *   bas encore, seule la liste des liens défile, les actions restent en place.
  * - Huit liens (`MENU_ITEMS`), chacun avec sa ligne d'aide, posés comme des arrêts sur une route
  *   de nuit ; la page en cours est le losange jaune allumé.
  * - Ouverture : un cercle de lumière part du bouton, puis les lignes arrivent en cascade (CSS).
@@ -105,7 +108,7 @@ export function MobileMenu({ phone, whatsapp }: { phone: PhoneLink | null; whats
 
       <div className={styles.panel}>
         <NightPlan />
-        <nav aria-label="Menu" className="relative">
+        <nav aria-label="Menu" className={styles.menuNav}>
           <ol className={styles.menuList}>
             {MENU_ITEMS.map((item, index) => {
               const active = isActive(pathname, item.href);
@@ -120,7 +123,7 @@ export function MobileMenu({ phone, whatsapp }: { phone: PhoneLink | null; whats
                     <span className={styles.stop} aria-hidden="true" />
                     <span className="min-w-0 flex-1">
                       <span className={cn(styles.menuTitle, "font-sign block")}>{item.label}</span>
-                      <span className="text-small mt-1 block text-asphalt-200">{item.help}</span>
+                      <span className={cn(styles.menuHelp, "block text-asphalt-200")}>{item.help}</span>
                     </span>
                     <Icon name="chevronRight" size={20} strokeWidth={2.4} className={styles.menuChevron} />
                   </Link>
@@ -134,7 +137,7 @@ export function MobileMenu({ phone, whatsapp }: { phone: PhoneLink | null; whats
           <PrimaryLink href="/demande" size="md" className="w-full">
             Demander un dépannage
           </PrimaryLink>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className={cn(styles.menuCalls, "grid grid-cols-2 gap-3")}>
             <CallLink phone={phone} label="short" missing="plain" size="sm" className="w-full" />
             {whatsapp ? (
               <WhatsAppLink whatsapp={whatsapp} size="sm" className="w-full" />

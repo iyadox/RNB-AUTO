@@ -11,7 +11,7 @@
  * Jamais sur un numéro de téléphone ni sur une référence de demande.
  * `off`, préférence « moins d'animations » et sans JavaScript : valeur fixe.
  */
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { formatEurosShort } from "@/core/format";
 import { cn } from "@/components/ui/cn";
 import { currentMotionLevel } from "./level";
@@ -22,7 +22,7 @@ type OdometerProps = {
   unit?: "€" | "km" | null;
   /** `view` : roule à l'entrée dans l'écran ; `mount` : dès l'affichage. */
   trigger?: "view" | "mount";
-  /** Durée totale en ms (par défaut `--dur-odometer` : 1 100 ms, 700 ms sur /demande). */
+  /** Durée totale en ms (par défaut `--dur-odometer` : 1 100 ms, 600 ms sur /demande). */
   duration?: number;
   className?: string;
 };
@@ -109,6 +109,13 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
   if (!height) return () => {};
   const baseline = baselineIn(valueEl, root);
   const ink = digitInk(root);
+  const fontSize = parseFloat(getComputedStyle(root).fontSize) || 16;
+  // Fondu du hublot : le chiffre qui sort s'efface sur `fade` px, comme sur un tambour. Le pas
+  // des cellules laisse toujours un blanc entre deux chiffres : à mi-roulement, on ne voit jamais
+  // deux moitiés de chiffres collées l'une à l'autre.
+  const fade = fontSize * 0.14;
+  const inkHeight = ink ? ink.ascent + ink.descent : fontSize * 0.72;
+  const pitch = Math.max(height, Math.ceil(inkHeight + 2 * fade + fontSize * 0.16));
 
   const chars = Array.from(text);
   const digitCount = chars.filter((c) => /\d/.test(c)).length;
@@ -132,8 +139,8 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
       for (let i = 0; i < 20; i++) {
         const cell = document.createElement("span");
         cell.textContent = String(i % 10);
-        cell.style.height = `${height}px`;
-        cell.style.lineHeight = `${height}px`;
+        cell.style.height = `${pitch}px`;
+        cell.style.lineHeight = `${pitch}px`;
         strip.appendChild(cell);
       }
       col.appendChild(strip);
@@ -154,7 +161,7 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
         end = target <= source ? target + 10 : target;
       }
       strips.push({ strip, start, end });
-      strip.style.transform = `translateY(${-start * height}px)`;
+      strip.style.transform = `translateY(${-start * pitch}px)`;
       digitIndex++;
     } else {
       const glyph = document.createElement("span");
@@ -172,14 +179,28 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
   const cellBaseline = firstCell ? baselineIn(firstCell, root) : null;
   const shift = baseline !== null && cellBaseline !== null ? baseline - cellBaseline : 0;
   const line = baseline ?? cellBaseline;
-  const pad = parseFloat(getComputedStyle(root).fontSize) * 0.04;
-  if (shift) for (const glyph of glyphs) glyph.style.translate = `0 ${shift}px`;
+  // Les autres signes (« € », espace) gardent la hauteur de ligne du vrai texte.
+  const glyphBaseline = glyphs[0] ? baselineIn(glyphs[0], root) : null;
+  const glyphShift = baseline !== null && glyphBaseline !== null ? baseline - glyphBaseline : 0;
+  if (glyphShift) for (const glyph of glyphs) glyph.style.translate = `0 ${glyphShift}px`;
   for (const { strip } of strips) {
     if (shift) strip.style.marginTop = `${shift}px`;
     if (ink && line !== null) {
-      const top = Math.max(0, line - ink.ascent - pad);
-      const bottom = Math.min(height, line + ink.descent + pad);
-      if (bottom > top) (strip.parentElement as HTMLElement).style.clipPath = `inset(${top}px 0 ${height - bottom}px 0)`;
+      // Hublot : l'encre des chiffres, plus la bande de fondu au-dessus et au-dessous.
+      // La colonne déborde de la ligne de `bleed` px en haut et en bas : le fondu n'est jamais
+      // coupé net par le bord de la boîte (le masque ne peint rien hors de la colonne).
+      const bleed = Math.ceil(fade * 2);
+      const top = line - ink.ascent - fade + bleed;
+      const bottom = line + ink.descent + fade + bleed;
+      const col = strip.parentElement as HTMLElement;
+      col.style.alignSelf = "flex-start";
+      col.style.boxSizing = "border-box";
+      col.style.marginTop = `${-bleed}px`;
+      col.style.paddingTop = `${bleed}px`;
+      col.style.height = `${height + 2 * bleed}px`;
+      const mask = `linear-gradient(to bottom, transparent ${top.toFixed(1)}px, #000 ${(top + fade).toFixed(1)}px, #000 ${(bottom - fade).toFixed(1)}px, transparent ${bottom.toFixed(1)}px)`;
+      col.style.setProperty("-webkit-mask-image", mask);
+      col.style.maskImage = mask;
     }
   }
   valueEl.style.color = "transparent";
@@ -195,7 +216,7 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
     moving.forEach(({ strip, end }, index) => {
       const delay = (count - 1 - index) * STAGGER_MS;
       strip.style.transition = `transform ${each}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`;
-      strip.style.transform = `translateY(${-end * height}px)`;
+      strip.style.transform = `translateY(${-end * pitch}px)`;
     });
   });
   const finish = () => {
@@ -203,7 +224,8 @@ function roll(root: HTMLElement, text: string, duration: number, fromText: strin
     overlay.remove();
     valueEl.style.removeProperty("color");
   };
-  const timer = window.setTimeout(finish, each + lastDelay + 60);
+  // Le vrai texte revient dès la fin de la dernière colonne (mêmes chiffres, même ligne de base).
+  const timer = window.setTimeout(finish, each + lastDelay + 20);
   return () => {
     window.clearTimeout(timer);
     finish();
@@ -218,7 +240,9 @@ export function Odometer({ value, unit = "€", trigger = "view", duration, clas
   const startedRef = useRef(false);
   const text = formatOdometer(value, unit);
 
-  useEffect(() => {
+  // Avant la peinture : en `mount`, le vrai prix n'est jamais affiché une image avant de repartir
+  // de zéro (il l'était environ 50 ms sur mobile, entre le montage et l'effet).
+  useLayoutEffect(() => {
     const root = ref.current;
     const previous = lastTextRef.current;
     lastTextRef.current = text;

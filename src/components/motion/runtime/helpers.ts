@@ -79,6 +79,20 @@ export function createSceneHelpers(): SceneHelpers {
 // ─── P5 · Montée des lignes (niveau `full` uniquement) ───────────────────────
 
 /**
+ * Texte d'un titre avant découpage. SplitText regroupe par défaut TOUS les blancs (`\s`, donc
+ * aussi l'espace insécable posée par la coque avant « ? ! : ; ») en espaces ordinaires, puis coupe
+ * les mots aux espaces : le « ? » partait seul sur une ligne (constaté à 390 px). Ici, seuls les
+ * blancs ordinaires sont regroupés, et une ponctuation haute (ou un guillemet) reste collée à son
+ * mot même si le titre a été écrit avec une espace simple.
+ */
+export function prepareSplitText(text: string): string {
+  return text
+    .replace(/[ \t\n\r\f\v]+/g, " ")
+    .replace(/ ([?!:;»])/g, "\u00a0$1")
+    .replace(/« /g, "«\u00a0");
+}
+
+/**
  * Découpe les titres `[data-split]` en lignes masquées qui montent une fois (top 86 %).
  * Un titre déjà dans l'écran n'est jamais découpé (il ne doit pas clignoter).
  */
@@ -102,6 +116,8 @@ export function initSplit(root: ParentNode, kit: GsapKit): Cleanup {
             linesClass: "split-line",
             autoSplit: true,
             aria: "auto",
+            reduceWhiteSpace: false,
+            prepareText: prepareSplitText,
             onSplit: (self: { lines: Element[] }) =>
               gsap.from(self.lines, {
                 yPercent: 110,
@@ -378,7 +394,9 @@ export function initScenes(root: ParentNode, ctx: ScenesContext): Cleanup {
     if (!loader) return;
     try {
       const { default: scene } = await loader();
-      const kit = scene.needsGsap ? await ctx.loadKit() : null;
+      const wantsGsap =
+        typeof scene.needsGsap === "function" ? scene.needsGsap({ level: ctx.level, desktop: ctx.desktop }) : scene.needsGsap === true;
+      const kit = wantsGsap ? await ctx.loadKit() : null;
       if (disposed || !el.isConnected) return;
       const sceneContext: SceneContext = { level: ctx.level, desktop: ctx.desktop, kit, helpers: ctx.helpers };
       let cleanup: void | Cleanup;

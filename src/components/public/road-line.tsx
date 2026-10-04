@@ -11,6 +11,9 @@
  *
  * Rendu par chaque page, EN DEHORS de `PageTransition` (jamais capturé par la transition).
  * Sous 1 024 px : rien (la ligne de progression est dans l'en-tête).
+ *
+ * Quand le pied de page « Retour au dépôt » arrive dans l'écran, la ligne s'efface
+ * (`data-at-depot`) : elle ne passe jamais par-dessus la scène du retour. Le trajet est fini.
  */
 import { useEffect, useRef, type CSSProperties } from "react";
 import { cn } from "@/components/ui/cn";
@@ -20,6 +23,29 @@ export type RoadMarker = { id: string; pk: string; label: string };
 
 export function RoadLine({ markers = [] }: { markers?: readonly RoadMarker[] }) {
   const listRef = useRef<HTMLOListElement>(null);
+  const rootRef = useRef<HTMLElement | null>(null);
+  const setRoot = (element: HTMLElement | null) => {
+    rootRef.current = element;
+  };
+
+  // Arrivée au dépôt : la ligne s'efface dès que le pied de page entre dans l'écran (8 % du bas).
+  useEffect(() => {
+    const root = rootRef.current;
+    const footer = document.querySelector("footer[data-depot-footer]");
+    if (!root || !footer) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) root.setAttribute("data-at-depot", "");
+        else root.removeAttribute("data-at-depot");
+      },
+      { rootMargin: "0px 0px -8% 0px" },
+    );
+    observer.observe(footer);
+    return () => {
+      observer.disconnect();
+      root.removeAttribute("data-at-depot");
+    };
+  }, []);
 
   // Chaque repère est placé là où le remplissage arrive quand sa section atteint le haut de
   // l'écran. Rendu serveur : repères répartis régulièrement (aucun saut s'il n'y a pas de JS).
@@ -59,10 +85,15 @@ export function RoadLine({ markers = [] }: { markers?: readonly RoadMarker[] }) 
     </div>
   );
 
-  if (markers.length === 0) return <div className={styles.roadLine}>{track}</div>;
+  if (markers.length === 0)
+    return (
+      <div ref={setRoot} className={styles.roadLine}>
+        {track}
+      </div>
+    );
 
   return (
-    <nav aria-label="Repères de la page" className={styles.roadLine}>
+    <nav ref={setRoot} aria-label="Repères de la page" className={styles.roadLine}>
       {track}
       <ol ref={listRef} className={styles.roadMarkers}>
         {markers.map((marker, index) => (

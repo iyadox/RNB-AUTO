@@ -758,30 +758,6 @@
   }
 }
 
-/* ─── « À COMPLÉTER » : zone de chantier ────────────────────────────────────── */
-
-.chantier {
-  display: inline-flex;
-  /* Un peu de place pour la ponctuation qui suit (le point ne passe pas seul à la ligne). */
-  max-width: calc(100% - 0.5em);
-  padding: 3px;
-  vertical-align: middle;
-  border-radius: 6px;
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--color-beacon-500) 0 6px,
-    var(--color-asphalt-950) 6px 12px
-  );
-}
-.chantier > span {
-  max-width: 100%;
-  border-radius: 3px;
-  background:
-    linear-gradient(color-mix(in srgb, var(--color-beacon-500) 14%, transparent), color-mix(in srgb, var(--color-beacon-500) 14%, transparent)),
-    var(--color-night-950);
-  white-space: normal;
-}
-
 /* ─── Plaque de tare : identité de l'éditeur (mentions légales) ─────────────── */
 
 .tarePlate {

@@ -1,16 +1,22 @@
 /**
- * Coque publique pour la 404 racine (`src/app/not-found.tsx`) : une adresse inconnue est rendue
- * hors du groupe `(public)`, donc sans son layout. Même composition et même ordre que
- * `src/app/(public)/layout.tsx` (docs/09, D.1), sans le modifier.
+ * Coque du site public (docs/09, D.1), partagée par `src/app/(public)/layout.tsx` et par la 404
+ * racine (`src/app/not-found.tsx`) : une adresse inconnue est rendue hors du groupe `(public)`,
+ * donc sans son layout. Une seule composition, un seul ordre.
+ *
+ * Ordre de superposition : lien d'évitement (z 70) · barre d'action (z 60) · menu (z 55, dans
+ * l'en-tête) · en-tête (z 50) · contenu et pied de page (z 10) · ciel (z 0). Seul le contenu de
+ * chaque page (enveloppe `PageTransition`) participe à la transition : l'en-tête, la barre
+ * d'action et le ciel restent vivants et cliquables. L'en-tête est placé avant MotionRuntime :
+ * son cycle de page passe avant celui du runtime (voir site-header.tsx).
  */
 import type { ReactElement, ReactNode } from "react";
 import { MotionHeadScript } from "@/components/motion/motion-head-script";
 import { MotionRuntime } from "@/components/motion/motion-runtime";
 import { NightSky } from "@/components/motion/night-sky";
-import { ActionBar } from "@/components/public/action-bar";
-import { SiteFooter } from "@/components/public/site-footer";
-import { SiteHeader } from "@/components/public/site-header";
 import { getPublicSiteInfo } from "@/server/site/public-info";
+import { ActionBar } from "./action-bar";
+import { SiteFooter } from "./site-footer";
+import { SiteHeader } from "./site-header";
 
 export async function PublicShell({ children }: { children: ReactNode }): Promise<ReactElement> {
   const info = await getPublicSiteInfo();

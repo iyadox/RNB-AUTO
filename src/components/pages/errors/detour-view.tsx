@@ -6,6 +6,9 @@
  *
  * Le titre, le texte et les actions sont visibles et immobiles dès la première image ; aucune
  * animation sur le texte. Seule la scène bouge (lumières, arrivée de la dépanneuse).
+ *
+ * `data-calm="full"` sur la racine : page calme (docs/09, C.6, « Lenis et halo : Non »). L'adresse
+ * d'une 404 est arbitraire : le runtime lit ce marqueur au lieu de la liste des routes calmes.
  */
 import Link from "next/link";
 import type { ReactElement, ReactNode } from "react";
@@ -42,54 +45,56 @@ type DetourViewProps = {
 export function DetourView({ variant, pictogram, eyebrow, title, lead, actions }: DetourViewProps): ReactElement {
   return (
     <PageTransition>
-      <section id="route-barree" data-sky="minuit" className={styles.detour}>
-        <div className={cn(CONTAINER, styles.detourGrid)}>
-          <div className={styles.detourText}>
-            <p className={styles.plate}>
-              <span className={styles.platePicto} aria-hidden="true">
-                <Icon name={pictogram} size={18} strokeWidth={2.4} />
-              </span>
-              {eyebrow ? <span className="font-plate text-plate">{eyebrow}</span> : null}
-            </p>
-            <h1 className={styles.title}>{title}</h1>
-            <p className={styles.lead}>{lead}</p>
-            <div className={styles.actions}>{actions}</div>
+      <div data-calm="full">
+        <section id="route-barree" data-sky="minuit" className={styles.detour}>
+          <div className={cn(CONTAINER, styles.detourGrid)}>
+            <div className={styles.detourText}>
+              <p className={styles.plate}>
+                <span className={styles.platePicto} aria-hidden="true">
+                  <Icon name={pictogram} size={18} strokeWidth={2.4} />
+                </span>
+                {eyebrow ? <span className="font-plate text-plate">{eyebrow}</span> : null}
+              </p>
+              <h1 className={styles.title}>{title}</h1>
+              <p className={styles.lead}>{lead}</p>
+              <div className={styles.actions}>{actions}</div>
+            </div>
+            <div className={styles.stage}>
+              <DetourScene variant={variant} id={`detour-${variant}`} />
+            </div>
           </div>
-          <div className={styles.stage}>
-            <DetourScene variant={variant} id={`detour-${variant}`} />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="deviation" data-sky="nuit" aria-labelledby="deviation-titre" className={styles.deviation}>
-        <div className={CONTAINER}>
-          <div className={styles.deviationHead}>
-            <h2 id="deviation-titre" className={styles.deviationTitle}>
-              Déviation
-              <Icon name="arrowRight" size={26} strokeWidth={3} className="rotate-45" />
-            </h2>
+        <section id="deviation" data-sky="nuit" aria-labelledby="deviation-titre" className={styles.deviation}>
+          <div className={CONTAINER}>
+            <div className={styles.deviationHead}>
+              <h2 id="deviation-titre" className={styles.deviationTitle}>
+                Déviation
+                <Icon name="arrowRight" size={26} strokeWidth={3} className="rotate-45" />
+              </h2>
+            </div>
+            <nav aria-labelledby="deviation-titre" className={styles.mast}>
+              <ul className={styles.mastList}>
+                {MENU_ITEMS.filter((item) => item.href !== "/").map((item) => (
+                  <li key={item.href} className={styles.mastItem}>
+                    <Link href={item.href} className={styles.blade}>
+                      <span className={styles.bladeFace}>
+                        <span className={styles.bladePicto} aria-hidden="true">
+                          <Icon name={PICTOGRAMS[item.href] ?? "arrowRight"} size={20} strokeWidth={2.3} />
+                        </span>
+                        <span>
+                          <span className={styles.bladeLabel}>{item.label}</span>
+                          <span className={styles.bladeHelp}>{item.help}</span>
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </div>
-          <nav aria-labelledby="deviation-titre" className={styles.mast}>
-            <ul className={styles.mastList}>
-              {MENU_ITEMS.filter((item) => item.href !== "/").map((item) => (
-                <li key={item.href} className={styles.mastItem}>
-                  <Link href={item.href} className={styles.blade}>
-                    <span className={styles.bladeFace}>
-                      <span className={styles.bladePicto} aria-hidden="true">
-                        <Icon name={PICTOGRAMS[item.href] ?? "arrowRight"} size={20} strokeWidth={2.3} />
-                      </span>
-                      <span>
-                        <span className={styles.bladeLabel}>{item.label}</span>
-                        <span className={styles.bladeHelp}>{item.help}</span>
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </section>
+        </section>
+      </div>
     </PageTransition>
   );
 }

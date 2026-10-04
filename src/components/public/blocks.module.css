@@ -14,11 +14,29 @@
   gap: 0.65rem;
   text-wrap: balance;
 }
+/* « PK 03 · » ne se coupe jamais et ne reste jamais seul en bout de ligne : l'inscription passe à
+   la ligne sous elle-même, en retrait (« PK 01 · LES SITUATIONS / COURANTES » à 390 px). */
+.plateText {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.platePk {
+  flex: none;
+  white-space: pre;
+}
+.plateLabel {
+  min-width: 0;
+  text-wrap: balance;
+}
 /* Sous 640 px, espacement des capitales réduit : « PK 00 · DÉPANNAGE SUR PLACE » tient sur une
    ligne à 390 px (le dernier mot partait seul à la ligne). */
 @media (max-width: 639px) {
+  .plate {
+    gap: 0.55rem;
+  }
   .plate > span:last-child {
-    letter-spacing: 0.14em;
+    letter-spacing: 0.13em;
   }
 }
 .plate_signal {
@@ -30,8 +48,10 @@
 .plate_chalk {
   color: var(--color-chalk);
 }
-/* Petite borne : tête de la couleur de la plaque, fût craie. */
+/* Petite borne : tête de la couleur de la plaque, fût craie. Calée sur la première ligne quand
+   l'inscription en prend deux. */
 .platePost {
+  align-self: flex-start;
   width: 8px;
   height: 15px;
   flex: none;
@@ -53,11 +73,34 @@
 .plate_beacon .platePicto {
   background: var(--color-beacon-500);
 }
+/* Pictogramme au trait : quand la section contient déjà le bouton principal jaune (`auto`, voir
+   `PrimaryLink` et son `data-primary`) ou à la demande (`outline`). Un seul aplat jaune par écran. */
+.platePicto[data-picto="outline"],
+:where(section:has([data-primary])) .plate_signal .platePicto[data-picto="auto"] {
+  color: var(--color-signal-500);
+  background: color-mix(in srgb, var(--color-night-950) 55%, transparent);
+  box-shadow:
+    inset 0 0 0 1.5px currentColor,
+    0 0 22px -8px rgb(255 196 0 / 0.55);
+}
+.plate_beacon .platePicto[data-picto="outline"] {
+  color: var(--color-beacon-400);
+  box-shadow:
+    inset 0 0 0 1.5px currentColor,
+    0 0 22px -8px rgb(255 122 26 / 0.55);
+}
+.plate_chalk .platePicto[data-picto="outline"] {
+  color: var(--color-chalk);
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
 
 /* ─── Ouverture ─────────────────────────────────────────────────────────────── */
 
 .opening {
   position: relative;
+  /* Les scènes peuvent aller jusqu'aux bords de l'écran, jamais au-delà (pas de défilement
+     horizontal). */
+  overflow-x: clip;
   padding-top: calc(var(--header-h, 4rem) + 1.75rem);
   padding-bottom: 3rem;
 }
@@ -72,12 +115,28 @@
   z-index: 1;
 }
 .openingTitle {
-  @apply font-display text-hero;
+  @apply font-display;
+  /* Taille : la plus petite de trois limites. `--title-base` (taille du cahier), `--title-cap`
+     (`titleFit` : hauteur de l'écran et largeur de la colonne), `--title-fit` (un mot composé
+     tient dans la colonne, voir `.fit`). 100vw = pas de limite. */
+  --title-base: var(--text-hero);
+  font-size: min(var(--title-base), var(--title-cap, 100vw), var(--title-fit, 100vw));
   margin-top: 1.15rem;
   /* 0,95 plutôt que 0,92 : l'accent d'une capitale (É) ne touche jamais la ligne du dessus. */
   line-height: 0.95;
   text-wrap: balance;
   color: var(--color-chalk);
+}
+/* `titleFit` : sous 1 024 px, 12,6 vw au plus (le bouton reste au-dessus de 580 px à 390 × 664) ;
+   sur ordinateur, 12 vh et 7,4 vw au plus (un titre de quatre lignes laisse le bouton dans le
+   premier écran à 1 024 × 768). */
+.openingTitle_fit {
+  --title-cap: 12.6vw;
+}
+@media (min-width: 1024px) {
+  .openingTitle_fit {
+    --title-cap: min(12vh, 7.4vw);
+  }
 }
 .openingTitle em {
   font-style: normal;
@@ -101,6 +160,13 @@
   .openingScene {
     max-height: 34svh;
     overflow: clip;
+    /* La scène peut sortir de 1,5rem de chaque côté : avec une marge négative (`-mx-4`), elle va
+       jusqu'aux bords de l'écran au lieu d'être coupée à 16 px du bord. */
+    overflow-clip-margin: 1.5rem;
+  }
+  /* `stage="tall"` : une scène haute (F.3, carte de 60svh). */
+  .opening_tallStage .openingScene {
+    max-height: 60svh;
   }
 }
 @media (min-width: 1024px) {
@@ -119,56 +185,8 @@
   max-height: none;
 }
 .opening_compact .openingTitle {
-  @apply text-display;
-}
-
-/* Ancienne ouverture : une rue de nuit en fond, sous le texte. */
-.opening_legacy {
-  padding-bottom: 9.5rem;
-  overflow: clip;
-}
-@media (min-width: 1024px) {
-  .opening_legacy {
-    padding-bottom: 13rem;
-  }
-}
-.legacyStreet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: min(26rem, 52%);
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 82%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 82%, transparent);
-}
-.opening_legacy .edgeLine {
-  display: none;
-}
-.legacySkyline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 22%;
-  height: 46%;
-  opacity: 0.8;
-}
-.legacyLamps {
-  position: absolute;
-  inset: 0;
-}
-.legacyStreet::after {
-  /* Chaussée mouillée et ligne de rive. */
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 22%;
-  background:
-    repeating-linear-gradient(90deg, rgb(255 253 246 / 0.22) 0 30px, transparent 30px 60px) 0 55% / 100% 2px no-repeat,
-    linear-gradient(to bottom, rgb(255 253 246 / 0.22), transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--color-sodium) 6%, var(--color-night-900)), var(--color-night-950));
+  --title-base: var(--text-display);
+  line-height: var(--text-display--line-height);
 }
 
 /* Ligne de rive en tirets, au bas de l'ouverture (60/60). */
@@ -179,6 +197,32 @@
   bottom: 0;
   height: 2px;
   background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.16) 0 60px, transparent 60px 120px);
+}
+
+/* ─── Titres : mots composés ────────────────────────────────────────────────── */
+
+/* Un mot composé n'est jamais coupé au trait d'union (« INTERVENONS- / NOUS »). */
+.keepWord {
+  white-space: nowrap;
+}
+/* `HeadingFit` : si le plus long bloc insécable (`--joined` caractères) est plus large que la
+   colonne, le titre réduit sa taille juste assez pour qu'il tienne. 0,47 em : chasse moyenne
+   d'une capitale de `font-display`, avec une marge (mesurée : 0,40 à 0,45). */
+.fit {
+  container-type: inline-size;
+  --fit-size: calc(100cqi / (var(--joined) * 0.47));
+}
+.fit > .openingTitle {
+  --title-fit: var(--fit-size);
+}
+.fit > .sectionTitle {
+  font-size: min(var(--text-display), var(--fit-size));
+}
+.fit > .relatedTitle {
+  font-size: min(clamp(2.5rem, 1.6rem + 3.4vw, 4.25rem), var(--fit-size));
+}
+.fit > .dawnTitle {
+  font-size: min(var(--text-dawn), var(--fit-size));
 }
 
 /* ─── Sections ──────────────────────────────────────────────────────────────── */
@@ -200,6 +244,76 @@
   line-height: 0.96;
   text-wrap: balance;
   color: var(--color-chalk);
+}
+/* Questions liées : titre en tête, « Toutes les questions » à sa droite (ordinateur), puis les
+   questions sur toute la largeur. Aucune colonne vide, avec une, deux ou trois questions. */
+.related {
+  display: flex;
+  flex-direction: column;
+}
+.relatedLink {
+  align-self: flex-start;
+  margin-top: 1.25rem;
+}
+.relatedList {
+  margin-top: 2.25rem;
+  counter-reset: related;
+}
+@media (min-width: 1024px) {
+  .related {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "head link"
+      "list list";
+    align-items: end;
+    column-gap: 3rem;
+  }
+  .relatedHead {
+    grid-area: head;
+  }
+  .relatedTitle {
+    max-width: 16em;
+  }
+  .relatedLink {
+    grid-area: link;
+    align-self: end;
+    margin: 0 0 0.25rem;
+  }
+  .relatedList {
+    grid-area: list;
+    margin-top: 3.25rem;
+  }
+}
+/* Les questions sont numérotées comme des repères (décor, absent des lecteurs d'écran). */
+.relatedList > details {
+  counter-increment: related;
+}
+@media (min-width: 640px) {
+  .relatedList .faqQuestion::before {
+    content: counter(related, decimal-leading-zero) / "";
+    flex: none;
+    width: 2.75rem;
+    font-family: inherit;
+    font-size: 1rem;
+    font-stretch: 75%;
+    font-variation-settings: "wdth" 75;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    color: var(--color-asphalt-400);
+    transition: color var(--dur-ui) var(--ease-out-expo);
+  }
+  .relatedList .faqItem[open] .faqQuestion::before,
+  .relatedList .faqQuestion:hover::before {
+    color: var(--color-signal-500);
+  }
+  .relatedList .faqQuestion > span:first-child {
+    flex: 1;
+  }
+  .relatedList .faqAnswer {
+    margin-left: 4rem;
+  }
 }
 .textLink {
   display: inline-flex;
@@ -819,125 +933,44 @@ html[data-motion="off"] .groundText {
   background: var(--color-signal-500);
 }
 
-/* Style chantier : impossible à manquer, jamais confondu avec une vraie donnée. */
+/* Zone de chantier (F.9) : bordure à chevrons orange et noirs, texte orange sur fond de nuit.
+   Impossible à manquer, jamais confondu avec une vraie donnée. 0,5 em de place pour la
+   ponctuation qui suit (le point ne passe pas seul à la ligne). */
 .toComplete {
   display: inline-flex;
-  align-items: stretch;
-  overflow: hidden;
+  max-width: calc(100% - 0.5em);
+  padding: 3px;
   vertical-align: middle;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.95em;
   font-weight: 800;
   line-height: 1.35;
   color: var(--color-beacon-400);
-  background: rgb(255 122 26 / 0.1);
-  box-shadow: inset 0 0 0 1.5px rgb(255 122 26 / 0.55);
+  background: repeating-linear-gradient(-45deg, var(--color-beacon-500) 0 6px, var(--color-asphalt-950) 6px 12px);
 }
-.toComplete > span:last-child {
+.toCompleteFace {
+  max-width: 100%;
   padding: 0.2rem 0.6rem;
-}
-.toCompleteStripe {
-  flex: none;
-  width: 0.75rem;
-  background: repeating-linear-gradient(-45deg, var(--color-beacon-500) 0 4px, var(--color-asphalt-950) 4px 8px);
-}
-
-/* ─── Anciens blocs (pages pas encore migrées) ──────────────────────────────── */
-
-.legacyGrid {
-  display: grid;
-  gap: 1rem;
-}
-@media (min-width: 640px) {
-  .legacyGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (min-width: 1024px) {
-  .legacyGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.25rem;
-  }
-}
-.legacyPlaque {
-  border-radius: 6px;
-  padding: 1.6rem 1.5rem 1.75rem;
+  border-radius: 3px;
+  white-space: normal;
   background:
-    linear-gradient(to bottom, rgb(255 253 246 / 0.04), rgb(255 253 246 / 0.01)),
-    rgb(5 7 13 / 0.55);
-  box-shadow: inset 0 0 0 1.5px rgb(255 253 246 / 0.1);
+    linear-gradient(
+      color-mix(in srgb, var(--color-beacon-500) 14%, transparent),
+      color-mix(in srgb, var(--color-beacon-500) 14%, transparent)
+    ),
+    var(--color-night-950);
 }
-.legacyIcon {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 6px;
-  color: var(--color-signal-400);
-  background: rgb(255 196 0 / 0.1);
-  box-shadow: inset 0 0 0 1.5px rgb(255 196 0 / 0.35);
+.toComplete_short {
+  max-width: none;
+  white-space: nowrap;
 }
-
-.legacySteps {
-  position: relative;
-  display: grid;
-  gap: 2rem;
+.toComplete_short .toCompleteFace {
+  white-space: nowrap;
 }
-/* La route qui relie les bornes : verticale sur mobile, horizontale sur ordinateur. */
-.legacySteps::before {
-  content: "";
-  position: absolute;
-  left: 1.75rem;
-  top: 2rem;
-  bottom: 2rem;
-  width: 2px;
-  margin-left: -1px;
-  background: repeating-linear-gradient(to bottom, rgb(255 253 246 / 0.22) 0 10px, transparent 10px 20px);
-}
-@media (min-width: 1024px) {
-  .legacySteps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 2.5rem;
+@media (forced-colors: active) {
+  .toComplete {
+    border: 2px solid CanvasText;
   }
-  .legacySteps::before {
-    left: 1.75rem;
-    right: 1.75rem;
-    top: 2.1rem;
-    bottom: auto;
-    width: auto;
-    height: 2px;
-    margin: -1px 0 0;
-    background: repeating-linear-gradient(90deg, rgb(255 253 246 / 0.22) 0 30px, transparent 30px 60px);
-  }
-}
-.legacyStep {
-  position: relative;
-  display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  gap: 1.25rem;
-  align-items: start;
-}
-@media (min-width: 1024px) {
-  .legacyStep {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-/* Borne : tête jaune arrondie, fût craie, numéro en chiffres fixes. */
-.borne {
-  position: relative;
-  display: grid;
-  place-items: end center;
-  width: 3.5rem;
-  height: 4.25rem;
-  padding-bottom: 0.45rem;
-  border-radius: 1.75rem 1.75rem 4px 4px;
-  font-size: 1.6rem;
-  line-height: 1;
-  color: var(--color-asphalt-950);
-  background: linear-gradient(to bottom, var(--color-signal-500) 0 36%, var(--color-chalk) 36%);
-  box-shadow:
-    inset 0 -3px 0 rgb(0 0 0 / 0.12),
-    0 12px 28px -14px rgb(255 196 0 / 0.55);
 }
 
 /* ─── D.3 · Ligne de route (ordinateur) ─────────────────────────────────────── */
@@ -956,6 +989,23 @@ html[data-motion="off"] .groundText {
     width: 2px;
     pointer-events: none;
   }
+}
+/* Arrivée au dépôt : la ligne s'efface quand le pied de page entre dans l'écran (elle ne passe
+   jamais par-dessus la scène du retour). `visibility` retire aussi les repères de la tabulation. */
+.roadLine {
+  transition:
+    opacity 420ms var(--ease-out-expo),
+    visibility 0s linear 0s;
+}
+.roadLine[data-at-depot] {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 420ms var(--ease-out-expo),
+    visibility 0s linear 420ms;
+}
+html[data-motion="off"] .roadLine {
+  transition: none;
 }
 :global(body:has([data-page="demande"])) .roadLine {
   display: none;

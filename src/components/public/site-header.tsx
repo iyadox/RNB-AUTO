@@ -126,10 +126,11 @@ export function SiteHeader({
           <span className={styles.brandMark}>
             <LogoMark className="h-9 w-9 lg:h-10 lg:w-10" />
           </span>
-          {/* Entre 1 024 et 1 279 px, le losange seul : la navigation et les deux actions tiennent sur une ligne. */}
+          {/* Entre 1 024 et 1 279 px, le losange seul : la navigation et les deux actions tiennent sur une ligne.
+              Sous 360 px, l'accroche se resserre : le bouton du menu restait coupé au bord droit. */}
           <span className="leading-none lg:hidden xl:block">
             <span className="font-wide block text-[1.15rem] tracking-[0.06em] text-chalk">RNB AUTO</span>
-            <span className="mt-1 block text-[0.6rem] font-semibold uppercase tracking-[0.3em] text-signal-500 lg:hidden">
+            <span className="mt-1 block text-[0.6rem] font-semibold uppercase tracking-[0.3em] text-signal-500 max-[359px]:tracking-[0.14em] lg:hidden">
               Dépannage · Remorquage
             </span>
           </span>
@@ -165,7 +166,8 @@ export function SiteHeader({
               </span>
             </>
           ) : null}
-          <span className="hidden md:block">
+          {/* Sur /demande, le bouton jaune mène à la page courante, qui a déjà le sien : masqué (CSS). */}
+          <span className={cn(styles.headerPrimary, "hidden md:block")}>
             <PrimaryLink href="/demande" size="sm">
               Demander un dépannage
             </PrimaryLink>

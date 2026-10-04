@@ -259,6 +259,11 @@ html[data-motion="lite"] .brandMark::after {
 :global(body:has([data-page="demande"])) .progress {
   display: none;
 }
+/* /demande : le bouton jaune de l'en-tête mènerait à la page courante, et l'écran a déjà son
+   bouton principal jaune (un seul par écran, B.1). Appeler reste. */
+:global(body:has([data-page="demande"])) .headerPrimary {
+  display: none;
+}
 
 /* ═════════════════════════════════════════════════════════════════════════════
    D.6 · Menu mobile « plan de nuit »
@@ -339,8 +344,8 @@ html[data-motion="lite"] .brandMark::after {
   z-index: 55;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  /* Seule la liste des liens défile (si l'écran est trop bas) : les actions restent en place. */
+  overflow: hidden;
   padding: 0.75rem 1rem calc(var(--actionbar-h, calc(3.5rem + 0.625rem + max(0.75rem, env(safe-area-inset-bottom)))) + 1rem);
   background:
     radial-gradient(120% 60% at 100% 0%, rgb(255 210 122 / 0.06), transparent 60%),
@@ -383,6 +388,55 @@ html[data-motion="lite"] .brandMark::after {
   opacity: 0.7;
   -webkit-mask-image: linear-gradient(to left, #000 10%, rgb(0 0 0 / 0.3) 45%, transparent 80%);
   mask-image: linear-gradient(to left, #000 10%, rgb(0 0 0 / 0.3) 45%, transparent 80%);
+}
+
+/* La liste des liens : elle prend la place libre et défile seule si l'écran est trop bas. Un
+   fondu en bas signale la suite, seulement quand il reste quelque chose à faire défiler. */
+@property --menu-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+.menuNav {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--menu-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--menu-fade)), transparent);
+}
+@supports (animation-timeline: scroll()) {
+  .menuNav {
+    animation: menu-fade linear both;
+    animation-timeline: scroll(self);
+  }
+}
+@keyframes menu-fade {
+  from {
+    --menu-fade: 2rem;
+  }
+  92% {
+    --menu-fade: 2rem;
+  }
+  to {
+    --menu-fade: 0px;
+  }
+}
+/* Écran très bas (téléphone à l'horizontale) : tout le panneau défile, comme avant ; la barre
+   d'action garde Appeler et WhatsApp à l'écran. */
+@media (max-height: 539px) {
+  .panel {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .menuNav {
+    flex: none;
+    overflow: visible;
+    animation: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
 }
 
 /* Les huit liens sont des arrêts sur une route : ligne pointillée, losanges. */
@@ -466,6 +520,12 @@ html[data-motion="lite"] .brandMark::after {
 .menuLink[aria-current="page"] .menuTitle {
   color: var(--color-signal-500);
 }
+.menuHelp {
+  margin-top: 0.25rem;
+  font-size: var(--text-small);
+  font-weight: 500;
+  line-height: var(--text-small--line-height);
+}
 .menuChevron {
   flex: none;
   color: var(--color-asphalt-300);
@@ -477,8 +537,38 @@ html[data-motion="lite"] .brandMark::after {
 /* Les actions du bas ne sont jamais retardées : seul le cercle du panneau les dévoile. */
 .menuActions {
   position: relative;
+  flex: none;
   margin-top: auto;
   padding-top: 1.25rem;
+}
+.menuCalls {
+  margin-top: 0.75rem;
+}
+/* Écran bas (390 × 664, par exemple) : lignes resserrées, mais toujours 48 px de toucher et une
+   aide de 14 px. Les huit liens, le bouton jaune et Appeler / WhatsApp tiennent sans défiler. */
+@media (max-height: 790px) {
+  .panel {
+    padding-top: 0.375rem;
+    padding-bottom: calc(var(--actionbar-h, calc(3.5rem + 0.625rem + max(0.75rem, env(safe-area-inset-bottom)))) + 0.5rem);
+  }
+  .menuLink {
+    min-height: 3rem;
+    padding-block: 0.2rem;
+  }
+  .menuTitle {
+    font-size: 1.1875rem;
+  }
+  .menuHelp {
+    margin-top: 0.125rem;
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+  .menuActions {
+    padding-top: 0.625rem;
+  }
+  .menuCalls {
+    margin-top: 0.5rem;
+  }
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -516,6 +606,25 @@ html[data-motion="lite"] .brandMark::after {
   .actionTap {
     gap: 0.3rem;
     font-size: 0.9375rem;
+  }
+}
+/* Très petits téléphones (320 px) : « WhatsApp » chevauchait son pictogramme et « Demande »
+   touchait les bords. Trois colonnes égales, texte et pictogrammes un peu plus petits. */
+@media (max-width: 359px) {
+  .actionBar {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .actionGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .actionTap {
+    gap: 0.25rem;
+    font-size: 0.875rem;
+  }
+  .actionTap svg {
+    width: 18px;
+    height: 18px;
   }
 }
 .actionTap:active {
@@ -977,9 +1086,11 @@ html[data-motion="lite"] .brandMark::after {
   }
 }
 
-/* Sans JavaScript : la vitre de l'en-tête s'allume quand même au défilement (CSS seul). */
+/* Sans JavaScript : la vitre de l'en-tête s'allume quand même au défilement (CSS seul).
+   `:global` obligatoire : dans un module CSS, `.js` serait renommé et la règle s'appliquerait
+   toujours, y compris en niveau « off » (animation liée au défilement restée active). */
 @supports (animation-timeline: scroll()) {
-  html:not(.js) .header::after {
+  :global(html:not(.js)) .header::after {
     animation: glass-on linear both;
     animation-timeline: scroll(root);
     animation-range: 0 24px;

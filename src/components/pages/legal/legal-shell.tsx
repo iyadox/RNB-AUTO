@@ -108,7 +108,7 @@ export function LegalShell({ eyebrow, pictogram, title, lead, toc, children }: L
           </div>
         </div>
 
-        <section id="fin" data-sky="bleue" className={styles.end}>
+        <section id="fin" data-sky="bleue" aria-label="Fin de la page" className={styles.end}>
           <div className={cn(CONTAINER, styles.endGrid)}>
             <div className={styles.endSign} aria-hidden="true">
               <span className={styles.endPosts} />

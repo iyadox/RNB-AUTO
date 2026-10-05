@@ -33,3 +33,7 @@ blob-report/
 # Planches de démonstration temporaires des agents (jamais versionnées)
 /src/app/motion-lab/
 /src/app/kit-demo/
+
+# Netlify
+.netlify/
+/deploy-*.zip

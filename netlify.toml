@@ -1,0 +1,10 @@
+# Déploiement sur Netlify (voir docs/08-installation-et-deploiement.md).
+# La base PostgreSQL est fournie par Netlify Database (paquet @netlify/database) ;
+# les migrations de netlify/database/migrations sont appliquées à chaque déploiement.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"

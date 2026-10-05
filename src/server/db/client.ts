@@ -1,7 +1,8 @@
 /**
  * Connexion à la base de données.
  *
- * - Production : PostgreSQL (DATABASE_URL=postgres://… ou POSTGRES_URL, ex. Neon, Supabase, Docker).
+ * - Production : PostgreSQL (DATABASE_URL=postgres://… ou POSTGRES_URL, ex. Neon, Supabase, Docker),
+ *   ou la base fournie par Netlify (NETLIFY_DB_URL, migrations dans netlify/database/migrations).
  * - Développement local : PGlite (PostgreSQL embarqué, aucune installation), DATABASE_URL=pglite:./.data/pglite.
  *   Les migrations et les données de départ sont alors appliquées automatiquement au premier accès.
  */
@@ -16,7 +17,7 @@ export class DatabaseUnavailableError extends Error {}
 type DbHandle = { db: Db; kind: "postgres" | "pglite"; close: () => Promise<void> };
 
 export function databaseUrl(): string {
-  return (process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "").trim();
+  return (process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NETLIFY_DB_URL || "").trim();
 }
 
 export function isPostgresUrl(url: string): boolean {
@@ -53,6 +54,12 @@ export async function openDatabase(options: { autoSetup: boolean }): Promise<DbH
     parsers[114] = (value: string) => value;
     parsers[3802] = (value: string) => value;
     const db = drizzle({ client, schema }) as unknown as Db;
+    // Netlify applique les migrations au déploiement ; les données de départ manquantes
+    // sont ajoutées au premier accès (sans rien modifier de l'existant).
+    if (options.autoSetup || (process.env.NETLIFY_DB_URL && process.env.NEXT_PHASE !== "phase-production-build")) {
+      const { ensureSeedData } = await import("./seed");
+      await ensureSeedData(db);
+    }
     return { db, kind: "postgres", close: () => client.end({ timeout: 5 }) };
   }
 

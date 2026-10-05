@@ -125,13 +125,21 @@ function startPage(pathname: string): Cleanup {
   const lenisAllowed = () => effects().lenis;
 
   // 1. Observateurs ; les éléments déjà visibles sont marqués avant `.motion-ready`.
-  run(() => observeInView(document), cleanups);
+  // 2. Les états cachés n'existent qu'à partir de là, et jamais en `off`.
+  //    - Premier chargement (`.motion-ready` absente) : la page est déjà peinte à l'état final.
+  //      Les positions viennent du premier rappel de l'observateur (aucune mise en page forcée
+  //      pendant l'hydratation) et `.motion-ready` est posée dans ce rappel, juste après le
+  //      marquage, avant l'image suivante : aucun élément visible n'est jamais peint caché.
+  //    - Changement de page (`.motion-ready` déjà là) : marquage immédiat, avant l'affichage.
+  const ready = () => {
+    if (!disposed) html.classList.add("motion-ready");
+  };
+  if (level === "off") html.classList.remove("motion-ready");
+  const deferReady = level !== "off" && !html.classList.contains("motion-ready");
+  run(() => observeInView(document, deferReady ? ready : undefined), cleanups);
   run(() => observePause(document), cleanups);
   run(() => observeSky(document), cleanups);
   if (level === "off" || !CSS.supports("animation-timeline: scroll()")) run(trackScrollProgress, cleanups);
-
-  // 2. Les états cachés n'existent qu'à partir d'ici, et jamais en `off`.
-  html.classList.toggle("motion-ready", level !== "off");
   setPageTransitions(level !== "off");
   const dispose = () => {
     disposed = true;
@@ -188,6 +196,8 @@ function startPage(pathname: string): Cleanup {
     whenIdle(() => {
       void (async () => {
         const helpers = await import("./runtime/helpers");
+        // La mise en place ne s'ajoute pas à la tâche qui évalue le module.
+        await helpers.yieldToMain();
         if (disposed) return;
         const kits = () => import("./runtime/gsap-kit");
         const loadKit = () => kits().then((m) => m.loadGsapKit());

@@ -29,6 +29,9 @@ export function yieldToMain(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/** Début de l'image suivante (`requestAnimationFrame`). */
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 const safely = (fn: Cleanup) => {
   try {
     fn();
@@ -112,7 +115,7 @@ const SPLIT_PREPARE_MARGIN = "0px 0px 60% 0px";
  * Un titre déjà dans l'écran (ou au-dessus) n'est jamais découpé : il ne doit pas clignoter.
  *
  * Travail réparti pour ne bloquer ni le premier affichage ni le défilement (TBT, G.2) :
- * - positions lues en un seul passage, avant tout découpage (aucune alternance lecture/écriture) ;
+ * - positions données par un observateur (aucune mise en page forcée), avant tout découpage ;
  * - GSAP et SplitText ne sont chargés qu'à l'approche du premier titre (`loadSplitKit`, sans
  *   ScrollTrigger : la montée part d'un IntersectionObserver à la même ligne de 86 %) ;
  * - un titre par tâche, en rendant la main entre deux.
@@ -185,6 +188,8 @@ export function initSplit(root: ParentNode, loadKit: () => Promise<SplitKit>): C
     draining = true;
     try {
       const kit = await loadKit();
+      // Le premier découpage ne s'ajoute pas à la tâche qui évalue GSAP.
+      await yieldToMain();
       while (!disposed && queue.length > 0) {
         const title = queue.shift();
         if (title?.isConnected) split(kit, title);
@@ -210,18 +215,25 @@ export function initSplit(root: ParentNode, loadKit: () => Promise<SplitKit>): C
     { rootMargin: SPLIT_PREPARE_MARGIN },
   );
 
+  // Position de chaque titre : donnée par le premier rappel d'un observateur (aucune mise en
+  // page forcée). Un titre dont le haut est déjà dans l'écran (ou au-dessus) n'est pas découpé.
+  const probe = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      probe.unobserve(entry.target);
+      const limit = entry.rootBounds?.bottom ?? window.innerHeight;
+      if (!disposed && entry.boundingClientRect.top >= limit) approach.observe(entry.target);
+    }
+  });
+
   const scan = () => {
     if (disposed) return;
     const titles = Array.from(root.querySelectorAll<HTMLElement>("[data-split]")).filter(
       (title) => !title.hasAttribute("data-split-done") && !title.hasAttribute("data-beam"),
     );
-    // Toutes les lectures d'abord, puis les écritures.
-    const limit = window.innerHeight;
-    const tops = titles.map((title) => title.getBoundingClientRect().top);
-    titles.forEach((title, index) => {
+    for (const title of titles) {
       title.setAttribute("data-split-done", "");
-      if ((tops[index] ?? 0) >= limit) approach.observe(title);
-    });
+      probe.observe(title);
+    }
   };
 
   // Lignes justes du premier coup : rien n'est préparé avant le chargement des polices.
@@ -230,6 +242,7 @@ export function initSplit(root: ParentNode, loadKit: () => Promise<SplitKit>): C
   return () => {
     disposed = true;
     stopDom();
+    probe.disconnect();
     approach.disconnect();
     for (const play of plays) play.disconnect();
     for (const instance of splits) safely(() => instance.revert());
@@ -310,6 +323,60 @@ export function initRoutes(root: ParentNode, kit: GsapKit | null, ctx: RouteCont
   const cleanups: Cleanup[] = [];
   const handled = new WeakSet<Element>();
   let initial = true;
+  let disposed = false;
+
+  /**
+   * Préparations différées (TBT, G.2) : une par image, dans l'ordre du document, au début de
+   * l'image. Une préparation écrit le tracé puis lit la géométrie d'un chemin (`getTotalLength`,
+   * qui met le style à jour) : regroupées, elles formaient une longue tâche de lectures et
+   * d'écritures alternées ; au début de l'image, cette mise à jour est celle que l'image fait de
+   * toute façon.
+   */
+  const queue: { route: Element; task: () => void }[] = [];
+  let draining = false;
+  const drain = async () => {
+    if (draining) return;
+    draining = true;
+    while (!disposed && queue.length > 0) {
+      await nextFrame();
+      const next = disposed ? undefined : queue.shift();
+      try {
+        next?.task();
+      } catch {
+        if (next) fail(next.route);
+      }
+    }
+    draining = false;
+  };
+  const later = (route: Element, task: () => void) => {
+    queue.push({ route, task });
+    void drain();
+  };
+
+  /**
+   * Position de départ des tracés `view` du premier passage : fournie par le premier rappel d'un
+   * observateur (aucune mise en page forcée), avec le même test qu'avant (rectangle du tracé
+   * contre la hauteur de l'écran, sans marge).
+   */
+  const waiting = new Map<Element, (visible: boolean) => void>();
+  const probe = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const decide = waiting.get(entry.target);
+      if (!decide) continue;
+      waiting.delete(entry.target);
+      probe.unobserve(entry.target);
+      // `rootBounds` : l'écran (lire `window.innerHeight` forcerait une mise en page sur téléphone).
+      const rect = entry.boundingClientRect;
+      const visible = rect.top < (entry.rootBounds?.bottom ?? window.innerHeight) && rect.bottom > 0;
+      later(entry.target, () => decide(visible));
+    }
+  });
+  cleanups.push(() => {
+    disposed = true;
+    probe.disconnect();
+    waiting.clear();
+    queue.length = 0;
+  });
 
   const setup = (route: HTMLElement, animateIfVisible: boolean) => {
     const legs = Array.from(route.querySelectorAll<SVGGeometryElement | SVGGElement>("[data-route-leg]"));
@@ -345,8 +412,6 @@ export function initRoutes(root: ParentNode, kit: GsapKit | null, ctx: RouteCont
     cleanups.push(restore);
 
     const mode = route.getAttribute("data-route-mode") ?? "static";
-    const rect = route.getBoundingClientRect();
-    const visible = rect.top < window.innerHeight && rect.bottom > 0;
 
     if (mode === "scrub" && kit && ctx.desktop && ctx.level === "full") {
       const trigger = kit.ScrollTrigger.create({
@@ -361,44 +426,53 @@ export function initRoutes(root: ParentNode, kit: GsapKit | null, ctx: RouteCont
     }
 
     if (mode === "view" || mode === "scrub") {
-      // Déjà dans l'écran au chargement : il reste tracé (aucun clignotement).
-      if (visible && !animateIfVisible) {
-        route.setAttribute("data-route-current", legs[legs.length - 1]?.getAttribute("data-route-leg") ?? "");
+      const arm = () => {
+        apply(0);
+        let stop: Cleanup = () => {};
+        const play = () => {
+          let leg = 0;
+          const next = () => {
+            if (leg >= legs.length) return;
+            const from = leg;
+            stop = ctx.helpers.tween({
+              duration: 900,
+              onUpdate: (p) => apply((from + p) / legs.length),
+              onComplete: () => {
+                leg++;
+                next();
+              },
+            });
+          };
+          next();
+        };
+        // Déclenché quand le haut du trajet passe aux deux tiers de l'écran. (Un seuil en
+        // proportion ne serait jamais atteint par un tracé plus haut que l'écran : il resterait effacé.)
+        const io = new IntersectionObserver(
+          (entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            io.disconnect();
+            play();
+          },
+          { rootMargin: "0px 0px -30% 0px" },
+        );
+        io.observe(route);
+        cleanups.push(() => {
+          io.disconnect();
+          stop();
+        });
+      };
+      // Tracé ajouté après le premier passage (fiche du trajet, etc.) : préparé tout de suite,
+      // dans l'image où il apparaît, pour qu'il ne soit jamais peint entièrement tracé.
+      if (animateIfVisible) {
+        arm();
         return;
       }
-      apply(0);
-      let stop: Cleanup = () => {};
-      const play = () => {
-        let leg = 0;
-        const next = () => {
-          if (leg >= legs.length) return;
-          const from = leg;
-          stop = ctx.helpers.tween({
-            duration: 900,
-            onUpdate: (p) => apply((from + p) / legs.length),
-            onComplete: () => {
-              leg++;
-              next();
-            },
-          });
-        };
-        next();
-      };
-      // Déclenché quand le haut du trajet passe aux deux tiers de l'écran. (Un seuil en
-      // proportion ne serait jamais atteint par un tracé plus haut que l'écran : il resterait effacé.)
-      const io = new IntersectionObserver(
-        (entries) => {
-          if (!entries.some((entry) => entry.isIntersecting)) return;
-          io.disconnect();
-          play();
-        },
-        { rootMargin: "0px 0px -30% 0px" },
-      );
-      io.observe(route);
-      cleanups.push(() => {
-        io.disconnect();
-        stop();
+      // Déjà dans l'écran au chargement : il reste tracé (aucun clignotement).
+      waiting.set(route, (visible) => {
+        if (!visible) arm();
+        else route.setAttribute("data-route-current", legs[legs.length - 1]?.getAttribute("data-route-leg") ?? "");
       });
+      probe.observe(route);
       return;
     }
 

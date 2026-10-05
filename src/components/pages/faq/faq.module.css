@@ -658,6 +658,11 @@
   position: relative;
   aspect-ratio: 16 / 10;
   overflow: clip;
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture du décor (temps de blocage au chargement). Rien ne change à l'écran : la taille
+     vient du CSS (aspect-ratio), jamais du contenu, et le décor est déjà découpé à son cadre. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
 }
@@ -811,6 +816,12 @@
   max-width: 7.5rem;
   height: auto;
   --wheel-bg: var(--color-night-950);
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture de la silhouette (temps de blocage au chargement). Rien ne change à l'écran : les
+     proportions sont celles du viewBox (64 × 40) et le dessin ne sort pas de son cadre. */
+  aspect-ratio: 64 / 40;
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
 }
 /* Faisceau de phares devant chaque silhouette (source : le phare avant). */
 .vehicleBeam {
@@ -901,6 +912,12 @@
   aspect-ratio: 4 / 3.4;
   max-width: 34rem;
   margin-inline: auto;
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture du décor (temps de blocage au chargement). Rien ne change à l'écran : la taille
+     vient du CSS (aspect-ratio), jamais du contenu, et rien ne dépasse du cadre (le plan est
+     découpé par son SVG). */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
 }
 .finderMap {
   position: absolute;

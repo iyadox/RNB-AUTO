@@ -9,8 +9,9 @@
  * garée au dépôt. Tout est décoratif (`aria-hidden`) : le titre dit la même chose.
  * Géométrie calculée ici, côté serveur (aucun calcul dans le navigateur avant la scène).
  */
-import type { ReactElement } from "react";
+import { Fragment, type ReactElement } from "react";
 import { DepotGlyph, TruckTopGlyph } from "@/components/scenes/kit/glyphs";
+import { roundedRectPath } from "@/components/pages/svg-merge";
 import styles from "./faq.module.css";
 
 type Point = { x: number; y: number };
@@ -106,6 +107,18 @@ function blocks() {
 }
 const BLOCKS = blocks();
 
+/**
+ * Les îlots et leurs fenêtres, fusionnés en tracés (svg-merge.ts) : un seul pour les îlots (même
+ * fond, même liseré), un par opacité pour les fenêtres (fenêtres paires à 0,5, impaires à 0,8).
+ * Aucune forme ne chevauche une autre : l'image est celle des rectangles séparés.
+ */
+const BLOCKS_D = BLOCKS.map((b) => roundedRectPath(b.x, b.y, b.w, b.h, 3)).join("");
+const WINDOWS_D = [0, 1].map((parity) =>
+  BLOCKS.flatMap((b) =>
+    b.lit.filter((i) => i % 2 === parity).map((i) => roundedRectPath(b.x + 9 + i * 11, b.y + 10 + (i % 2) * 16, 5, 3, 1)),
+  ).join(""),
+) as [string, string];
+
 export function QuestionRoad({ depotCity }: { depotCity: string | null }): ReactElement {
   return (
     <div className={styles.qr} data-scene="question-road" data-pause-offscreen data-loops-nojs="" aria-hidden="true">
@@ -122,17 +135,11 @@ export function QuestionRoad({ depotCity }: { depotCity: string | null }): React
           </radialGradient>
         </defs>
 
-        {/* Quartier : îlots sombres, quelques fenêtres au sodium */}
-        <g>
-          {BLOCKS.map((b) => (
-            <g key={`${b.x}-${b.y}`}>
-              <rect className={styles.qrBlock} x={b.x} y={b.y} width={b.w} height={b.h} rx="3" />
-              {b.lit.map((i) => (
-                <rect key={i} className={styles.qrWindow} x={b.x + 9 + i * 11} y={b.y + 10 + (i % 2) * 16} width="5" height="3" rx="1" opacity={0.5 + (i % 2) * 0.3} />
-              ))}
-            </g>
-          ))}
-        </g>
+        {/* Quartier : îlots sombres, quelques fenêtres au sodium (trois tracés en tout, voir
+            BLOCKS_D : même image que les rectangles séparés, 170 éléments de moins). */}
+        <path className={styles.qrBlock} d={BLOCKS_D} />
+        <path className={styles.qrWindow} d={WINDOWS_D[0]} opacity={0.5} />
+        <path className={styles.qrWindow} d={WINDOWS_D[1]} opacity={0.8} />
 
         {/* Lueur du dépôt, le point du « ? » */}
         <circle cx={DEPOT.x} cy={DEPOT.y} r="86" fill="url(#qr-depot-glow)" />
@@ -151,12 +158,13 @@ export function QuestionRoad({ depotCity }: { depotCity: string | null }): React
         {LAMPS.map((lamp) => {
           const pose = lampPose(lamp);
           return (
-            <g key={`${lamp.seg}-${lamp.t}`}>
+            // Fragment, pas <g> : un groupe sans attribut ne change rien au rendu.
+            <Fragment key={`${lamp.seg}-${lamp.t}`}>
               <circle cx={pose.pool.x} cy={pose.pool.y} r="40" fill="url(#qr-pool)" />
               <path d={`M${pose.base.x} ${pose.base.y}L${pose.head.x} ${pose.head.y}`} stroke="var(--color-asphalt-600)" strokeWidth="3" strokeLinecap="round" />
               <circle cx={pose.base.x} cy={pose.base.y} r="3.5" fill="var(--color-asphalt-700)" />
               <circle cx={pose.head.x} cy={pose.head.y} r="4" fill="var(--color-sodium)" />
-            </g>
+            </Fragment>
           );
         })}
 

@@ -50,32 +50,75 @@ export function onDomChange(listener: Scan): () => void {
 
 const markInView = (el: Element) => el.setAttribute("data-inview", "");
 
+/** Part de la hauteur de l'écran sous laquelle un élément n'est pas encore « vu » (92 %). */
+export const INVIEW_LINE = 0.92;
+
+/**
+ * Vrai si un élément (rectangle relatif à l'écran) est déjà dans l'écran au premier passage :
+ * son haut est au-dessus de la ligne des 92 % et son bas sous le haut de l'écran. Un tel élément
+ * est marqué tout de suite et ne sera jamais caché.
+ */
+export function isAlreadySeen(rect: { top: number; bottom: number }, viewport: number): boolean {
+  return rect.top < viewport * INVIEW_LINE && rect.bottom > 0;
+}
+
+/** `isAlreadySeen` à partir d'une entrée d'observateur dont la marge basse est de 8 %. */
+function isAlreadySeenIn(entry: IntersectionObserverEntry): boolean {
+  const rect = entry.boundingClientRect;
+  const bounds = entry.rootBounds;
+  if (!bounds) return isAlreadySeen(rect, window.innerHeight);
+  return rect.top < bounds.bottom && rect.bottom > 0;
+}
+
 /**
  * Pose `data-inview` sur les éléments qui entrent dans l'écran (seuil : 92 % de la hauteur).
  * Au premier passage, ceux qui sont déjà visibles sont marqués tout de suite : ils ne seront
  * jamais cachés. Retourne la fonction de nettoyage.
+ *
+ * Deux façons de faire ce premier passage :
+ * - sans `onFirstPass` : positions lues aussitôt (`getBoundingClientRect`), ce qui force une mise
+ *   en page ; utilisé quand les états cachés existent déjà (changement de page : rien ne doit être
+ *   peint caché, même une image) ;
+ * - avec `onFirstPass` (premier chargement) : les positions viennent du premier rappel de
+ *   l'observateur, calculées par le navigateur avec la mise en page qu'il fait de toute façon,
+ *   sans mise en page forcée. `onFirstPass` est appelé dans ce rappel, une fois tous les éléments
+ *   déjà visibles marqués : c'est là que le runtime peut poser `.motion-ready`. Le test est le même
+ *   (`isAlreadySeen`, sur le rectangle fourni par l'observateur).
  */
-export function observeInView(root: ParentNode): () => void {
+export function observeInView(root: ParentNode, onFirstPass?: () => void): () => void {
+  // Éléments du premier passage, jusqu'au premier rappel de l'observateur.
+  let pending: Set<Element> | null = onFirstPass ? new Set() : null;
+  const firstPassDone = () => {
+    if (!pending) return;
+    pending = null;
+    onFirstPass?.();
+  };
   const io = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        markInView(entry.target);
-        io.unobserve(entry.target);
+        const el = entry.target;
+        // `rootBounds` : l'écran réduit de la marge, soit 92 % de sa hauteur (lire
+        // `window.innerHeight` forcerait une mise en page sur téléphone).
+        const seen = pending?.has(el) ? isAlreadySeenIn(entry) : entry.isIntersecting;
+        if (!seen) continue;
+        markInView(el);
+        io.unobserve(el);
       }
+      // Le premier rappel porte la position initiale de tous les éléments observés ensemble ;
+      // un élément qui n'y figure pas (retiré entre-temps) est traité ensuite comme les autres.
+      firstPassDone();
     },
-    { rootMargin: "0px 0px -8% 0px" },
+    { rootMargin: `0px 0px -${Math.round((1 - INVIEW_LINE) * 100)}% 0px` },
   );
   const seen = new WeakSet<Element>();
   let first = true;
   const scan = () => {
-    const limit = window.innerHeight * 0.92;
     for (const el of Array.from(root.querySelectorAll(INVIEW_SELECTOR))) {
       if (seen.has(el) || el.hasAttribute("data-inview")) continue;
       seen.add(el);
       if (first) {
-        const rect = el.getBoundingClientRect();
-        if (rect.top < limit && rect.bottom > 0) {
+        if (pending) pending.add(el);
+        else if (isAlreadySeen(el.getBoundingClientRect(), window.innerHeight)) {
           markInView(el);
           continue;
         }
@@ -85,8 +128,11 @@ export function observeInView(root: ParentNode): () => void {
     first = false;
   };
   scan();
+  // Rien à observer : le premier passage est déjà fini.
+  if (pending && pending.size === 0) firstPassDone();
   const stop = onDomChange(scan);
   return () => {
+    pending = null;
     stop();
     io.disconnect();
   };
@@ -142,15 +188,20 @@ export function observeRetro(root: ParentNode): () => void {
   // Entrée dans l'écran : si la plaque ne pourra jamais atteindre la ligne, le reflet passe ici.
   const view = new IntersectionObserver(
     (entries) => {
-      const html = document.documentElement;
-      const maxScroll = html.scrollHeight - window.innerHeight;
+      // Positions fournies par l'observateur. Une plaque déjà au-dessus de la ligne pourra
+      // toujours l'atteindre (la bande s'en charge) : le défilement et la hauteur de la page, dont
+      // la lecture force une mise en page, ne sont lus que pour une plaque sous la ligne.
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
-        const top = entry.target.getBoundingClientRect().top + window.scrollY;
-        if (!canReachRetroLine(top, window.innerHeight, maxScroll)) play(entry.target);
+        const bounds = entry.rootBounds;
+        const viewport = bounds ? bounds.bottom / INVIEW_LINE : window.innerHeight;
+        if (entry.boundingClientRect.top < viewport * RETRO_LINE) continue;
+        const top = entry.boundingClientRect.top + window.scrollY;
+        const maxScroll = document.documentElement.scrollHeight - viewport;
+        if (!canReachRetroLine(top, viewport, maxScroll)) play(entry.target);
       }
     },
-    { rootMargin: "0px 0px -8% 0px" },
+    { rootMargin: `0px 0px -${Math.round((1 - INVIEW_LINE) * 100)}% 0px` },
   );
   const seen = new WeakSet<Element>();
   const scan = () => {
@@ -172,13 +223,38 @@ export function observeRetro(root: ParentNode): () => void {
   };
 }
 
-/** Met en pause les scènes `[data-pause-offscreen]` hors de l'écran (sauf pause demandée). */
+/**
+ * Met en pause les scènes `[data-pause-offscreen]` hors de l'écran (sauf pause demandée).
+ *
+ * Poser `.scene-paused` fait recalculer le style de toute la scène (`.scene-paused *`, plusieurs
+ * centaines d'éléments par page au premier passage, plus de 100 ms en une image sur téléphone).
+ * Une scène qui SORT de l'écran n'a pas besoin d'être arrêtée dans la même image : les mises en
+ * pause sont donc posées une par image, dans l'ordre. Une scène qui revient dans l'écran (ou que
+ * le visiteur a mise en pause) est traitée tout de suite, et annule sa mise en pause en attente.
+ */
 export function observePause(root: ParentNode): () => void {
+  const queue: Element[] = [];
+  let frame = 0;
+  const next = () => {
+    frame = 0;
+    const el = queue.shift();
+    if (el) el.classList.add("scene-paused");
+    if (queue.length > 0) frame = requestAnimationFrame(next);
+  };
   const io = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       const el = entry.target;
-      el.classList.toggle("scene-paused", !entry.isIntersecting || el.hasAttribute("data-user-paused"));
+      const index = queue.indexOf(el);
+      if (index >= 0) queue.splice(index, 1);
+      const paused = !entry.isIntersecting || el.hasAttribute("data-user-paused");
+      if (!paused || entry.isIntersecting) {
+        el.classList.toggle("scene-paused", paused);
+        continue;
+      }
+      if (el.classList.contains("scene-paused")) continue;
+      queue.push(el);
     }
+    if (queue.length > 0 && !frame) frame = requestAnimationFrame(next);
   });
   const seen = new WeakSet<Element>();
   const scan = () => {
@@ -193,6 +269,9 @@ export function observePause(root: ParentNode): () => void {
   return () => {
     stop();
     io.disconnect();
+    cancelAnimationFrame(frame);
+    frame = 0;
+    queue.length = 0;
   };
 }
 

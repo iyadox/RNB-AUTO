@@ -5,7 +5,7 @@ import { DetourView } from "@/components/pages/errors/detour-view";
 import { CALM_MARKER, CALM_ROUTES, NO_HALO_ROUTES, isCalmRoute, isNoHaloRoute } from "@/content/site-map";
 import { ambientEffects, readCalmMarker } from "./calm";
 import { prepareSplitText } from "./helpers";
-import { canReachRetroLine } from "./observers";
+import { canReachRetroLine, isAlreadySeen } from "./observers";
 
 describe("routes calmes et routes sans halo (C.6)", () => {
   it("coupe Lenis et halo sur les routes calmes et leurs sous-routes", () => {
@@ -74,6 +74,23 @@ describe("reflet des plaques (P6) : le haut de la plaque franchira-t-il les 65 %
   it("non, pour une plaque tout en bas, que le défilement n'amène jamais au milieu (repli : à l'entrée)", () => {
     expect(canReachRetroLine(2700, vh, 2000)).toBe(false);
     expect(canReachRetroLine(700, vh, 0)).toBe(false);
+  });
+});
+
+describe("premier passage des apparitions : déjà dans l'écran ?", () => {
+  const vh = 800;
+  it("oui, si le haut est au-dessus de la ligne des 92 % et le bas sous le haut de l'écran", () => {
+    expect(isAlreadySeen({ top: 0, bottom: 200 }, vh)).toBe(true);
+    expect(isAlreadySeen({ top: 735, bottom: 900 }, vh)).toBe(true);
+    expect(isAlreadySeen({ top: -300, bottom: 10 }, vh)).toBe(true);
+  });
+  it("non, sous la ligne des 92 % ou entièrement au-dessus de l'écran", () => {
+    expect(isAlreadySeen({ top: 736, bottom: 900 }, vh)).toBe(false);
+    expect(isAlreadySeen({ top: 2000, bottom: 2400 }, vh)).toBe(false);
+    expect(isAlreadySeen({ top: -300, bottom: 0 }, vh)).toBe(false);
+  });
+  it("élément sans taille (masqué) : non", () => {
+    expect(isAlreadySeen({ top: 0, bottom: 0 }, vh)).toBe(false);
   });
 });
 

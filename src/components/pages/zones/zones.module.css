@@ -399,6 +399,11 @@
   position: relative;
   height: clamp(21rem, 52vw, 27rem);
   overflow: clip;
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture de la scène (temps de blocage au chargement). Rien ne change à l'écran : la taille
+     vient du CSS, jamais du contenu, et la scène est déjà découpée à son cadre. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
 }
@@ -728,6 +733,12 @@
     0 0 0 6px color-mix(in srgb, var(--color-night-950) 70%, transparent),
     0 0 0 7px color-mix(in srgb, var(--color-chalk) 10%, transparent);
   overflow: hidden;
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture de la vignette, dont la copie du plan (`<use>`) (temps de blocage au chargement).
+     Rien ne change à l'écran : la taille vient du CSS et le dessin est déjà découpé au rond (les
+     anneaux de box-shadow sont ceux de la vignette elle-même, jamais découpés). */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
 }
 @media (min-width: 640px) {
   .vignette {

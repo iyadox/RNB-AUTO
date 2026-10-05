@@ -2180,3 +2180,28 @@ Restait ouvert à la fin de l'audit :
 - sur ordinateur, 2 429 px de la Prochaine sortie au bas de /depannage, pour un objectif de 1 800 ;
 - /panne-autoroute : l'aube calme laisse environ 430 px de route vide sur téléphone ; /remorquage : deux aplats jaunes à l'écran (onglet « Prochaine sortie » et bouton de l'aube) ;
 - balayage du plan régional (`sweepBeam`) et `city-ping` encore redessinés en SVG.
+
+### J.15 Passe de performance (temps de blocage)
+
+Mesures A/B en production (téléphone 390 × 844, processeur ×4, 4G lente, 5 à 9 chargements par page, médianes), même machine et même séance pour A et B :
+
+| Page | TBT avant → après |
+|---|---|
+| Accueil | ≈ 1 020–1 120 → ≈ 850–900 ms |
+| /depannage | ≈ 800–920 → ≈ 770–780 ms |
+| /remorquage | ≈ 870–880 → ≈ 785–810 ms |
+| /questions-frequentes | ≈ 1 010–1 050 → ≈ 840–870 ms |
+| /entreprise | ≈ 920–950 → ≈ 760–860 ms |
+| /demande | ≈ 450–540 → ≈ 480–600 ms (dans le bruit de mesure) |
+
+Leviers gardés :
+- **Runtime sans mise en page forcée au démarrage :** la position initiale des apparitions, des titres découpés et des tracés vient du premier rappel des IntersectionObserver (plus de `getBoundingClientRect` en série) ; `.motion-ready` est posée dans ce rappel, la page restant peinte à l'état final jusque-là ; préparation des tracés une par image au premier passage seulement (un tracé ajouté plus tard, comme la feuille de route de /demande, est préparé tout de suite) ; mises en pause hors écran étalées sur plusieurs images.
+- **Décors :** `content-visibility: auto` sur des décors de la FAQ (`.street`, `.finder`, `.vehicleIcon`) et des zones (`.sign`, `.vignette`), selon la recette de J.14 ; îlots et fenêtres du « ? » de la FAQ regroupés en trois tracés (`svg-merge.ts`). Effet connu : le dessin est calé au pixel entier (décalage inférieur à 1 px, invisible à l'œil).
+- **Menu mobile :** il ne se referme plus à l'hydratation quand il a été ouvert avant (téléphone lent) ; il se referme toujours au changement de page.
+
+Écartés : pause par l'API Web Animations (une animation créée pendant la pause ne serait plus retenue), propriété héritée lue par `animation-play-state` (pas moins chère), pose de `.motion-ready` dès le script d'en-tête (cacherait le premier écran sans JavaScript).
+
+Reste ouvert :
+- le budget de 150 ms n'est atteint sur aucune page lourde : l'analyse du HTML, l'évaluation de React et l'hydratation dominent ;
+- la bascule de `.motion-ready` coûte encore 34 ms sur l'accueil et 128 ms sur la FAQ à cause de sélecteurs sans classe en fin de chaîne (`.vehicle > *` dans faq.module.css, `g[clip-path] > g` et `rect:nth-…` dans shell.module.css, `.ticket li` dans home-lower.module.css) : les cibler par une classe ;
+- en HTTP/1.1 local, le découpage du fichier JavaScript de la coque en deux retarde parfois le premier affichage de l'accueil d'un aller-retour : à vérifier en HTTP/2 en production.

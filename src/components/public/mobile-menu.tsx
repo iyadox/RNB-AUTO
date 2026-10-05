@@ -80,7 +80,11 @@ export function MobileMenu({ phone, whatsapp }: { phone: PhoneLink | null; whats
   const menuRef = useRef<HTMLDetailsElement>(null);
 
   // Changement de page : le menu se referme (aucun état React, simple attribut du <details>).
+  // Pas à l'hydratation : un menu ouvert d'un toucher avant elle (téléphone lent) reste ouvert.
+  const shownPath = useRef(pathname);
   useEffect(() => {
+    if (shownPath.current === pathname) return;
+    shownPath.current = pathname;
     if (menuRef.current) menuRef.current.open = false;
   }, [pathname]);
 

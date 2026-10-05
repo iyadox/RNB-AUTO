@@ -3,13 +3,15 @@
  * Minuit en haut de page, puis la nuit, l'heure bleue et l'aube, section après section
  * (`data-sky` sur chaque section, recopié sur <html> par le runtime). Sans JavaScript : minuit.
  *
- * Couches, de l'arrière vers l'avant : dégradé du ciel, étoiles fixes (12 sur mobile, 24 sur
- * ordinateur plus une poussière d'étoiles très fines, six qui scintillent à l'arrivée puis se
- * figent : ce n'est pas une boucle), nappes de nuages
- * éclairées par la ville (elles s'éteignent avec elle), lueur de la ville sur l'horizon, brume
- * basse, grain de bitume, halo des phares (P21). Tout est décoratif : `aria-hidden`, sans pointeur.
+ * Couches, de l'arrière vers l'avant : dégradé du ciel, étoiles fixes (un seul calque : 12 sur
+ * mobile, 24 sur ordinateur plus une poussière d'étoiles très fines), nappes de nuages éclairées
+ * par la ville (elles s'éteignent avec elle), lueur de la ville sur l'horizon, brume basse, grain
+ * de bitume, halo des phares (P21), puis six étoiles qui scintillent à l'arrivée et se figent (ce
+ * n'est pas une boucle), en dernier pour que leurs animations ne fassent sortir aucune autre
+ * couche du calque du ciel. Tout est décoratif : `aria-hidden`, sans pointeur.
  * Les étoiles fixes sont des dégradés écrits dans la feuille de style (mis en cache), pas des
- * attributs `style` répétés dans chaque page. Styles et états : src/styles/motion.css (« P1 · NightSky »).
+ * attributs `style` répétés dans chaque page ; chacune n'est peinte que sur sa petite tuile.
+ * Styles et états : src/styles/motion.css (« P1 · NightSky »).
  */
 import type { CSSProperties, ReactElement } from "react";
 
@@ -50,11 +52,6 @@ export function NightSky(): ReactElement {
   return (
     <div className="night-sky" aria-hidden="true">
       <div className="night-sky__stars" />
-      <div className="night-sky__stars night-sky__stars--more" />
-      <div className="night-sky__stars night-sky__stars--more night-sky__stars--dust" />
-      {TWINKLES.map((style, i) => (
-        <span key={i} className="night-sky__twinkle" style={style as CSSProperties} />
-      ))}
       <div className="night-sky__clouds" />
       <div className="night-sky__glow" />
       <div className="night-sky__haze" />
@@ -63,6 +60,12 @@ export function NightSky(): ReactElement {
         <div className="night-sky__halo-window">
           <div className="night-sky__halo-grain" />
         </div>
+      </div>
+      {/* En dernier : leurs animations ne font sortir aucune autre couche du calque du ciel. */}
+      <div className="night-sky__twinkles">
+        {TWINKLES.map((style, i) => (
+          <span key={i} className="night-sky__twinkle" style={style as CSSProperties} />
+        ))}
       </div>
     </div>
   );

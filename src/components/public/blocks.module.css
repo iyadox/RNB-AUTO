@@ -644,6 +644,11 @@
      coupure nette. */
   -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
   mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  /* Loin de l'écran, le navigateur saute le style, la mise en page et la peinture de la scène
+     (temps de blocage au chargement). Rien ne change : hauteur fixée ici, largeur de la colonne, et
+     le masque découpe déjà la scène à son cadre. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
 }
 @media (min-width: 1024px) {
   .dawnScene {
@@ -931,6 +936,16 @@
 html[data-motion="off"] .groundDash,
 html[data-motion="off"] .groundText {
   animation: none !important;
+}
+/* Contraste renforcé (A9) : ni grain sur la chaussée, ni peinture usée sur les lettres. */
+@media (prefers-contrast: more) {
+  .groundPlane::before {
+    display: none;
+  }
+  .groundText {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
 }
 @media (forced-colors: active) {
   .groundWrap {

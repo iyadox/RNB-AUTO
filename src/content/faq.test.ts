@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { FAQ, FAQ_THEMES, HOME_FAQ_IDS, faqItems } from "./faq";
 
 /**
- * Textes d'origine, copiés mot pour mot de l'existant au commit 77c92ed
- * (`HOME_FAQ` de src/components/home/sections.tsx, puis `MORE_FAQ` de
- * src/app/(public)/questions-frequentes/page.tsx). Ils ne doivent jamais dériver.
+ * Textes d'origine, copiés mot pour mot de l'existant au commit 77c92ed (`HOME_FAQ` de
+ * l'ancien accueil, puis `MORE_FAQ` de l'ancienne page des questions fréquentes). Ces deux
+ * listes vivent désormais uniquement dans `./faq.ts` (questions de l'accueil choisies par
+ * `HOME_FAQ_IDS`, affichées par src/components/home/faq-preview.tsx). Ils ne doivent jamais dériver.
  */
 const ORIGINAL: { q: string; a: string }[] = [
   {

@@ -26,9 +26,6 @@ const round = (value: number) => Math.round(value * 10) / 10;
 /** Facteur d'échelle à la distance `d` (1 au premier plan, vers 0 à l'horizon). */
 export const depth = (cam: Camera, d: number) => cam.d0 / (cam.d0 + Math.max(0, d));
 
-/** Distance à laquelle l'échelle vaut `t`. */
-export const distanceAt = (cam: Camera, t: number) => cam.d0 / t - cam.d0;
-
 /** Projette un point (x latéral, d distance, y hauteur au-dessus du sol), en mètres. */
 export function project(cam: Camera, x: number, d: number, y = 0): Point {
   const t = depth(cam, d);

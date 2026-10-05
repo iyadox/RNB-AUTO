@@ -1,12 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { DEV_NOISE, PAGES, chooseAddress, frames, idle, scrollThrough, setReferenceViewport, statusOf } from "./helpers";
+import { DEV_NOISE, PAGES, chooseAddress, frames, idle, isMobile, scrollThrough, setReferenceViewport, statusOf } from "./helpers";
 
 /**
  * Recette « immersion » de la refonte (docs/09, G.1 et G.3) : structure des pages (un seul h1,
  * une heure du ciel par section, plaques PK masquées), aucune erreur de console, aucun
  * débordement horizontal, aucune case à cocher hors formulaires, aucune action dans un
- * `[data-reveal]`, GSAP absent des pages calmes, niveau « off » sans mouvement (A3), et les
- * textes uniques protégés de /demande. Projets « mobile » (390 × 844) et « desktop » (1 440 × 900).
+ * `[data-reveal]`, GSAP absent des pages calmes et du niveau « lite » sur téléphone, niveau « off »
+ * sans mouvement (A3), et les textes uniques protégés de /demande. Projets « mobile » (390 × 844)
+ * et « desktop » (1 440 × 900).
  */
 
 /** Pages qui ne chargent jamais GSAP (G.2). */
@@ -112,6 +113,48 @@ for (const path of PAGES) {
     expect.soft(errors, "erreurs de console").toEqual([]);
   });
 }
+
+// ─── Niveau « lite » sur téléphone : aucune requête GSAP (G.2) ─────────────────
+
+/**
+ * Appareil modeste (2 cœurs, C.3) : niveau `lite`. Sur téléphone, les scènes de /depannage et de
+ * /remorquage se jouent sans GSAP (`needsGsap` : ordinateur en `full` seulement) et la montée
+ * des lignes n'existe qu'en `full` : la page entière, parcourue, ne demande aucun morceau GSAP.
+ */
+test.describe("Niveau lite sur téléphone : GSAP jamais demandé", () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(!isMobile(testInfo), "téléphone seulement");
+    await page.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, "hardwareConcurrency", { get: () => 2, configurable: true });
+    });
+  });
+
+  for (const path of ["/depannage", "/remorquage"]) {
+    test(`lite ${path} : aucune requête GSAP`, async ({ page }) => {
+      const gsapRequests: string[] = [];
+      page.on("request", (request) => {
+        if (/\/_next\/.*gsap/i.test(request.url())) gsapRequests.push(request.url());
+      });
+      await page.goto(path);
+      await expect(page.locator("html")).toHaveAttribute("data-motion", "lite");
+      await idle(page);
+      await scrollThrough(page);
+      // Les scènes affichées s'initialisent à l'approche : on attend qu'elles soient prêtes (ou en
+      // repli). Une scène masquée sur téléphone (version ordinateur) n'approche jamais.
+      const pendingScenes = () =>
+        page.evaluate(
+          () =>
+            Array.from(document.querySelectorAll("[data-scene]")).filter(
+              (el) => el.getClientRects().length > 0 && !el.hasAttribute("data-scene-ready") && !el.hasAttribute("data-scene-failed"),
+            ).length,
+        );
+      await scrollThrough(page);
+      await expect.poll(pendingScenes, { timeout: 15_000 }).toBe(0);
+      await page.waitForLoadState("networkidle");
+      expect(gsapRequests, "morceaux GSAP demandés en lite sur téléphone").toEqual([]);
+    });
+  }
+});
 
 // ─── A3 : niveau « off » (préférence système) ──────────────────────────────────
 

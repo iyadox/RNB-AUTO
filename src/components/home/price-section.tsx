@@ -17,6 +17,7 @@ import { HOME_EXAMPLE_DESCRIPTION, type PublicSiteInfo } from "@/server/site/pub
 import { exampleFootnote } from "./lower/example-footnote";
 import { StreetWindow } from "./lower/street-window";
 import { PriceMomentPicker } from "./price-moment-picker";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import styles from "./home-lower.module.css";
 
 const GUARANTEES: { icon: IconName; text: string }[] = [
@@ -69,34 +70,37 @@ export function PriceSection({ info, examples }: { info: PublicSiteInfo; example
         </div>
 
         <div className={styles.priceVisual}>
-          {examples ? (
-            <PriceMomentPicker examples={examples} vehicle={vehicle} scene={scene} />
-          ) : (
-            <div className={styles.stage} data-moment="day">
-              <div className={styles.window} data-inview-once="">
-                {scene}
+          {/* Rue et ticket hydratés après le texte, par tranches (temps de blocage). */}
+          <HydrateLater>
+            {examples ? (
+              <PriceMomentPicker examples={examples} vehicle={vehicle} scene={scene} />
+            ) : (
+              <div className={styles.stage} data-moment="day">
+                <div className={styles.window} data-inview-once="">
+                  {scene}
+                </div>
+                <div className={styles.ticketSlot}>
+                  {fallback ? (
+                    <EstimateTicket
+                      priceCents={fallback.priceTtcCents}
+                      priceLabel="Total estimé TTC"
+                      lines={fallback.includedLabels}
+                      stamp="exemple"
+                      footnote={exampleFootnote(HOME_EXAMPLE_DESCRIPTION, vehicle)}
+                      className={styles.ticket}
+                    />
+                  ) : (
+                    <EstimateTicket
+                      priceCents={null}
+                      lines={[]}
+                      footnote="Confirmé par téléphone avant le départ."
+                      className={styles.ticket}
+                    />
+                  )}
+                </div>
               </div>
-              <div className={styles.ticketSlot}>
-                {fallback ? (
-                  <EstimateTicket
-                    priceCents={fallback.priceTtcCents}
-                    priceLabel="Total estimé TTC"
-                    lines={fallback.includedLabels}
-                    stamp="exemple"
-                    footnote={exampleFootnote(HOME_EXAMPLE_DESCRIPTION, vehicle)}
-                    className={styles.ticket}
-                  />
-                ) : (
-                  <EstimateTicket
-                    priceCents={null}
-                    lines={[]}
-                    footnote="Confirmé par téléphone avant le départ."
-                    className={styles.ticket}
-                  />
-                )}
-              </div>
-            </div>
-          )}
+            )}
+          </HydrateLater>
         </div>
       </div>
     </section>

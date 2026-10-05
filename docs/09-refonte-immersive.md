@@ -795,13 +795,12 @@ D'après `node_modules/next/dist/docs/01-app/02-guides/view-transitions.md` :
 - en niveau `lite` : simple fondu de 150 ms.
 
 **Morph partagé** (`<SharedMorph name>`, soit `<ViewTransition name share="morph" default="none">`) :
-- seulement entre les quatre panneaux du carrefour de l'accueil et la plaque d'ouverture de la page d'arrivée :
-  - `vt-sign-depannage` ;
-  - `vt-sign-remorquage` ;
-  - `vt-sign-autoroute` ;
-  - `vt-sign-demande` (vers la route des étapes de /demande) ;
+- seulement entre les quatre panneaux du carrefour de l'accueil et l'en-tête de la page d'arrivée (code livré, voir J.14) :
+  - `vt-sign-depannage` et `vt-sign-remorquage` : le titre principal (h1) de la page ;
+  - `vt-sign-autoroute` : la plaque orange et le titre de /panne-autoroute, dans un même bloc ;
+  - `vt-sign-demande` : la route des étapes de /demande ;
 - **un seul élément par nom et par page** ;
-- 380 ms, avec un léger flou au milieu (`via-blur`) ;
+- 380 ms, avec un léger flou au milieu (`via-blur`) **sur ordinateur à souris seulement** ; ailleurs, un creux d'opacité (écart C.1-7 / D.4, voir J.14) ;
 - si la page d'arrivée n'est pas préchargée, l'entrée normale prend le relais.
 
 **`off` et préférence système :** `::view-transition-*` passent à `animation: none` (plus la règle du guide sur `prefers-reduced-motion`).
@@ -887,28 +886,27 @@ D'après `node_modules/next/dist/docs/01-app/02-guides/view-transitions.md` :
   Pas de « Prochaine sortie » sur l'accueil (le carrefour joue ce rôle), /contact, /demande, les pages légales ni la 404.
 
 **`DawnCta`, l'aube** (remplace `CtaBand` et `FinalCta`) :
-- section `data-sky="aube"` ;
-- bande d'aube **locale** sous le texte (violet, puis rose, puis or, sur les 30 % du bas, sans texte dessus) ;
-- titre propre à la page en `text-dawn`, en jaune, avec `data-beam="view"` ;
+- section `data-sky="aube"`, marquée `data-dawn-cta` ;
+- c'est le **seul horizon** de la fin de page : bande d'aube locale (violet, puis rose, puis or, sans texte dessus), ville en couche lointaine et soleil, qui se lève au défilement (`view()`, niveau `full` seulement ; immobile ailleurs) ;
+- titre propre à la page en jaune, avec `data-beam="view"` : 7 rem au plus sur ordinateur (deux lignes), et sur téléphone une taille qui laisse tenir le plus long mot (`HeadingFit anyWord` : « MAINTENANT ? » à 320 px) ;
 - texte ;
 - `ActionRow` : « Demander un dépannage », numéro de téléphone, WhatsApp. **Visibles dès l'entrée de la section**, jamais conditionnés à une animation ;
-- scène : route en perspective avec `GroundText` (« ON ARRIVE » sur l'accueil, aucun texte peint ailleurs) et dépanneuse qui arrive et freine (P16) ;
+- scène : route en perspective avec `GroundText` (« ON ARRIVE » sur l'accueil, aucun texte peint ailleurs) et dépanneuse qui arrive et freine (P16) ; le bas de la route se fond dans la nuit, là où commence le pied de page ;
 - `calm` (/panne-autoroute) : ni dépanneuse ni texte peint.
 
-**`SiteFooter`, « Retour au dépôt » :**
-- Rangée de chevrons statique.
-- **Bande d'horizon** (40svh au plus, 220 px au moins) :
-  - horizon de ville en couche lointaine, statique, sur une aube locale ;
-  - le soleil monte avec le défilement (`view()`) ;
-  - la dépanneuse **vide**, en miroir, revient vers le dépôt, à droite (P16, 2 s). Une fois garée, gyrophare et phares s'éteignent (images clés avec délai), et le rideau descend (1 s).
-- **Légende**, au-dessus de la bande, sur le violet : « Retour au dépôt · {depotLabel} ». C'est le troisième trajet.
-- **Grand « RNB AUTO »** en contour (`aria-hidden`) : un remplissage doré monte une fois (`clip-path: inset(100% 0 0 0)` vers `inset(0)`, 1,2 s, `data-inview`).
-- **Colonnes de liens** (`FOOTER_COLUMNS`, contenu existant, lien « Espace RNB AUTO » compris).
-- **Bloc contact :** téléphone, WhatsApp, `depotLabel`, `serviceArea`, email. « À COMPLÉTER » pour le téléphone et l'email s'ils manquent.
+**`SiteFooter`, « Retour au dépôt »** (composant client ; liens et boutons rendus par le serveur, utilisables sans JavaScript) :
+- **Après une aube** (`body:has([data-dawn-cta])`, toutes les pages qui en ont une) : le pied de page **reprend au pied de la même route**, sans redessiner ni chevrons, ni aube, ni soleil, ni ville, ni reflet. Une bande basse (150 px au moins, 20svh et 12 rem au plus ; 180 px à 28svh et 15 rem à partir de 768 px) où le dépôt et la dépanneuse qui rentre se découpent sur le ciel global à l'heure `aube`, sous une lumière rasante.
+- **Sans aube** (/contact, /demande, pages légales, 404) : rangée de chevrons statique, puis la bande d'horizon complète (34svh sur téléphone, 40svh à partir de 768 px, 220 px au moins, 26 rem au plus) : ville lointaine sur une aube locale, soleil qui monte avec le défilement (`view()`).
+- Dans les deux cas : la dépanneuse **vide**, en miroir, revient vers le dépôt (P16, 2 s). Une fois garée, gyrophare et phares s'éteignent, puis le rideau descend (1 s). Le déclencheur est `data-play` (posé par l'en-tête, réarmé à chaque page, S2a-3). Les dessins du dépôt et de la dépanneuse ne sont montés qu'à l'approche (un écran avant) ; sans JavaScript, ils sont dans un `<noscript>` à l'état final.
+- **Légende**, au-dessus de la bande : « Retour au dépôt · {depotLabel} ». C'est le troisième trajet.
+- **Mot-marque « RNB AUTO »** en contour (`aria-hidden`) : **ordinateur seulement** (à partir de 1 024 px, 7 à 10 rem). Un trait doré monte une fois le long des lettres (`clip-path: inset(100% 0 0 0)` vers `inset(0)`, 1,2 s, `data-play`). Sur téléphone, il doublait la signature du logo juste en dessous.
+- **Bloc contact :** logo et nom, téléphone, WhatsApp, `depotLabel`, `serviceArea`, email. « À COMPLÉTER » pour le téléphone et l'email s'ils manquent.
+- **Plan du site** (`FOOTER_COLUMNS`, contenu existant, lien « Espace RNB AUTO » compris) dans un `<details>` natif « Plan du site » : **replié sur téléphone** (fonctionne sans JavaScript, liens de 44 px), toujours déplié en trois colonnes à partir de 640 px (`::details-content` ; un navigateur qui ne le connaît pas garde le bouton). Les liens ne préchargent leur page qu'au survol ou au focus.
 - **Bouton** `MotionToggle`.
 - **Mention existante :** « Les prix affichés en ligne sont des estimations, confirmées avant chaque intervention. » (aucune occurrence de « prix estimé » dans le pied de page ; voir G.1).
 - **Fond sous l'horizon :** `night-900`.
-- **Sans JavaScript et en `off` :** état final (dépanneuse garée, rideau fermé, « RNB AUTO » doré).
+- **Sans JavaScript et en `off` :** état final (dépanneuse garée, feux éteints, rideau fermé, trait doré complet).
+- Hauteur mesurée sur téléphone, après une aube : 993 px (1,18 écran ; 1 841 px avant l'audit final). /contact, sans aube : 1 141 px.
 
 ### D.9 Pointeur, curseur, son
 
@@ -1663,9 +1661,9 @@ Toutes les pages ont `<PageTransition>`, un seul titre principal et `data-sky` s
 | `src/components/public/site-header.tsx` (réécrit, client) | `SiteHeader({ phone, whatsapp, announcement })` (D.5) ; ligne de progression mobile ; `ResizeObserver` qui écrit `--header-h` |
 | `src/components/public/mobile-menu.tsx` (nouveau) | `MobileMenu({ phone, whatsapp })` (D.6) |
 | `src/components/public/action-bar.tsx` (modifié) | Même API ; `data-action`, règles `:has`, apparence de D.7 |
-| `src/components/public/site-footer.tsx` (réécrit) | `SiteFooter({ info })` (D.8). Utilise `Skyline`, `Depot`, `TowTruck mirrored` (S1) et `MotionToggle`. |
-| `src/components/public/actions.tsx` (nouveau) | `PrimaryLink({ href, children, size?: "lg" \| "md", transitionTypes?: string[], className? })` ; `CallLink({ phone, variant?: "solid" \| "outline" \| "ghost", label?: "number" \| "short", className? })` (repli « N° à compléter » vers /contact) ; `WhatsAppLink({ whatsapp, message?, variant?, className? })` ; `ActionRow({ info, primary?: { href: string; label: string } \| null, layout?: "row" \| "stack", tone?: "night" \| "dawn" })` |
-| `src/components/public/page-blocks.tsx` (réécrit) | `OpeningShot({ pk?, eyebrow, pictogram?, title, lead?, actions?, scene?, sky?, layout?: "split" \| "stacked" \| "compact", morphName?, id? })` ; `Section({ id, pk, label, sky?, title?, split?: boolean, intro?, width?: "default" \| "wide" \| "reading", children, className? })` ; `Plate({ pk?, children, tone?: "signal" \| "beacon" \| "chalk" })` ; `NextExit({ from })` ; `DawnCta({ info, title, text?, truck?: "loaded" \| "empty" \| "none", ground?: string \| null, calm?: boolean })` ; `RelatedFaq({ ids, title? })` ; `Prose` et `ToComplete` (même API, nouveau style). **`PageHero`, `FeatureGrid`, `Steps` et `CtaBand` restent exportés et marqués `@deprecated`** jusqu'à L9. |
+| `src/components/public/site-footer.tsx` (réécrit, client) | `SiteFooter({ info, year })` (D.8). Utilise `Skyline`, `Depot`, `TowTruck mirrored` (S1) et `MotionToggle`. Dépôt et dépanneuse montés à l'approche (`<noscript>` sans JavaScript). |
+| `src/components/public/actions.tsx` (nouveau) | `PrimaryLink({ href, children, size?: "lg" \| "md" \| "sm", transitionTypes?: string[], className? })` (porte `data-primary`) ; `CallLink({ phone, variant?: "solid" \| "outline" \| "ghost", label?: "number" \| "short", missing?: "marker" \| "plain" \| "hidden", size?: "lg" \| "md" \| "sm", className? })` (repli « N° à compléter » vers /contact) ; `WhatsAppLink({ whatsapp, message?, variant?, size?, className? })` ; `ActionRow({ info, primary?: { href: string; label: string } \| null, layout?: "row" \| "stack", tone?: "night" \| "dawn", className? })` |
+| `src/components/public/page-blocks.tsx` (réécrit) | Signatures du code livré (audit final) : `OpeningShot({ pk? = "00", eyebrow: string, pictogram?: IconName, title: ReactNode, lead?: ReactNode, actions?: ReactNode, scene?: ReactNode, sky?: SkyState = "minuit", titleFit?: boolean, morphName?: MorphName, id? = "ouverture" })` (pas de `layout` : texte à gauche et scène à droite sur ordinateur, empilés en dessous de 1 024 px ; `morphName` pose le morph sur la plaque, mais /depannage et /remorquage le posent sur leur titre, voir J.14) ; `Section({ id: string, pk: string, label: string, sky?: SkyState = "nuit", title?: ReactNode, split?: boolean, children: ReactNode, className? })` (ni `intro` ni `width` : l'intro et la largeur sont dans `children`) ; `Plate({ pk?, children, tone?: "signal" \| "beacon" \| "chalk", pictogram?: IconName, pictogramStyle?: "auto" \| "solid" \| "outline", className? })` ; `NextExit({ from: string })` ; `DawnCta({ info: PublicSiteInfo, title: string, text?: ReactNode, truck?: "loaded" \| "empty" \| "none" = "empty", ground?: string \| null = null, calm?: boolean = false })` (section `data-sky="aube"` et `data-dawn-cta`, que le pied de page lit) ; `RelatedFaq({ ids: readonly string[], title?: ReactNode })` ; `Prose({ children })` ; `ToComplete({ label? })` (dans `to-complete.tsx`, réexporté ici). `RelatedFaq`, `NextExit`, `DawnCta`, le contenu des sections et la scène de l'ouverture sont hydratés plus tard (`HydrateLater`), rendu identique. `PageHero`, `FeatureGrid`, `Steps` et `CtaBand` sont **supprimés** (L9). |
 | `src/components/public/faq-accordion.tsx` (nouveau) | `FaqAccordion({ items: FaqItem[], anchors?: boolean })` (P18) |
 | `src/components/public/road-line.tsx` (nouveau) | `RoadLine({ markers?: { id: string; pk: string; label: string }[] })` (D.3) |
 | `src/components/public/ground-text.tsx` (nouveau) | `GroundText({ text })` (P17) |
@@ -1847,14 +1845,16 @@ S1 Fondations ──► S2a Coque ─┐
 
 ## I. Critères de recette globaux
 
+Cases cochées à l'audit final (05/10/2026) : seulement les critères prouvés par les tests de recette (`urgence.spec.ts` : U1 à U4, U6, U8, U10 ; `immersion.spec.ts` : A3 et textes uniques ; `parcours.spec.ts`), tous au vert, ou vérifiés directement dans le code (aucun épinglage, aucun son, aucun écran de chargement, fichiers morts absents). Les autres restent à contrôler.
+
 **Urgence**
-- [ ] Sur toutes les pages publiques, sans JavaScript : titre principal, Appeler, WhatsApp (et Demande sauf sur /demande) présents et utilisables.
-- [ ] Titre principal, accroche et bouton principal à opacité 1 et sans transformation dès `DOMContentLoaded`. Aucun délai sur une action (`hero.tsx` et `PageHero` corrigés).
-- [ ] À 390 × 664, le bas du bouton de l'accueil est sous 600 px. Sur /panne-autoroute, les réflexes sont dans le premier écran.
-- [ ] Barre d'action jamais recouverte (5 positions de défilement par page, et pendant une transition de page). Deux boutons sur /demande.
-- [ ] Aucun épinglage GSAP, aucun Lenis sur mobile ni sur /demande, aucun écran de chargement, aucun son.
-- [ ] /demande : `npm run e2e` au vert sans modifier le test ; message à 4 s ; prix en texte immédiat ; « prix estimé », « Demande reçue » et la référence uniques dans le document.
-- [ ] Avec GSAP et Lenis bloqués, chaque page est complète.
+- [x] Sur toutes les pages publiques, sans JavaScript : titre principal, Appeler, WhatsApp (et Demande sauf sur /demande) présents et utilisables.
+- [x] Titre principal, accroche et bouton principal à opacité 1 et sans transformation dès `DOMContentLoaded`. Aucun délai sur une action (`hero.tsx` et `PageHero` corrigés).
+- [x] À 390 × 664, le bas du bouton de l'accueil est sous 600 px. Sur /panne-autoroute, les réflexes sont dans le premier écran.
+- [x] Barre d'action jamais recouverte (5 positions de défilement par page, et pendant une transition de page). Deux boutons sur /demande.
+- [x] Aucun épinglage GSAP, aucun Lenis sur mobile ni sur /demande, aucun écran de chargement, aucun son.
+- [x] /demande : `npm run e2e` au vert sans modifier le test ; message à 4 s ; prix en texte immédiat ; « prix estimé », « Demande reçue » et la référence uniques dans le document.
+- [x] Avec GSAP et Lenis bloqués, chaque page est complète.
 
 **Immersion et cohérence**
 - [ ] Aucune section en fond plein clair, aucune grille de cartes, plus aucun `rounded-3xl` sur un bloc de contenu.
@@ -1879,15 +1879,15 @@ S1 Fondations ──► S2a Coque ─┐
 
 **Accessibilité**
 - [ ] Un seul titre de niveau 1 par page. Décor `aria-hidden`. Ordre du clavier cohérent. Focus visible sur tous les panneaux.
-- [ ] En « moins d'animations » (système ou bouton) : états finaux, aucune animation infinie, aucune animation liée au défilement, aucune animation de transition.
+- [x] En « moins d'animations » (système ou bouton) : états finaux, aucune animation infinie, aucune animation liée au défilement, aucune animation de transition.
 - [ ] Boutons de pause de l'ouverture et du panneau à messages, plus le bouton global, fonctionnels et mémorisés.
 - [ ] `contrast.test.ts` au vert. Texte de 17 px au moins sur mobile. Zones de toucher de 48 px au moins.
 
 **Qualité**
-- [ ] `npm run check` au vert (avec les nouveaux tests unitaires) et `npm run e2e` au vert (avec `urgence.spec.ts` et `immersion.spec.ts`).
+- [x] `npm run check` au vert (avec les nouveaux tests unitaires) et `npm run e2e` au vert (avec `urgence.spec.ts` et `immersion.spec.ts`).
 - [ ] Planches de captures à 390 et 1 440, en normal et `--reduced`, pour toutes les pages : aucun débordement horizontal, aucune erreur de console.
 - [ ] Rendu de l'administration inchangé (`/admin/tester`, `/admin/parametres`).
-- [ ] `docs/09-refonte-immersive.md` à jour. Fichiers morts supprimés (`sections.tsx`, `home-motion.tsx`, `page-motion.tsx`, exports dépréciés).
+- [x] `docs/09-refonte-immersive.md` à jour. Fichiers morts supprimés (`sections.tsx`, `home-motion.tsx`, `page-motion.tsx`, exports dépréciés).
 
 ---
 
@@ -2140,3 +2140,43 @@ La recette est répartie en chantiers ; chacun rend un compte rendu (corrections
 | L9-F6-5 | Ouvertures de /depannage, /remorquage, /entreprise, /questions-frequentes, /zones-d-intervention et /panne-autoroute : `data-loops-nojs` sur la scène. | C.3 (voir L9-F3-3). |
 | L9-F6-6 | Pages légales : `ToComplete` importé du socle, alias `Chantier` retiré. | Un seul marqueur « À COMPLÉTER » dans le code. |
 | L9-F6-7 | /panne-autoroute, PK 02 : la taille du titre « Votre véhicule est sorti de l'autoroute ? » est bornée par sa colonne (`100cqi / 6,2`, « L'AUTOROUTE ? » insécable). /zones-d-intervention sous 360 px : vignette des secteurs de 5,25rem. Sous 360 px encore : le bouton jaune des ouvertures (/depannage, /remorquage, /entreprise, /questions-frequentes) se resserre (marges et texte), et le titre des thèmes de /questions-frequentes est borné par la place à côté de son panneau, réduit à 2,75rem. | À 1 024 et 1 440 px, « L'AUTOROUTE ? » débordait sur la scène (146 px à 1 024) ; à 320 px, « arrondissements » touchait le bord de la plaque, le bouton jaune des ouvertures dépassait l'écran de 9 à 19 px (coupé) et « L'INTERVENTION » était coupé par le bord. |
+
+### J.14 Audit final
+
+Après L9, six audits en lecture seule (direction artistique sur téléphone et sur ordinateur, urgence et accessibilité, performance, contenu et conformité, qualité du code), puis une correction par zone (kit, motion, coque, accueil, demande, sous-pages, documentation) et un dernier chantier pour les points restés entre deux zones. Les comptes rendus des correcteurs font foi pour le détail des mesures ; voici les décisions qui restent.
+
+| # | Décision ou écart | Raison |
+|---|---|---|
+| AF-1 | **Fin de page : un seul horizon.** Quand l'aube (`DawnCta`, marquée `data-dawn-cta`) précède le pied de page, celui-ci ne redessine ni chevrons, ni aube, ni soleil, ni ville, ni reflet (`body:has([data-dawn-cta])`) : il reprend au pied de la même route, dans une bande basse (150 px à 20svh, 28svh à partir de 768 px) où rentrent le dépôt et la dépanneuse, sous une lumière rasante. Le soleil de l'aube se lève au défilement (`view()`, niveau `full`). Les pages sans aube (/contact, /demande, pages légales, 404) gardent la bande complète. Voir D.8. | Deux couchers de soleil se suivaient. Pied de page sur téléphone : 1 841 → 993 px (2,2 → 1,2 écran). |
+| AF-2 | **Mot-marque « RNB AUTO » sur ordinateur seulement** (à partir de 1 024 px, 7 à 10 rem) ; le remplissage doré devient un trait doré net qui monte. | Sur téléphone, il doublait la signature du logo juste en dessous ; le remplissage semi-transparent rendait un brun sale sur la nuit. |
+| AF-3 | **Plan du site replié sur téléphone** (`<details>` natif « Plan du site », sans JavaScript), toujours déplié en trois colonnes à partir de 640 px (`::details-content`). Les liens ne préchargent qu'au survol ou au focus. | Plus d'un tiers d'écran de liens en texte brut ; préchargement de tout le site à l'arrivée du pied de page. |
+| AF-4 | **Flou du morph seulement sur ordinateur à souris** (`(min-width: 1024px) and (pointer: fine)`) ; ailleurs, un creux d'opacité. Pas de transition de page en niveau `off` ; après une capture de plus de 300 ms, les transitions sont coupées pour la visite. | Écart entre C.1-7 (jamais `filter`) et D.4 (`via-blur`) ; G.2 interdit `filter: blur` sur mobile. Sans processeur graphique, la capture de l'ancienne page figeait l'écran 0,6 à 1 s. |
+| AF-5 | **Polices de repli calibrées** dans `globals.css` : une famille « Archivo Fallback » par largeur (62 à 125) et pour le texte courant, chacune avec une variante Roboto pour Android, `size-adjust` et `ascent-override` / `descent-override` mesurés sur les textes réels. | CLS dû au chargement de la police : accueil 0,154 → 0,000, /depannage 0,156 → 0,001 (production, téléphone, 4G). Une largeur écrite directement dans un module CSS (`font-stretch: 80%`) doit utiliser ces familles. |
+| AF-6 | **Morph posé sur l'en-tête de la page d'arrivée** : le titre principal de /depannage et /remorquage (`SharedMorph` autour du titre, plus de `morphName` passé à `OpeningShot`), la plaque orange et le titre de /panne-autoroute (un bloc qui n'est jamais fragmenté), la route des étapes de /demande. | Le panneau du carrefour se posait sur une petite plaque, ou nulle part (/panne-autoroute). Si `OpeningShot` reçoit un jour `morphName`, retirer le `SharedMorph` du titre : un seul élément par nom. |
+| AF-7 | **Scènes collantes montées à la demande** : /remorquage (`StageVisual`) et /zones-d-intervention (`AreasStageVisual`) ne montent leur scène que si `(min-width: 1024px) and (pointer: fine)`, par `next/dynamic` sans rendu serveur (`use-media-query.ts`). Sur téléphone, rien dans le HTML ni dans la charge RSC. Les scènes de /panne-autoroute deviennent des composants clients sans état (L9-F3-1). | À 390 px : 1 926 → 1 360 éléments sur /remorquage, 1 754 → 1 317 sur /zones-d-intervention ; /panne-autoroute 55,8 → 40,7 Ko compressés. |
+| AF-8 | **Légendes et noms du plan qui s'évitent** : `plan-labels.ts` place les noms des communes, du dépôt et l'étiquette « Vous » par boîtes estimées (trois tailles de plan), avec un écart minimal ; le nom du dépôt passe au-dessus si une épingle le couvre. Les légendes de la scène de /remorquage et le nom de zone du plan de /zones-d-intervention se relaient en fondu décalé. Sur /demande, la dépanneuse garée au bout du retour se gare à côté du losange, nez vers l'extérieur, à la place qui gêne le moins (`route-parking.ts`, testé). | Noms superposés ; la dépanneuse garée sur le dépôt recouvrait « BOBIGNY ». |
+| AF-9 | Montée des lignes (P5) chargée à l'approche du titre, sans ScrollTrigger sur téléphone (`loadSplitKit`), un titre par tâche ; une pause (`yieldToMain`) entre les étapes du runtime. Gardée sur téléphone (P5 : « Mobile : identique »). | Temps de blocage au démarrage, sans perdre l'effet. |
+| AF-10 | **GSAP jamais chargé en niveau `lite` sur téléphone** : `steps-road` (/depannage) et `loading-sequence` déclarent `needsGsap: ({ level, desktop }) => desktop && level === "full"`. Test de recette « Niveau lite sur téléphone » (2 cœurs simulés, 390 px) : aucune requête GSAP sur /depannage ni /remorquage. | Un appareil modeste téléchargeait encore GSAP pour une scène qui ne s'en sert pas. |
+| AF-11 | **Ciel de nuit allégé, sans changement visible** : chaque étoile est une tuile de 6 px (12 px avec halo) au lieu d'un dégradé étendu à tout le ciel, et les trois calques d'étoiles n'en font qu'un ; nappes de nuages, lueur de la ville et nappes du zénith ne sont peintes que sur leur partie visible ; l'heure du ciel (`--stars`) est portée par la couleur des étoiles et de la brume plutôt que par une `opacity` de calque ; les six étoiles qui scintillent sont regroupées dans un seul calque posé au-dessus de tout le ciel, dont il porte l'heure (images clés constantes). Le scintillement n'est pas suspendu pendant le défilement : il reste entièrement sur le compositeur et ne fait plus sortir de couche plein écran. | Sans processeur graphique, tout le ciel est repeint à chaque image d'un changement d'heure, et les animations du scintillement sortaient nuages, lueur, brume et grain dans un second calque plein écran. Mesures ci-dessous. |
+| AF-12 | /zones-d-intervention : noms composés insécables dans les secteurs et la légende (« Seine-Saint-Denis (93) » ne se coupe plus en « Seine-Saint- / Denis ») ; le titre du secteur se règle sur sa colonne (`min(text-step, 11,6cqi)`) pour que le nom tienne jusqu'à 320 px. | Coupure au trait d'union à 390 px ; à 320 px, le nom insécable aurait débordé de 50 px. |
+| AF-13 | Accueil : feux, gyrophare et tirets de l'ouverture en calques HTML (`transform`) au lieu de SVG redessiné ; onde du dépôt en calque HTML ; décors lointains montés à 1,5 écran (`LazyScene`, cadre réservé, aucun décalage) ; relais d'autoroute vertical rendu par le serveur, horizontal après hydratation à partir de 768 px. | Dessin à l'arrêt et poids du HTML (40,2 Ko en gzip-9, 1 745 nœuds). |
+| AF-14 | Relais d'autoroute sur téléphone : schéma compact en S (360 × 300) avec repères 1, 2, 3 et légendes en liste sous le dessin. | Le ruban vertical de 360 × 600 laissait jusqu'à 650 px de bloc sur /panne-autoroute (325 après). |
+| AF-15 | Compteur du prix : aucun faux montant à l'entrée (chaque tambour ne contient que le vrai chiffre) ; boutons de pause des scènes et du panneau à messages mémorisés (`pause-choice.ts`) ; focus jamais caché par la barre d'action (`scroll-padding-bottom`) ; /demande : focus sur « Votre estimation » à l'arrivée du prix, durée de validité lue sur l'estimation, défilement instantané en `off`. | Constats d'urgence et d'accessibilité (WCAG 2.4.11). |
+| AF-16 | Écartés : Prochaine sortie après l'aube sur téléphone (casserait la continuité aube → dépôt) ; décor d'aube propre à chaque page (contenu à inventer) ; montée des lignes remplacée par un fondu CSS sur téléphone (P5) ; abréviations des étapes de /demande. | Voir les raisons dans chaque ligne. |
+
+**Mesure du ciel (AF-11).** Build de production, 1 440 × 900, Chromium sans processeur graphique (`--disable-gpu --disable-gpu-compositing`), 40 crans de molette de 120 px (le ciel change d'heure plusieurs fois), trace Chromium, médiane de 3 passages, temps cumulés sur la trace :
+
+| Page | Peinture des tuiles (RasterTask) | Dessin des images (Display::DrawAndSwap) | Thread principal par image (BeginMainFrame) | Commit | Calques ≥ 30 % de l'écran |
+|---|---|---|---|---|---|
+| /depannage | 13,8 → 4,8 s | 10,2 → 6,3 s | 7,0 → 2,0 s | 2,9 → 0,4 s | 7 → 6 |
+| /zones-d-intervention | 8,3 → 5,2 s | 8,4 → 7,4 s | 5,1 → 3,2 s | 1,0 → 0,4 s | 8 → 6 |
+
+Plancher sans ciel (/depannage) : 1,3 s de peinture et 4,3 s de dessin. Rendu du ciel comparé pixel à pixel aux quatre heures, à 390 et 1 440 px : au plus 0,03 % des pixels diffèrent de plus de 8/255 (anticrénelage des étoiles, calées au pixel près), différence invisible.
+
+Restait ouvert à la fin de l'audit :
+- temps de blocage au-dessus du budget de 150 ms (processeur ×4, 4G lente), surtout l'hydratation et le rendu des pages lourdes ;
+- sans processeur graphique, la première transition de page fige encore l'écran environ 0,75 s (capture de l'ancienne page), puis les transitions sont coupées pour la visite ;
+- budget de 40 Ko de HTML compressé tenu en brotli et en zstd, pas en gzip seul (J.13) ; CSS bloquant de 48 à 54 Ko (administration comprise) ;
+- sur ordinateur, 2 429 px de la Prochaine sortie au bas de /depannage, pour un objectif de 1 800 ;
+- /panne-autoroute : l'aube calme laisse environ 430 px de route vide sur téléphone ; /remorquage : deux aplats jaunes à l'écran (onglet « Prochaine sortie » et bouton de l'aube) ;
+- balayage du plan régional (`sweepBeam`) et `city-ping` encore redessinés en SVG.

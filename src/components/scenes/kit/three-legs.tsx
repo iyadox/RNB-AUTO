@@ -17,6 +17,7 @@ import { cn } from "@/components/ui/cn";
 import { DepotGlyph, FlagGlyph, PinGlyph } from "./glyphs";
 import styles from "./kit.module.css";
 import { RoutePaths, type RouteLeg } from "./route-paths";
+import { viewBoxRatio } from "./svg-path";
 
 type ThreeLegsProps = {
   mode?: "tow" | "on_site";
@@ -67,13 +68,20 @@ export function ThreeLegs({ mode = "tow", km = null, draw = "view", compact = fa
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const tow = mode === "tow";
   const legs = tow ? LEGS_TOW : LEGS_ON_SITE;
+  const viewBox = compact ? "40 40 560 196" : "0 20 640 220";
   const allerKm = formatKm(km?.aller);
   const transportKm = tow ? formatKm(km?.transport) : null;
 
   return (
     // `data-pause-offscreen` : les warnings de l'épingle « Vous » clignotent (P14).
     <figure data-pause-offscreen="" className={cn(styles.threeLegs, compact && styles.threeLegsCompact, className)}>
-      <svg viewBox={compact ? "40 40 560 196" : "0 20 640 220"} className={styles.threeLegsSvg} aria-hidden="true">
+      <svg
+        viewBox={viewBox}
+        className={styles.threeLegsSvg}
+        // Proportions écrites : la hauteur ne change pas quand le dessin est sauté (`content-visibility`).
+        style={{ aspectRatio: viewBoxRatio(viewBox) }}
+        aria-hidden="true"
+      >
         <defs>
           <pattern id={`tl-${uid}-dots`} width="16" height="16" patternUnits="userSpaceOnUse">
             <circle cx="1.5" cy="1.5" r="1" fill="#f5f3ee" fillOpacity="0.07" />

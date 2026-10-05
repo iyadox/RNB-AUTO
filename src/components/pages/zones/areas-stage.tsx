@@ -18,6 +18,7 @@ import { PLAN_SYMBOL_ID } from "./opening-map";
 import { zoneGeometry } from "./zone-geometry";
 import { AreasStageVisual } from "./areas-stage-visual";
 import { DepotMark, ZoneLayer } from "./zone-layers";
+import { NoBreakHyphens } from "./no-break-hyphens";
 import { ZoneRings } from "./zone-rings";
 import styles from "./zones.module.css";
 
@@ -39,15 +40,19 @@ export function AreasStage({ depot }: { depot: PublicSiteInfo["depot"] }): React
                     <ZoneLayer shape={shape} depot={geometry.depot} idPrefix="zones-vig" truck={false} />
                     <DepotMark depot={geometry.depot} scale={area.zone === "grande-couronne" ? 1.6 : 1} />
                   </svg>
-                  <div>
+                  <div className={styles.areaBody}>
                     <span className={styles.areaMeta} aria-hidden="true">
                       <ZoneRings active={area.zone} className={styles.areaRings} />
                       <span className={styles.areaNumber}>
                         {pad(index + 1)} / {pad(AREAS.length)}
                       </span>
                     </span>
-                    <h3 className={styles.areaTitle}>{area.title}</h3>
-                    <p className={styles.areaText}>{area.text}</p>
+                    <h3 className={styles.areaTitle}>
+                      <NoBreakHyphens text={area.title} />
+                    </h3>
+                    <p className={styles.areaText}>
+                      <NoBreakHyphens text={area.text} />
+                    </p>
                   </div>
                 </div>
                 <ul className={styles.chips} data-inview-once="">

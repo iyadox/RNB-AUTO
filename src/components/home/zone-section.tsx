@@ -17,6 +17,7 @@ import type { PublicSiteInfo } from "@/server/site/public-info";
 import { depotInSeineSaintDenis } from "./home-geo";
 import { LazyScene } from "./lazy-scene";
 import { NoBreakHyphens } from "./no-break-hyphens";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import styles from "./home-lower.module.css";
 
 const DEPARTMENTS = ["93", "75", "92", "94", "95", "77", "78", "91"];
@@ -44,41 +45,44 @@ export function ZoneSection({ info }: { info: PublicSiteInfo }) {
           </h2>
         </div>
 
-        <p data-reveal="" className={cn(styles.lead, styles.zoneLead)}>
-          Notre dépanneuse part de <NoBreakHyphens text={info.depotLabel} />.{" "}
-          {depotInSeineSaintDenis(info.depot)
-            ? <>
-                Au cœur de la <span className="whitespace-nowrap">Seine-Saint-Denis</span>, à quelques minutes de
-                Paris et des grands axes.{" "}
-              </>
-            : null}
-          Votre distance exacte est calculée dès que vous indiquez votre position.
-        </p>
+        {/* Le titre découpé reste dans le passage principal ; le reste est hydraté ensuite. */}
+        <HydrateLater>
+          <p data-reveal="" className={cn(styles.lead, styles.zoneLead)}>
+            Notre dépanneuse part de <NoBreakHyphens text={info.depotLabel} />.{" "}
+            {depotInSeineSaintDenis(info.depot)
+              ? <>
+                  Au cœur de la <span className="whitespace-nowrap">Seine-Saint-Denis</span>, à quelques minutes de
+                  Paris et des grands axes.{" "}
+                </>
+              : null}
+            Votre distance exacte est calculée dès que vous indiquez votre position.
+          </p>
 
-        <figure className={styles.zonePlan}>
-          {/* Monté à l'approche (budget du HTML, G.2) ; cadre carré réservé, aucun décalage. */}
-          <LazyScene className={styles.zonePlanFrame}>
-            <PlanIdf depot={info.depot} variant="region" sweep labels="major" className={styles.zonePlanSvg} />
-          </LazyScene>
-          <figcaption className={styles.zoneCaption}>Plan schématique.</figcaption>
-        </figure>
+          <figure className={styles.zonePlan}>
+            {/* Monté à l'approche (budget du HTML, G.2) ; cadre carré réservé, aucun décalage. */}
+            <LazyScene className={styles.zonePlanFrame}>
+              <PlanIdf depot={info.depot} variant="region" sweep labels="major" className={styles.zonePlanSvg} />
+            </LazyScene>
+            <figcaption className={styles.zoneCaption}>Plan schématique.</figcaption>
+          </figure>
 
-        <ul className={styles.departments}>
-          {DEPARTMENTS.map((code, index) => (
-            <li
-              key={code}
-              data-reveal=""
-              data-reveal-step={index < 3 ? undefined : index < 6 ? "2" : "3"}
-              className={cn(styles.department, "font-figure")}
-            >
-              {code}
-            </li>
-          ))}
-        </ul>
-        <Link href="/zones-d-intervention" className={cn(styles.textLink, styles.zoneLink)}>
-          Voir les zones desservies
-          <Icon name="arrowRight" size={20} strokeWidth={2.4} />
-        </Link>
+          <ul className={styles.departments}>
+            {DEPARTMENTS.map((code, index) => (
+              <li
+                key={code}
+                data-reveal=""
+                data-reveal-step={index < 3 ? undefined : index < 6 ? "2" : "3"}
+                className={cn(styles.department, "font-figure")}
+              >
+                {code}
+              </li>
+            ))}
+          </ul>
+          <Link href="/zones-d-intervention" className={cn(styles.textLink, styles.zoneLink)}>
+            Voir les zones desservies
+            <Icon name="arrowRight" size={20} strokeWidth={2.4} />
+          </Link>
+        </HydrateLater>
       </div>
     </section>
   );

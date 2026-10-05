@@ -126,12 +126,23 @@ html[data-motion="lite"] {
   --stars: 1;
 
   background-color: var(--sky-top);
+  /* Nappes froides du zénith (profondeur du noir), puis dégradé principal du ciel. Chaque nappe
+     n'est peinte que sur sa partie visible (au-delà de 62 % et 60 % du rayon, elle est
+     transparente) : mêmes ellipses qu'en plein écran, rayons et centres recalculés pour leur
+     tuile (avant : 120 % 70 % at 18 % -12 % et 90 % 55 % at 92 % 4 %, sur tout l'écran). */
   background-image:
-    /* Nappe froide du zénith : donne de la profondeur au noir. */
-    radial-gradient(120% 70% at 18% -12%, rgb(64 92 168 / 0.16), transparent 62%),
-    radial-gradient(90% 55% at 92% 4%, rgb(98 74 160 / 0.1), transparent 60%),
-    /* Dégradé principal du ciel. */
+    radial-gradient(120% 218.75% at 18% -37.5%, rgb(64 92 168 / 0.16), transparent 62%),
+    radial-gradient(145.1613% 148.6486% at 87.0968% 10.8108%, rgb(98 74 160 / 0.1), transparent 60%),
     linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 56%, var(--sky-low) 100%);
+  background-size:
+    100% 32%,
+    62% 37%,
+    100% 100%;
+  background-position:
+    0 0,
+    100% 0,
+    0 0;
+  background-repeat: no-repeat;
   transition:
     --sky-top var(--dur-sky) var(--ease-beam),
     --sky-mid var(--dur-sky) var(--ease-beam),
@@ -162,34 +173,69 @@ html[data-sky="aube"] .night-sky {
 }
 
 /* Nappes de nuages bas, éclairées par-dessous par la ville (source : les lampadaires au sodium).
-   Elles s'éteignent avec la ville ; à l'aube, d'autres nappes prennent une teinte froide. */
+   Elles s'éteignent avec la ville ; à l'aube, d'autres nappes prennent une teinte froide.
+   Chaque nappe est une tuile de 1,5 fois ses rayons, centrée sur elle (au-delà de 72 % du rayon
+   elle est transparente) : seule cette tuile est peinte, au lieu de tout l'écran par nappe.
+   Nappes d'origine (rayons et centres, en % de l'écran) : 34 6 at 20 61 ; 26 4,5 at 64 55 ;
+   42 7 at 78 68 ; 30 5 at 40 72 ; 38 5 at 28 58 ; 30 4 at 72 50. Position d'une tuile de taille
+   s centrée en c : (c − s/2) / (1 − s).
+*/
 .night-sky__clouds {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(34% 6% at 20% 61%, rgb(255 178 108 / calc(var(--city-glow) * 0.75)), transparent 72%),
-    radial-gradient(26% 4.5% at 64% 55%, rgb(255 178 108 / calc(var(--city-glow) * 0.6)), transparent 72%),
-    radial-gradient(42% 7% at 78% 68%, rgb(255 168 100 / calc(var(--city-glow) * 0.7)), transparent 72%),
-    radial-gradient(30% 5% at 40% 72%, rgb(255 160 96 / calc(var(--city-glow) * 0.55)), transparent 72%),
-    radial-gradient(38% 5% at 28% 58%, rgb(150 132 205 / calc((1 - var(--stars)) * 0.14)), transparent 72%),
-    radial-gradient(30% 4% at 72% 50%, rgb(150 132 205 / calc((1 - var(--stars)) * 0.1)), transparent 72%);
+  background-image:
+    radial-gradient(66.6667% 66.6667%, rgb(255 178 108 / calc(var(--city-glow) * 0.75)), transparent 72%),
+    radial-gradient(66.6667% 66.6667%, rgb(255 178 108 / calc(var(--city-glow) * 0.6)), transparent 72%),
+    radial-gradient(66.6667% 66.6667%, rgb(255 168 100 / calc(var(--city-glow) * 0.7)), transparent 72%),
+    radial-gradient(66.6667% 66.6667%, rgb(255 160 96 / calc(var(--city-glow) * 0.55)), transparent 72%),
+    radial-gradient(66.6667% 66.6667%, rgb(150 132 205 / calc((1 - var(--stars)) * 0.14)), transparent 72%),
+    radial-gradient(66.6667% 66.6667%, rgb(150 132 205 / calc((1 - var(--stars)) * 0.1)), transparent 72%);
+  background-size:
+    51% 9%,
+    39% 6.75%,
+    63% 10.5%,
+    45% 7.5%,
+    57% 7.5%,
+    45% 6%;
+  background-position:
+    -11.2245% 62.0879%,
+    72.9508% 55.3619%,
+    125.6757% 70.1117%,
+    31.8182% 73.7838%,
+    -1.1628% 58.6486%,
+    90% 50%;
+  background-repeat: no-repeat;
 }
 /* Lueur de la ville sur l'horizon : ambre au ras du sol, puis une transition rose violacé. */
 .night-sky__glow {
   position: absolute;
   inset: 38% -12% 0;
-  background:
-    radial-gradient(58% 46% at 50% 100%, rgb(255 190 116 / calc(var(--city-glow) * 2.1)), transparent 72%),
-    radial-gradient(85% 62% at 50% 100%, rgb(255 140 70 / calc(var(--city-glow) * 1.1)), transparent 72%),
-    radial-gradient(140% 72% at 50% 100%, rgb(176 92 140 / calc(var(--city-glow) * 0.9)), transparent 74%);
+  /* Chaque dégradé n'est peint que sur sa partie visible (au-delà de 72 % ou 74 % du rayon, il
+     est transparent), calée en bas et au centre : même ellipse, rayons recalculés pour la tuile.
+     Avant, sur toute la boîte : 58 % 46 %, 85 % 62 % et 140 % 72 %, at 50 % 100 %. */
+  background-image:
+    radial-gradient(69.0476% 135.2941% at 50% 100%, rgb(255 190 116 / calc(var(--city-glow) * 2.1)), transparent 72%),
+    radial-gradient(85% 137.7778% at 50% 100%, rgb(255 140 70 / calc(var(--city-glow) * 1.1)), transparent 72%),
+    radial-gradient(140% 133.3333% at 50% 100%, rgb(176 92 140 / calc(var(--city-glow) * 0.9)), transparent 74%);
+  background-size:
+    84% 34%,
+    100% 45%,
+    100% 54%;
+  background-position: 50% 100%;
+  background-repeat: no-repeat;
 }
 /* Voile de brume basse : sépare le ciel du sol, plus présente à l'heure bleue et à l'aube. */
 .night-sky__haze {
   position: absolute;
   inset: auto 0 0;
   height: 38%;
-  background: linear-gradient(to top, color-mix(in srgb, var(--sky-low) 70%, rgb(150 160 210 / 0.12)), transparent);
-  opacity: calc(0.35 + (1 - var(--stars)) * 0.5);
+  /* Ancienne `opacity: calc(0.35 + (1 - var(--stars)) * 0.5)` reportée dans la couleur (mélange
+     avec du transparent) : même rendu, sans calque intermédiaire à chaque peinture du ciel. */
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, color-mix(in srgb, var(--sky-low) 70%, rgb(150 160 210 / 0.12)) calc((0.35 + (1 - var(--stars)) * 0.5) * 100%), transparent),
+    transparent
+  );
 }
 
 /* Étoiles fixes : une étoile = un dégradé radial, les plus brillantes ont un petit halo. Listes
@@ -197,83 +243,160 @@ html[data-sky="aube"] .night-sky {
    le ciel est identique, mais mis en cache d'une page à l'autre au lieu d'être répété dans le HTML
    et la charge RSC de chaque page (−14 Ko non compressés par page). 12 étoiles sur téléphone ;
    12 de plus et 26 grains de poussière sur ordinateur. Aucun `will-change` : l'opacité ne change
-   que pendant un changement d'heure (--dur-sky). */
+   que pendant un changement d'heure (--dur-sky).
+   Coût de peinture (audit final) : chaque étoile est une tuile de 6 px (12 px avec halo), et non
+   plus un dégradé étendu à tout le ciel ; les trois anciens calques (étoiles, étoiles en plus,
+   poussière) n'en font qu'un. Sans processeur graphique, le ciel entier est repeint à chaque
+   image d'un changement d'heure : c'était 52 dégradés plein cadre par image.
+   Position d'une tuile de largeur w centrée en p % : calc(p% + (p/100 − 0,5) × w). Les étoiles
+   de l'ancien calque haut de 54 % sont ramenées à ce calque de 62 % (y × 54/62). L'heure du ciel
+   (--stars, l'ancienne `opacity` du calque) multiplie l'alpha de chaque étoile : même rendu (les
+   étoiles ne se recouvrent pas), sans calque intermédiaire de toute la largeur à chaque peinture. */
 .night-sky__stars {
   position: absolute;
-  inset: 0 0 46% 0;
-  opacity: var(--stars);
-  background-repeat: no-repeat;
-  background-image:
-    radial-gradient(circle at 27.6% 20%, rgb(255 236 212 / 0.66) 0 0.78px, transparent 1.58px),
-    radial-gradient(circle at 71.8% 3.2%, rgb(227 236 255 / 0.69) 0 0.84px, transparent 1.64px),
-    radial-gradient(circle at 35.5% 35.8%, rgb(227 236 255 / 0.57) 0 1.01px, transparent 1.81px),
-    radial-gradient(circle at 39.9% 4.3%, rgb(227 236 255 / 0.68) 0 1.04px, transparent 1.84px),
-    radial-gradient(circle at 12.5% 42%, rgb(255 236 212 / 0.56) 0 0.77px, transparent 1.57px),
-    radial-gradient(circle at 72.8% 91.3%, rgb(255 236 212 / 0.56) 0 0.77px, transparent 1.57px),
-    radial-gradient(circle at 21.4% 76.5%, rgb(255 236 212 / 0.53) 0 0.82px, transparent 1.62px),
-    radial-gradient(circle at 93.8% 59.3%, rgb(227 236 255 / 0.59) 0 0.81px, transparent 1.61px),
-    radial-gradient(circle at 41.3% 12.3%, rgb(227 236 255 / 0.59) 0 1.00px, transparent 1.80px),
-    radial-gradient(circle at 13.7% 0.6%, rgb(227 236 255 / 0.57) 0 1.03px, transparent 1.83px),
-    radial-gradient(circle at 99.5% 5.2%, rgb(227 236 255 / 0.46) 0 0.82px, transparent 1.62px),
-    radial-gradient(circle at 32.4% 60.2%, rgb(227 236 255 / 0.51) 0 0.95px, transparent 1.75px);
-}
-.night-sky__stars--more {
-  display: none;
-  background-image:
-    radial-gradient(circle at 90.9% 53.4%, rgb(227 236 255 / 0.66) 0 1.05px, transparent 1.85px),
-    radial-gradient(circle at 20.8% 12.8%, rgb(227 236 255 / 0.95) 0 1.35px, transparent 2.15px),
-    radial-gradient(circle at 20.8% 12.8%, rgb(227 236 255 / 0.16), transparent 5px),
-    radial-gradient(circle at 59.7% 87.9%, rgb(227 236 255 / 0.95) 0 1.35px, transparent 2.15px),
-    radial-gradient(circle at 59.7% 87.9%, rgb(227 236 255 / 0.16), transparent 5px),
-    radial-gradient(circle at 3.2% 5.5%, rgb(227 236 255 / 0.46) 0 1.05px, transparent 1.85px),
-    radial-gradient(circle at 86.4% 73.5%, rgb(227 236 255 / 0.58) 0 0.88px, transparent 1.68px),
-    radial-gradient(circle at 85.7% 87.3%, rgb(227 236 255 / 0.57) 0 0.76px, transparent 1.56px),
-    radial-gradient(circle at 96.2% 35.5%, rgb(227 236 255 / 0.59) 0 0.90px, transparent 1.70px),
-    radial-gradient(circle at 81.4% 30.7%, rgb(255 236 212 / 0.70) 0 1.10px, transparent 1.90px),
-    radial-gradient(circle at 13.9% 45.5%, rgb(255 236 212 / 0.73) 0 1.13px, transparent 1.93px),
-    radial-gradient(circle at 9.4% 21%, rgb(227 236 255 / 0.46) 0 0.80px, transparent 1.60px),
-    radial-gradient(circle at 85.4% 81.9%, rgb(227 236 255 / 0.73) 0 0.83px, transparent 1.63px),
-    radial-gradient(circle at 96.1% 79.7%, rgb(227 236 255 / 0.56) 0 0.90px, transparent 1.70px);
-}
-.night-sky__stars--dust {
   inset: 0 0 38% 0;
-  background-image:
-    radial-gradient(circle at 26.8% 69.6%, rgb(227 236 255 / 0.37) 0 0.70px, transparent 1.50px),
-    radial-gradient(circle at 68.2% 4%, rgb(227 236 255 / 0.37) 0 0.70px, transparent 1.50px),
-    radial-gradient(circle at 45.6% 42.1%, rgb(255 236 212 / 0.40) 0 0.71px, transparent 1.51px),
-    radial-gradient(circle at 20.1% 26.1%, rgb(227 236 255 / 0.25) 0 0.67px, transparent 1.47px),
-    radial-gradient(circle at 88.5% 12.5%, rgb(255 236 212 / 0.26) 0 0.51px, transparent 1.31px),
-    radial-gradient(circle at 93.6% 59.6%, rgb(227 236 255 / 0.35) 0 0.58px, transparent 1.38px),
-    radial-gradient(circle at 11.4% 81.6%, rgb(255 236 212 / 0.36) 0 0.60px, transparent 1.40px),
-    radial-gradient(circle at 21.3% 56.9%, rgb(255 236 212 / 0.33) 0 0.62px, transparent 1.42px),
-    radial-gradient(circle at 2.3% 85.3%, rgb(227 236 255 / 0.22) 0 0.51px, transparent 1.31px),
-    radial-gradient(circle at 9% 0.9%, rgb(255 236 212 / 0.22) 0 0.50px, transparent 1.30px),
-    radial-gradient(circle at 10.1% 36.5%, rgb(255 236 212 / 0.29) 0 0.53px, transparent 1.33px),
-    radial-gradient(circle at 74% 36.8%, rgb(227 236 255 / 0.30) 0 0.60px, transparent 1.40px),
-    radial-gradient(circle at 86.4% 10%, rgb(227 236 255 / 0.29) 0 0.53px, transparent 1.33px),
-    radial-gradient(circle at 91% 44.7%, rgb(255 236 212 / 0.30) 0 0.75px, transparent 1.55px),
-    radial-gradient(circle at 78.2% 47.7%, rgb(227 236 255 / 0.32) 0 0.67px, transparent 1.47px),
-    radial-gradient(circle at 90.7% 40.8%, rgb(227 236 255 / 0.33) 0 0.58px, transparent 1.38px),
-    radial-gradient(circle at 12.7% 1.3%, rgb(227 236 255 / 0.35) 0 0.76px, transparent 1.56px),
-    radial-gradient(circle at 74.3% 16.3%, rgb(227 236 255 / 0.33) 0 0.72px, transparent 1.52px),
-    radial-gradient(circle at 94.1% 39.5%, rgb(255 236 212 / 0.35) 0 0.63px, transparent 1.43px),
-    radial-gradient(circle at 63% 15.4%, rgb(227 236 255 / 0.40) 0 0.76px, transparent 1.56px),
-    radial-gradient(circle at 72.6% 55.9%, rgb(255 236 212 / 0.32) 0 0.70px, transparent 1.50px),
-    radial-gradient(circle at 55.1% 64.3%, rgb(227 236 255 / 0.33) 0 0.59px, transparent 1.39px),
-    radial-gradient(circle at 79.4% 3.9%, rgb(227 236 255 / 0.33) 0 0.61px, transparent 1.41px),
-    radial-gradient(circle at 10.4% 3.9%, rgb(227 236 255 / 0.39) 0 0.65px, transparent 1.45px),
-    radial-gradient(circle at 23.5% 62.8%, rgb(255 236 212 / 0.22) 0 0.66px, transparent 1.46px),
-    radial-gradient(circle at 94.9% 14.8%, rgb(227 236 255 / 0.41) 0 0.51px, transparent 1.31px);
+  background-repeat: no-repeat;
+  background-image: var(--stars-a-img);
+  background-position: var(--stars-a-pos);
+  background-size: var(--stars-a-size);
+  --stars-a-img:
+    radial-gradient(circle, rgb(255 236 212 / calc(0.66 * var(--stars))) 0 0.78px, transparent 1.58px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.69 * var(--stars))) 0 0.84px, transparent 1.64px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.57 * var(--stars))) 0 1.01px, transparent 1.81px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.68 * var(--stars))) 0 1.04px, transparent 1.84px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.56 * var(--stars))) 0 0.77px, transparent 1.57px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.56 * var(--stars))) 0 0.77px, transparent 1.57px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.53 * var(--stars))) 0 0.82px, transparent 1.62px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.59 * var(--stars))) 0 0.81px, transparent 1.61px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.59 * var(--stars))) 0 1.00px, transparent 1.8px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.57 * var(--stars))) 0 1.03px, transparent 1.83px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.46 * var(--stars))) 0 0.82px, transparent 1.62px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.51 * var(--stars))) 0 0.95px, transparent 1.75px);
+  --stars-a-pos:
+    calc(27.6% - 1.344px) calc(17.4194% - 1.955px),
+    calc(71.8% + 1.308px) calc(2.7871% - 2.833px),
+    calc(35.5% - 0.870px) calc(31.1806% - 1.129px),
+    calc(39.9% - 0.606px) calc(3.7452% - 2.775px),
+    calc(12.5% - 2.250px) calc(36.5806% - 0.805px),
+    calc(72.8% + 1.368px) calc(79.5194% + 1.771px),
+    calc(21.4% - 1.716px) calc(66.629% + 0.998px),
+    calc(93.8% + 2.628px) calc(51.6484% + 0.099px),
+    calc(41.3% - 0.522px) calc(10.7129% - 2.357px),
+    calc(13.7% - 2.178px) calc(0.5226% - 2.969px),
+    calc(99.5% + 2.970px) calc(4.529% - 2.728px),
+    calc(32.4% - 1.056px) calc(52.4323% + 0.146px);
+  --stars-a-size: 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px;
+  --stars-b-img:
+    radial-gradient(circle, rgb(227 236 255 / calc(0.66 * var(--stars))) 0 1.05px, transparent 1.85px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.95 * var(--stars))) 0 1.35px, transparent 2.15px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.16 * var(--stars))), transparent 5.0px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.95 * var(--stars))) 0 1.35px, transparent 2.15px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.16 * var(--stars))), transparent 5.0px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.46 * var(--stars))) 0 1.05px, transparent 1.85px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.58 * var(--stars))) 0 0.88px, transparent 1.68px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.57 * var(--stars))) 0 0.76px, transparent 1.56px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.59 * var(--stars))) 0 0.90px, transparent 1.7px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.70 * var(--stars))) 0 1.10px, transparent 1.9px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.73 * var(--stars))) 0 1.13px, transparent 1.93px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.46 * var(--stars))) 0 0.80px, transparent 1.6px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.73 * var(--stars))) 0 0.83px, transparent 1.63px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.56 * var(--stars))) 0 0.90px, transparent 1.7px);
+  --stars-b-pos:
+    calc(90.9% + 2.454px) calc(46.5097% - 0.209px),
+    calc(20.8% - 1.752px) calc(11.1484% - 2.331px),
+    calc(20.8% - 3.504px) calc(11.1484% - 4.662px),
+    calc(59.7% + 0.582px) calc(76.5581% + 1.593px),
+    calc(59.7% + 1.164px) calc(76.5581% + 3.187px),
+    calc(3.2% - 2.808px) calc(4.7903% - 2.713px),
+    calc(86.4% + 2.184px) calc(64.0161% + 0.841px),
+    calc(85.7% + 2.142px) calc(76.0355% + 1.562px),
+    calc(96.2% + 2.772px) calc(30.9194% - 1.145px),
+    calc(81.4% + 1.884px) calc(26.7387% - 1.396px),
+    calc(13.9% - 2.166px) calc(39.629% - 0.622px),
+    calc(9.4% - 2.436px) calc(18.2903% - 1.903px),
+    calc(85.4% + 2.124px) calc(71.3323% + 1.280px),
+    calc(96.1% + 2.766px) calc(69.4161% + 1.165px);
+  --stars-b-size: 6px 6px, 6px 6px, 12px 12px, 6px 6px, 12px 12px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px;
+  --stars-c-img:
+    radial-gradient(circle, rgb(227 236 255 / calc(0.37 * var(--stars))) 0 0.70px, transparent 1.5px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.37 * var(--stars))) 0 0.70px, transparent 1.5px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.40 * var(--stars))) 0 0.71px, transparent 1.51px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.25 * var(--stars))) 0 0.67px, transparent 1.47px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.26 * var(--stars))) 0 0.51px, transparent 1.31px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.35 * var(--stars))) 0 0.58px, transparent 1.38px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.36 * var(--stars))) 0 0.60px, transparent 1.4px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.33 * var(--stars))) 0 0.62px, transparent 1.42px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.22 * var(--stars))) 0 0.51px, transparent 1.31px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.22 * var(--stars))) 0 0.50px, transparent 1.3px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.29 * var(--stars))) 0 0.53px, transparent 1.33px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.30 * var(--stars))) 0 0.60px, transparent 1.4px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.29 * var(--stars))) 0 0.53px, transparent 1.33px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.30 * var(--stars))) 0 0.75px, transparent 1.55px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.32 * var(--stars))) 0 0.67px, transparent 1.47px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.33 * var(--stars))) 0 0.58px, transparent 1.38px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.35 * var(--stars))) 0 0.76px, transparent 1.56px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.33 * var(--stars))) 0 0.72px, transparent 1.52px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.35 * var(--stars))) 0 0.63px, transparent 1.43px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.40 * var(--stars))) 0 0.76px, transparent 1.56px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.32 * var(--stars))) 0 0.70px, transparent 1.5px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.33 * var(--stars))) 0 0.59px, transparent 1.39px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.33 * var(--stars))) 0 0.61px, transparent 1.41px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.39 * var(--stars))) 0 0.65px, transparent 1.45px),
+    radial-gradient(circle, rgb(255 236 212 / calc(0.22 * var(--stars))) 0 0.66px, transparent 1.46px),
+    radial-gradient(circle, rgb(227 236 255 / calc(0.41 * var(--stars))) 0 0.51px, transparent 1.31px);
+  --stars-c-pos:
+    calc(26.8% - 1.392px) calc(69.6% + 1.176px),
+    calc(68.2% + 1.092px) calc(4% - 2.760px),
+    calc(45.6% - 0.264px) calc(42.1% - 0.474px),
+    calc(20.1% - 1.794px) calc(26.1% - 1.434px),
+    calc(88.5% + 2.310px) calc(12.5% - 2.250px),
+    calc(93.6% + 2.616px) calc(59.6% + 0.576px),
+    calc(11.4% - 2.316px) calc(81.6% + 1.896px),
+    calc(21.3% - 1.722px) calc(56.9% + 0.414px),
+    calc(2.3% - 2.862px) calc(85.3% + 2.118px),
+    calc(9% - 2.460px) calc(0.9% - 2.946px),
+    calc(10.1% - 2.394px) calc(36.5% - 0.810px),
+    calc(74% + 1.440px) calc(36.8% - 0.792px),
+    calc(86.4% + 2.184px) calc(10% - 2.400px),
+    calc(91% + 2.460px) calc(44.7% - 0.318px),
+    calc(78.2% + 1.692px) calc(47.7% - 0.138px),
+    calc(90.7% + 2.442px) calc(40.8% - 0.552px),
+    calc(12.7% - 2.238px) calc(1.3% - 2.922px),
+    calc(74.3% + 1.458px) calc(16.3% - 2.022px),
+    calc(94.1% + 2.646px) calc(39.5% - 0.630px),
+    calc(63% + 0.780px) calc(15.4% - 2.076px),
+    calc(72.6% + 1.356px) calc(55.9% + 0.354px),
+    calc(55.1% + 0.306px) calc(64.3% + 0.858px),
+    calc(79.4% + 1.764px) calc(3.9% - 2.766px),
+    calc(10.4% - 2.376px) calc(3.9% - 2.766px),
+    calc(23.5% - 1.590px) calc(62.8% + 0.768px),
+    calc(94.9% + 2.694px) calc(14.8% - 2.112px);
+  --stars-c-size: 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px, 6px 6px;
 }
 @media (min-width: 1024px) {
-  .night-sky__stars--more {
-    display: block;
+  /* Ordre de l'ancien empilement : poussière au-dessus, puis étoiles en plus, puis les 12 de base. */
+  .night-sky__stars {
+    background-image: var(--stars-c-img), var(--stars-b-img), var(--stars-a-img);
+    background-position: var(--stars-c-pos), var(--stars-b-pos), var(--stars-a-pos);
+    background-size: var(--stars-c-size), var(--stars-b-size), var(--stars-a-size);
   }
 }
 /* Six étoiles scintillent à l'arrivée sur le site, sur ordinateur et en niveau `full` seulement :
    quatre allers-retours (12 à 20 s), puis le ciel se fige. Ce n'est pas une boucle infinie : elle
    ne compte pas dans les deux boucles visibles d'un écran (C.1-8). Aucun scintillement en `lite`,
-   en `off`, avec la préférence « moins d'animations » ni sans JavaScript. */
+   en `off`, avec la préférence « moins d'animations » ni sans JavaScript.
+   Coût (audit final) : les six étoiles sont regroupées dans un seul calque, posé au-dessus de tout
+   le ciel (halo compris). Placées sous les nuages, la lueur, la brume et le grain, leurs
+   animations obligeaient le navigateur à sortir ces quatre couches plein écran dans un second
+   calque (« recouvrement ») ; au-dessus, le ciel reste un seul calque. Rien ne les recouvrait
+   à l'œil (elles sont dans le haut du ciel, au-dessus des nuages et de la brume ; le grain est à
+   5 %). L'heure du ciel (--stars) est portée par le groupe : les images clés sont constantes,
+   les animations restent entièrement sur le compositeur pendant un changement d'heure. */
+.night-sky__twinkles {
+  position: absolute;
+  inset: 0;
+  opacity: var(--stars);
+}
 .night-sky__twinkle {
   position: absolute;
   width: 5px;
@@ -281,7 +404,7 @@ html[data-sky="aube"] .night-sky {
   margin: -2.5px 0 0 -2.5px;
   border-radius: 50%;
   background: radial-gradient(circle, rgb(227 236 255 / 0.95) 0 22%, rgb(227 236 255 / 0.25) 42%, transparent 70%);
-  opacity: calc(var(--stars) * 0.7);
+  opacity: 0.7;
   display: none;
 }
 @media (min-width: 1024px) and (pointer: fine) {
@@ -295,13 +418,13 @@ html[data-sky="aube"] .night-sky {
 @keyframes sky-twinkle {
   0%,
   30% {
-    opacity: calc(var(--stars) * 0.75);
+    opacity: 0.75;
   }
   65% {
-    opacity: calc(var(--stars) * 0.15);
+    opacity: 0.15;
   }
   100% {
-    opacity: calc(var(--stars) * 0.9);
+    opacity: 0.9;
   }
 }
 

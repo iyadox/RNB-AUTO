@@ -7,6 +7,7 @@
 import type { PublicSiteInfo } from "@/server/site/public-info";
 import { ScenePause } from "@/components/motion/scene-pause";
 import { CallLink, PrimaryLink, WhatsAppLink } from "@/components/public/actions";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import { Icon } from "@/components/ui/icon";
 import { MediaGate } from "./media-gate";
 import { NoBreakHyphens } from "./no-break-hyphens";
@@ -94,9 +95,12 @@ export function Hero({ info }: { info: PublicSiteInfo }) {
         </div>
       </div>
 
-      <NightRoad>
-        <ScenePause targetId={SCENE_ID} className={styles.heroPause} />
-      </NightRoad>
+      {/* Décor (et son bouton pause) hydraté après le texte et les boutons, par tranches. */}
+      <HydrateLater>
+        <NightRoad>
+          <ScenePause targetId={SCENE_ID} className={styles.heroPause} />
+        </NightRoad>
+      </HydrateLater>
       <MediaGate query="(min-width: 1024px)">
         <div className={styles.heroCue} aria-hidden="true">
           <span className="font-plate text-plate">Défiler</span>

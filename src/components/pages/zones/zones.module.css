@@ -753,8 +753,15 @@
   letter-spacing: 0.14em;
   color: var(--color-asphalt-300);
 }
+/* Colonne du texte : référence de taille du titre (les noms composés y sont insécables). */
+.areaBody {
+  container-type: inline-size;
+}
 .areaTitle {
   @apply font-step text-step;
+  /* « Seine-Saint-Denis » (≈ 8,3 em, insécable) tient toujours dans la colonne : à 390 px le
+     titre perd à peine 1,5 px, à 320 px il descend vers 1,1 rem au lieu de déborder. */
+  font-size: min(var(--text-step), 11.6cqi);
   margin-top: 0.15rem;
   text-wrap: balance;
   color: var(--color-chalk);

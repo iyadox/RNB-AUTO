@@ -2,10 +2,24 @@
  * Outils géométriques purs pour les illustrations du kit (aucun accès au navigateur) :
  * - `smoothPath` : courbe douce (Catmull-Rom → Bézier cubiques) passant par des points ;
  * - `pathEnd` : point d'arrivée et cap (degrés) d'un attribut `d`, pour poser un véhicule
- *   à l'arrivée d'un trajet dès le rendu serveur (état final, sans JavaScript).
+ *   à l'arrivée d'un trajet dès le rendu serveur (état final, sans JavaScript) ;
+ * - `viewBoxRatio` : proportions d'un `viewBox`, en valeur CSS `aspect-ratio`.
  */
 
 export type Point = { x: number; y: number };
+
+/**
+ * Proportions d'un `viewBox` (« 0 20 640 220 » → « 640 / 220 »), pour la propriété CSS
+ * `aspect-ratio` d'un `<svg>` en `content-visibility: auto` : tant que le dessin est sauté (loin
+ * de l'écran), le navigateur ignore les proportions naturelles du `viewBox` ; écrites en CSS, la
+ * hauteur reste exactement la même. `undefined` si le `viewBox` est invalide.
+ */
+export function viewBoxRatio(viewBox: string): string | undefined {
+  const parts = viewBox.trim().split(/[\s,]+/).map(Number);
+  const [, , width, height] = parts;
+  if (parts.length !== 4 || !width || !height || !(width > 0) || !(height > 0)) return undefined;
+  return `${width} / ${height}`;
+}
 
 const fmt = (value: number) => {
   const rounded = Math.round(value * 10) / 10;

@@ -47,6 +47,18 @@
    D.5 · En-tête « pare-brise »
    ═════════════════════════════════════════════════════════════════════════════ */
 
+/* Hauteur de l'en-tête sans annonce (`h-16`, `lg:h-20`) : la valeur de `--header-h` par défaut.
+   L'en-tête n'écrit sa hauteur réelle sur <html> que si elle en diffère (annonce affichée) :
+   changer une variable héritée sur <html> recalcule le style de toute la page (site-header.tsx). */
+:global(:root) {
+  --header-h: 4rem;
+}
+@media (min-width: 1024px) {
+  :global(:root) {
+    --header-h: 5rem;
+  }
+}
+
 .header {
   position: fixed;
   top: 0;
@@ -703,6 +715,10 @@ html[data-motion="lite"] .brandMark::after {
   overflow: clip;
   container-type: inline-size;
   pointer-events: none;
+  /* Loin de l'écran, le navigateur saute le style, la mise en page et la peinture de la bande
+     (temps de blocage au chargement). Rien ne change : hauteur fixée ici, découpe à son cadre. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
   /* Sol (depuis le bas de la bande), dépôt et dépanneuse, en unités de la bande. */
   --ground: 24%;
   --depot-w: min(60cqw, 440px);

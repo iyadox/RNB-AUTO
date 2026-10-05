@@ -13,6 +13,7 @@ import type { ReactElement, ReactNode } from "react";
 import { MotionHeadScript } from "@/components/motion/motion-head-script";
 import { MotionRuntime } from "@/components/motion/motion-runtime";
 import { NightSky } from "@/components/motion/night-sky";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 import { ActionBar } from "./action-bar";
 import { SiteFooter } from "./site-footer";
@@ -34,7 +35,10 @@ export async function PublicShell({ children }: { children: ReactNode }): Promis
       <main id="contenu" className="relative z-10 min-h-[60vh]">
         {children}
       </main>
-      <SiteFooter info={info} year={new Date().getFullYear()} />
+      {/* Pied de page hydraté après la page, par tranches (temps de blocage) : rendu identique. */}
+      <HydrateLater>
+        <SiteFooter info={info} year={new Date().getFullYear()} />
+      </HydrateLater>
       <ActionBar phone={info.phone} whatsapp={info.whatsapp} />
       <MotionRuntime />
     </>

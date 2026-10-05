@@ -23,6 +23,7 @@ import { cn } from "@/components/ui/cn";
 import { CarTopGlyph, FlagGlyph, TruckTopGlyph } from "./glyphs";
 import styles from "./kit.module.css";
 import { RoutePaths, type RouteLeg } from "./route-paths";
+import { viewBoxRatio } from "./svg-path";
 
 type HighwayRelayProps = {
   draw?: "scrub" | "view" | "static";
@@ -121,7 +122,13 @@ function RelaySvg({ layout, draw, prefix, className }: { layout: Layout; draw: N
   const width = h.x1 - h.x0;
   const dash = `M${h.x0} 0H${h.x1}`;
   return (
-    <svg viewBox={layout.viewBox} className={cn(styles.relaySvg, className)} aria-hidden="true">
+    <svg
+      viewBox={layout.viewBox}
+      className={cn(styles.relaySvg, className)}
+      // Proportions écrites : la hauteur ne change pas quand le dessin est sauté (`content-visibility`).
+      style={{ aspectRatio: viewBoxRatio(layout.viewBox) }}
+      aria-hidden="true"
+    >
       <defs>
         <linearGradient id={`${prefix}-trail-w`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#e3ecff" stopOpacity="0" />

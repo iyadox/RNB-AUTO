@@ -25,6 +25,7 @@ import { useEffect, useRef } from "react";
 import { MENU_ITEMS } from "@/content/site-map";
 import type { PhoneLink } from "@/core/contact";
 import { cn } from "@/components/ui/cn";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import { Icon, WhatsAppIcon } from "@/components/ui/icon";
 import { CallLink, PrimaryLink, WhatsAppLink } from "./actions";
 import styles from "./shell.module.css";
@@ -127,54 +128,58 @@ export function MobileMenu({ phone, whatsapp }: { phone: PhoneLink | null; whats
         </span>
       </summary>
 
-      <div className={styles.panel}>
-        <NightPlan />
-        <nav aria-label="Menu" className={styles.menuNav}>
-          <ol className={styles.menuList}>
-            {MENU_ITEMS.map((item, index) => {
-              const active = isActive(pathname, item.href);
-              return (
-                <li key={item.href} style={{ "--i": index } as React.CSSProperties}>
-                  <Link
-                    href={item.href}
-                    onClick={close}
-                    aria-current={active ? "page" : undefined}
-                    className={styles.menuLink}
-                  >
-                    <span className={styles.stop} aria-hidden="true" />
-                    <span className="min-w-0 flex-1">
-                      <span className={cn(styles.menuTitle, "font-sign block")}>{item.label}</span>
-                      <span className={cn(styles.menuHelp, "block text-asphalt-200")}>{item.help}</span>
-                    </span>
-                    <Icon name="chevronRight" size={20} strokeWidth={2.4} className={styles.menuChevron} />
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+      {/* Panneau (fermé au chargement) hydraté après la page, par tranches : le bouton, lui, l'est
+          tout de suite. Un lien touché avant est hydraté sur-le-champ et son clic rejoué. */}
+      <HydrateLater>
+        <div className={styles.panel}>
+          <NightPlan />
+          <nav aria-label="Menu" className={styles.menuNav}>
+            <ol className={styles.menuList}>
+              {MENU_ITEMS.map((item, index) => {
+                const active = isActive(pathname, item.href);
+                return (
+                  <li key={item.href} style={{ "--i": index } as React.CSSProperties}>
+                    <Link
+                      href={item.href}
+                      onClick={close}
+                      aria-current={active ? "page" : undefined}
+                      className={styles.menuLink}
+                    >
+                      <span className={styles.stop} aria-hidden="true" />
+                      <span className="min-w-0 flex-1">
+                        <span className={cn(styles.menuTitle, "font-sign block")}>{item.label}</span>
+                        <span className={cn(styles.menuHelp, "block text-asphalt-200")}>{item.help}</span>
+                      </span>
+                      <Icon name="chevronRight" size={20} strokeWidth={2.4} className={styles.menuChevron} />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
 
-        <div className={styles.menuActions}>
-          <PrimaryLink href="/demande" size="md" className={cn(styles.menuPrimary, "w-full")}>
-            Demander un dépannage
-          </PrimaryLink>
-          <div className={cn(styles.menuCalls, "grid grid-cols-2 gap-3")}>
-            <CallLink phone={phone} label="short" missing="plain" size="sm" className="w-full" />
-            {whatsapp ? (
-              <WhatsAppLink whatsapp={whatsapp} size="sm" className="w-full" />
-            ) : (
-              <Link
-                href="/contact"
-                onClick={close}
-                className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl font-extrabold text-whatsapp shadow-[inset_0_0_0_1.5px_rgb(37_211_102_/_0.45)]"
-              >
-                <WhatsAppIcon size={17} />
-                WhatsApp
-              </Link>
-            )}
+          <div className={styles.menuActions}>
+            <PrimaryLink href="/demande" size="md" className={cn(styles.menuPrimary, "w-full")}>
+              Demander un dépannage
+            </PrimaryLink>
+            <div className={cn(styles.menuCalls, "grid grid-cols-2 gap-3")}>
+              <CallLink phone={phone} label="short" missing="plain" size="sm" className="w-full" />
+              {whatsapp ? (
+                <WhatsAppLink whatsapp={whatsapp} size="sm" className="w-full" />
+              ) : (
+                <Link
+                  href="/contact"
+                  onClick={close}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl font-extrabold text-whatsapp shadow-[inset_0_0_0_1.5px_rgb(37_211_102_/_0.45)]"
+                >
+                  <WhatsAppIcon size={17} />
+                  WhatsApp
+                </Link>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </HydrateLater>
     </details>
   );
 }

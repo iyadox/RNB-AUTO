@@ -23,6 +23,7 @@ import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
 import type { PublicSiteInfo } from "@/server/site/public-info";
 import styles from "./request.module.css";
+import { parkingLeg } from "./route-parking";
 
 export type SheetRow<T extends string> = {
   kind: "pickup" | "dropoff" | "vehicle" | "problem" | "price";
@@ -112,14 +113,19 @@ export function RoutePlan({
   if (b) {
     if (a && far(a, b)) legs.push({ key: "aller", style: "aller", d: arc(a, b, 0.16) });
     if (c && far(b, c)) legs.push({ key: "transport", style: "transport", d: arc(b, c, -0.14) });
-    const last = c ?? b;
-    if (a && far(last, a)) legs.push({ key: "retour", style: "retour", d: arc(last, a, 0.22) });
   }
-  const signature = legs.map((leg) => leg.d).join("|");
-
   const points: { kind: "vous" | "destination"; lat: number; lng: number }[] = [];
   if (located(pickup)) points.push({ kind: "vous", lat: pickup.lat, lng: pickup.lng });
   if (!onSite && located(dropoff)) points.push({ kind: "destination", lat: dropoff.lat, lng: dropoff.lng });
+  if (b) {
+    const last = c ?? b;
+    // Retour : la dépanneuse se gare À CÔTÉ du dépôt, sans recouvrir son nom (route-parking.ts).
+    if (a && far(last, a)) {
+      const marks = points.map((point) => ({ kind: point.kind, p: at(point) }));
+      legs.push({ key: "retour", style: "retour", d: parkingLeg(last, a, 0.22, { variant, depotInfo: depot, marks }) });
+    }
+  }
+  const signature = legs.map((leg) => leg.d).join("|");
 
   return (
     <PlanIdf depot={depot} variant={variant} sweep={sweep} labels="major" points={points} className={className}>

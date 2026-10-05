@@ -18,6 +18,7 @@ import { Skyline } from "@/components/scenes/base/skyline";
 import { StreetLamps } from "@/components/scenes/base/street-lamps";
 import { Icon } from "@/components/ui/icon";
 import { AREAS, matchPlace, placeSlug, type PlaceMatch } from "./areas";
+import { NoBreakHyphens } from "./no-break-hyphens";
 import { ZoneRings } from "./zone-rings";
 import styles from "./zones.module.css";
 
@@ -98,7 +99,9 @@ export function CommuneSearch(): ReactElement {
               data-on={found?.area.zone === area.zone ? "" : undefined}
             >
               <ZoneRings active={area.zone} className={styles.legendRings} />
-              <span className={styles.legendLabel}>{area.title}</span>
+              <span className={styles.legendLabel}>
+                <NoBreakHyphens text={area.title} />
+              </span>
               <Icon name="arrowRight" size={20} strokeWidth={2.4} className={styles.legendArrow} aria-hidden="true" />
             </a>
           </li>

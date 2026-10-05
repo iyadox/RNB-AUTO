@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pathEnd, poseTransform, smoothPath } from "./svg-path";
+import { pathEnd, poseTransform, smoothPath, viewBoxRatio } from "./svg-path";
 
 describe("pathEnd", () => {
   it("suit les commandes absolues et relatives", () => {
@@ -43,5 +43,18 @@ describe("poseTransform", () => {
   it("arrondit sans -0", () => {
     expect(poseTransform(1.04, -0.01, 0)).toBe("translate(1 0)");
     expect(poseTransform(1, 2, 45.25)).toBe("translate(1 2) rotate(45.3)");
+  });
+});
+
+describe("viewBoxRatio", () => {
+  it("donne largeur / hauteur du viewBox, quelle que soit son origine", () => {
+    expect(viewBoxRatio("0 20 640 220")).toBe("640 / 220");
+    expect(viewBoxRatio(" 40,40  560 196 ")).toBe("560 / 196");
+  });
+
+  it("refuse un viewBox incomplet ou vide", () => {
+    expect(viewBoxRatio("0 0 100")).toBeUndefined();
+    expect(viewBoxRatio("0 0 0 10")).toBeUndefined();
+    expect(viewBoxRatio("0 0 a 10")).toBeUndefined();
   });
 });

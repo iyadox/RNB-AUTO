@@ -9,8 +9,9 @@
  * - À partir de 1 024 px : navigation, puis Appeler (« Appeler » jusqu'à 1 279 px, le numéro
  *   au-delà, rien sans numéro) et le bouton jaune ; tout sur une ligne.
  * - Sous 1 024 px : ligne de progression de 2 px sous l'en-tête et menu « plan de nuit ».
- * - Écrit `--header-h` sur <html> (ResizeObserver) : la transition de page ne recouvre jamais
- *   l'en-tête, même quand l'annonce prend deux lignes.
+ * - Écrit `--header-h` sur <html> (ResizeObserver) quand sa hauteur diffère de la valeur par
+ *   défaut du CSS (4 rem, 5 rem à partir de 1 024 px, shell.module.css) : la transition de page
+ *   ne recouvre jamais l'en-tête, même quand l'annonce prend deux lignes.
  *
  * Il porte aussi le petit cycle de page de la coque (voir `useShellCycle`).
  */
@@ -28,6 +29,8 @@ import { MobileMenu } from "./mobile-menu";
 import styles from "./shell.module.css";
 
 const SCROLLED_AT = 24;
+/** Largeur à partir de laquelle l'en-tête mesure 5 rem (`lg:h-20`) au lieu de 4 rem (`h-16`). */
+const WIDE_HEADER = "(min-width: 1024px)";
 
 const subscribeScroll = (onChange: () => void) => {
   window.addEventListener("scroll", onChange, { passive: true });
@@ -97,11 +100,23 @@ export function SiteHeader({
   useShellCycle(pathname);
 
   // Hauteur réelle de l'en-tête (annonce comprise) pour la découpe de la transition de page.
+  // Écrire une variable héritée sur <html> recalcule le style de TOUTE la page (≈ 200 ms mesurées à
+  // l'hydratation, téléphone, processeur ×4) : rien n'est écrit tant que la hauteur réelle est
+  // celle du CSS par défaut (`--header-h` de `:root`, sans annonce), et jamais deux fois la même.
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
     const html = document.documentElement;
-    const write = () => html.style.setProperty("--header-h", `${Math.round(header.getBoundingClientRect().height)}px`);
+    const wide = window.matchMedia(WIDE_HEADER);
+    const write = () => {
+      const height = Math.round(header.getBoundingClientRect().height);
+      const rem = parseFloat(getComputedStyle(html).fontSize) || 16;
+      const fallback = Math.round((wide.matches ? 5 : 4) * rem);
+      const value = height === fallback ? "" : `${height}px`;
+      if (html.style.getPropertyValue("--header-h") === value) return;
+      if (value) html.style.setProperty("--header-h", value);
+      else html.style.removeProperty("--header-h");
+    };
     write();
     const observer = new ResizeObserver(write);
     observer.observe(header);

@@ -13,6 +13,10 @@
  * « ? ! : ; » et mots composés jamais coupés au trait d'union (« INTERVENONS-NOUS »), même quand
  * les lignes ne sont pas découpées (moins d'animations, niveau lite, sans JavaScript). Si un mot
  * composé est plus large que la colonne, la taille du titre s'ajuste pour qu'il tienne (`HeadingFit`).
+ *
+ * Hydratation sélective (`HydrateLater`, temps de blocage) : la scène de l'ouverture, le contenu
+ * des sections (pas leur titre, que le runtime peut découper), les questions liées, la prochaine
+ * sortie et l'aube sont hydratés après le passage principal, par tranches. Rendu identique.
  */
 import Link from "next/link";
 import { Children, cloneElement, isValidElement, type CSSProperties, type ReactElement, type ReactNode } from "react";
@@ -24,6 +28,7 @@ import { SharedMorph, type MorphName } from "@/components/motion/page-transition
 import type { SkyState } from "@/components/motion/types";
 import { Skyline } from "@/components/scenes/base/skyline";
 import { cn } from "@/components/ui/cn";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { ActionRow } from "./actions";
 import { FaqAccordion } from "./faq-accordion";
@@ -215,7 +220,11 @@ export function OpeningShot({
           {lead ? <p className={styles.openingLead}>{lead}</p> : null}
           {actions ? <div className={styles.openingActions}>{actions}</div> : null}
         </div>
-        {scene ? <div className={styles.openingScene}>{scene}</div> : null}
+        {scene ? (
+          <div className={styles.openingScene}>
+            <HydrateLater>{scene}</HydrateLater>
+          </div>
+        ) : null}
       </div>
       <div className={styles.edgeLine} aria-hidden="true" />
     </section>
@@ -259,7 +268,9 @@ export function Section({
             </h2>
           </HeadingFit>
         ) : null}
-        <div className="mt-10 lg:mt-14">{children}</div>
+        <div className="mt-10 lg:mt-14">
+          <HydrateLater>{children}</HydrateLater>
+        </div>
       </div>
     </section>
   );
@@ -272,7 +283,17 @@ export function Section({
  * les questions sur toute la largeur, numérotées comme des repères (décor). La mise en page ne
  * dépend pas du nombre de questions : avec une, deux ou trois, aucune colonne ne reste vide.
  */
-export function RelatedFaq({ ids, title = "Vos questions, nos réponses." }: { ids: readonly string[]; title?: ReactNode }) {
+type RelatedFaqProps = { ids: readonly string[]; title?: ReactNode };
+
+export function RelatedFaq(props: RelatedFaqProps) {
+  return (
+    <HydrateLater>
+      <RelatedFaqBlock {...props} />
+    </HydrateLater>
+  );
+}
+
+function RelatedFaqBlock({ ids, title = "Vos questions, nos réponses." }: RelatedFaqProps) {
   return (
     <section id="questions-liees" data-sky="nuit" className="relative py-section">
       <div className={cn(CONTAINER, styles.related)}>
@@ -319,6 +340,14 @@ function ExitGore() {
 
 /** « Prochaine sortie » : grand panneau de direction vers la page suivante (NEXT_EXIT). */
 export function NextExit({ from }: { from: string }) {
+  return (
+    <HydrateLater>
+      <NextExitBlock from={from} />
+    </HydrateLater>
+  );
+}
+
+function NextExitBlock({ from }: { from: string }) {
   const exit = NEXT_EXIT[from];
   if (!exit) return null;
   return (
@@ -366,21 +395,24 @@ const DAWN_TEXT = "Votre estimation en moins d'une minute, confirmée avec vous 
  * Titre : 7 rem au plus sur ordinateur (deux lignes) ; sur téléphone, sa taille s'ajuste pour que
  * son plus long mot tienne dans la colonne (« MAINTENANT ? » sortait de l'écran à 320 px).
  */
-export function DawnCta({
-  info,
-  title,
-  text = DAWN_TEXT,
-  truck = "empty",
-  ground = null,
-  calm = false,
-}: {
+type DawnCtaProps = {
   info: PublicSiteInfo;
   title: string;
   text?: ReactNode;
   truck?: "loaded" | "empty" | "none";
   ground?: string | null;
   calm?: boolean;
-}) {
+};
+
+export function DawnCta(props: DawnCtaProps) {
+  return (
+    <HydrateLater>
+      <DawnCtaBlock {...props} />
+    </HydrateLater>
+  );
+}
+
+function DawnCtaBlock({ info, title, text = DAWN_TEXT, truck = "empty", ground = null, calm = false }: DawnCtaProps) {
   const showTruck = !calm && truck !== "none";
   return (
     <section data-sky="aube" data-dawn-cta="" className={styles.dawnCta}>

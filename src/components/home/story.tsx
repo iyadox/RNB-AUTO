@@ -15,6 +15,7 @@
 import type { PublicSiteInfo } from "@/server/site/public-info";
 import { Plate } from "@/components/public/page-blocks";
 import { MiniMap, StoryMap } from "./story-map";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import styles from "./home.module.css";
 
 function steps(city: string | null) {
@@ -61,50 +62,53 @@ export function Story({ info }: { info: PublicSiteInfo }) {
           De la panne à la solution, sans stress.
         </h2>
 
-        <div className={styles.stageGrid}>
-          <div className={styles.visual} data-stage-visual="">
-            <StoryMap depot={info.depot} />
-          </div>
+        {/* Le titre découpé reste dans le passage principal ; la scène est hydratée ensuite. */}
+        <HydrateLater>
+          <div className={styles.stageGrid}>
+            <div className={styles.visual} data-stage-visual="">
+              <StoryMap depot={info.depot} />
+            </div>
 
-          <ol className={styles.steps}>
-            {steps(info.depot.city).map((step, index) => (
-              <li key={step.title} data-stage-step="" className={styles.step}>
-                {index === 0 ? null : <MiniMap step={(index + 1) as 2 | 3 | 4} />}
-                <div className={styles.stepBody}>
-                  <span className={styles.borne} aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <h3 className={styles.stepTitle}>{step.title}</h3>
-                  <p className={styles.stepText}>{nbsp(step.text)}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+            <ol className={styles.steps}>
+              {steps(info.depot.city).map((step, index) => (
+                <li key={step.title} data-stage-step="" className={styles.step}>
+                  {index === 0 ? null : <MiniMap step={(index + 1) as 2 | 3 | 4} />}
+                  <div className={styles.stepBody}>
+                    <span className={styles.borne} aria-hidden="true">
+                      {index + 1}
+                    </span>
+                    <h3 className={styles.stepTitle}>{step.title}</h3>
+                    <p className={styles.stepText}>{nbsp(step.text)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
 
-          <div className={styles.storyFooter}>
-            <p className={styles.legend}>
-              <strong>
-                <span aria-hidden="true">① </span>Aller · <span aria-hidden="true">② </span>Transport ·{" "}
-                <span aria-hidden="true">③ </span>Retour
-              </strong>
-              {nbsp(" : les trois trajets de la dépanneuse sont pris en compte dans le prix.")}
-            </p>
-            <fieldset className={styles.toggle}>
-              <legend className="sr-only">Trajets de la dépanneuse</legend>
-              <label>
-                <input type="radio" name="story-mode" value="tow" defaultChecked />
-                Remorquage
-              </label>
-              <label>
-                <input type="radio" name="story-mode" value="on_site" />
-                Réparé sur place
-              </label>
-            </fieldset>
-            <p className={`${styles.siteNote} ${styles.siteOnly}`}>
-              {nbsp("Réparé sur place : pas de transport, seulement l'aller et le retour de la dépanneuse.")}
-            </p>
+            <div className={styles.storyFooter}>
+              <p className={styles.legend}>
+                <strong>
+                  <span aria-hidden="true">① </span>Aller · <span aria-hidden="true">② </span>Transport ·{" "}
+                  <span aria-hidden="true">③ </span>Retour
+                </strong>
+                {nbsp(" : les trois trajets de la dépanneuse sont pris en compte dans le prix.")}
+              </p>
+              <fieldset className={styles.toggle}>
+                <legend className="sr-only">Trajets de la dépanneuse</legend>
+                <label>
+                  <input type="radio" name="story-mode" value="tow" defaultChecked />
+                  Remorquage
+                </label>
+                <label>
+                  <input type="radio" name="story-mode" value="on_site" />
+                  Réparé sur place
+                </label>
+              </fieldset>
+              <p className={`${styles.siteNote} ${styles.siteOnly}`}>
+                {nbsp("Réparé sur place : pas de transport, seulement l'aller et le retour de la dépanneuse.")}
+              </p>
+            </div>
           </div>
-        </div>
+        </HydrateLater>
       </div>
     </section>
   );

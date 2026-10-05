@@ -11,6 +11,7 @@ import { Plate } from "@/components/public/page-blocks";
 import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
 import { HOME_FAQ_IDS, faqItems } from "@/content/faq";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import styles from "./home-lower.module.css";
 import { Roadside } from "./lower/roadside";
 
@@ -29,11 +30,16 @@ export function FaqPreview() {
           Toutes les questions
           <Icon name="arrowRight" size={20} strokeWidth={2.4} />
         </Link>
-        <FaqAccordion items={faqItems(HOME_FAQ_IDS)} className={styles.faqList} />
+        {/* Le titre découpé reste dans le passage principal ; le reste est hydraté ensuite. */}
+        <HydrateLater>
+          <FaqAccordion items={faqItems(HOME_FAQ_IDS)} className={styles.faqList} />
+        </HydrateLater>
       </div>
 
       {/* Bord de route : ligne de rive, balises et la borne PK 06 (décor statique). */}
-      <Roadside />
+      <HydrateLater>
+        <Roadside />
+      </HydrateLater>
     </section>
   );
 }

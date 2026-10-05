@@ -810,6 +810,12 @@
   width: 100%;
   height: auto;
   overflow: hidden;
+  /* Proportions du viewBox écrites en ligne (three-legs.tsx). */
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture du dessin (temps de blocage au chargement). Rien ne change à l'écran : la taille
+     vient du CSS, jamais du contenu, et le dessin est déjà découpé à son cadre. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
 }
 .threeLegsLegend ol {
   display: flex;
@@ -914,9 +920,16 @@ li[data-leg="retour"] .legSwatch {
   height: 100%;
   overflow: visible;
 }
-/* Plan du dépôt : carré recadré (`slice`), rien ne déborde du cadre. */
+/* Plan du dépôt : carré recadré (`slice`), rien ne déborde du cadre. Le plan de la région, lui,
+   déborde (noms) : il reste toujours rendu. */
 .planDepot .planSvg {
   overflow: hidden;
+  /* Taille : celle du cadre (100 % × 100 %). */
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture du dessin (temps de blocage au chargement). Rien ne change à l'écran : la taille
+     vient du CSS, jamais du contenu, et le dessin est déjà découpé à son cadre. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
 }
 /* Gyrophare du dépôt : un tour en 5 s (pause hors écran : `data-pause-offscreen`). */
 .sweepBeam {
@@ -981,6 +994,12 @@ li[data-leg="retour"] .legSwatch {
   width: 100%;
   height: auto;
   overflow: hidden;
+  /* Proportions du viewBox écrites en ligne (highway-relay.tsx). */
+  /* Loin de l'écran (au-delà d'environ 1,5 écran), le navigateur saute le style, la mise en page et
+     la peinture du dessin (temps de blocage au chargement). Rien ne change à l'écran : la taille
+     vient du CSS, jamais du contenu, et le dessin est déjà découpé à son cadre. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto none;
 }
 .relayAuto .relayOnlyWide {
   display: none;

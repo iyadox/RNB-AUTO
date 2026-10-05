@@ -16,6 +16,7 @@ import { Plate } from "@/components/public/page-blocks";
 import { DirectionSign } from "@/components/scenes/kit/direction-sign";
 import { TruckTopGlyph } from "@/components/scenes/kit/glyphs";
 import { WhatsAppIcon } from "@/components/ui/icon";
+import { HydrateLater } from "@/components/ui/hydrate-later";
 import styles from "./home.module.css";
 
 const SIGNS = [
@@ -68,39 +69,42 @@ export function Crossroads({ info }: { info: PublicSiteInfo }) {
           Où en êtes-vous{" "}?
         </h2>
 
-        <div className={styles.junction} data-inview-once="">
-          <div className={styles.junctionTruck} aria-hidden="true">
-            <div className={styles.junctionTruckCar}>
-              <svg viewBox="-40 -40 80 80">
-                <g transform="rotate(90)">
-                  <TruckTopGlyph headlights />
-                </g>
-              </svg>
+        {/* Le titre découpé reste dans le passage principal ; le carrefour est hydraté ensuite. */}
+        <HydrateLater>
+          <div className={styles.junction} data-inview-once="">
+            <div className={styles.junctionTruck} aria-hidden="true">
+              <div className={styles.junctionTruckCar}>
+                <svg viewBox="-40 -40 80 80">
+                  <g transform="rotate(90)">
+                    <TruckTopGlyph headlights />
+                  </g>
+                </svg>
+              </div>
             </div>
+            <ul className={styles.signs}>
+              {SIGNS.map((sign, index) => (
+                <li
+                  key={sign.href}
+                  className={`${styles.slot} ${sign.tone === "signal" ? styles.slotSignal : ""}`}
+                  style={{ "--i": index } as CSSProperties}
+                >
+                  <DirectionSign
+                    href={sign.href}
+                    title={sign.title}
+                    subtitle={sign.subtitle}
+                    arrow={sign.arrow}
+                    pictogram={sign.pictogram}
+                    tone={sign.tone}
+                    morphName={sign.morph}
+                    className={styles.signRail}
+                  />
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className={styles.signs}>
-            {SIGNS.map((sign, index) => (
-              <li
-                key={sign.href}
-                className={`${styles.slot} ${sign.tone === "signal" ? styles.slotSignal : ""}`}
-                style={{ "--i": index } as CSSProperties}
-              >
-                <DirectionSign
-                  href={sign.href}
-                  title={sign.title}
-                  subtitle={sign.subtitle}
-                  arrow={sign.arrow}
-                  pictogram={sign.pictogram}
-                  tone={sign.tone}
-                  morphName={sign.morph}
-                  className={styles.signRail}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
 
-        <CallAlternative info={info} />
+          <CallAlternative info={info} />
+        </HydrateLater>
       </div>
     </section>
   );

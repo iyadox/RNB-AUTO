@@ -1,8 +1,8 @@
 # 06 — Feuille de route
 
-> Document de cadrage du 03/10/2026, mis à jour le 04/10/2026 avec l'état d'avancement.
+> Document de cadrage du 03/10/2026, mis à jour le 05/10/2026 avec l'état d'avancement.
 
-## État au 04/10/2026
+## État au 05/10/2026
 
 | Phase | État | Détail |
 |---|---|---|
@@ -16,7 +16,7 @@
 | 8 — Tableau de bord et historique | 🟡 en partie | fait : accueil du jour, liste filtrable, recherche. Reste : statistiques par période, export, fiches clients |
 | 9 — Carburant automatique | 🟡 en grande partie | fait : source officielle, médiane autour du dépôt, contrôles de vraisemblance, replis, « Actualiser maintenant », actualisation quotidienne. Reste : choix d'une station habituelle |
 | 10 — Améliorations | à prioriser | voir la liste ci-dessous |
-| Refonte immersive « Pleins phares » | 🟡 en recette | socle, coque, kit d'illustrations et toutes les pages publiques construits ; recette (lot L9) en cours : corrections remontées par les lots, budgets, tests de recette, nettoyage, documentation. Détail ci-dessous |
+| Refonte immersive « Pleins phares » | ✅ fait | socle, coque, kit d'illustrations et toutes les pages publiques construits ; recette (lot L9) et audit final terminés ; quelques points de performance restent ouverts. Détail ci-dessous |
 
 Les valeurs de départ des tarifs sont des **moyennes du marché francilien** (et non des valeurs « DÉMO ») : le site peut être mis en ligne dès que les informations de l'entreprise sont renseignées (voir [08 — Installation](08-installation-et-deploiement.md)).
 
@@ -31,12 +31,14 @@ Référence : [09 — Refonte immersive](09-refonte-immersive.md). Le journal de
 | S2a — Coque | ✅ fait | en-tête, menu « plan de nuit », barre d'action, fins de page (prochaine sortie, aube, retour au dépôt), bouton « Arrêter les animations » |
 | S2b — Kit d'illustrations | ✅ fait | panneaux, plaques, voyants, ticket d'estimation, trois trajets, plan schématique, séquence de chargement, relais d'autoroute |
 | L1 à L8 — Pages | ✅ fait | accueil, dépannage, remorquage, zones, panne sur autoroute, questions fréquentes, entreprise, contact, habillage de la demande, pages légales, page introuvable et page d'erreur |
-| L9 — Recette | 🟡 en cours | corrections remontées par les lots, budgets de performance (poids, nœuds, Lighthouse), tests de recette `tests/e2e/urgence.spec.ts` et `tests/e2e/immersion.spec.ts` (téléphone et ordinateur), retrait du code mort et de `@gsap/react` (fait : `sections.tsx` et `home-motion.tsx` supprimés, `@gsap/react` retiré des dépendances), documentation |
+| L9 — Recette | ✅ fait | corrections remontées par les lots, budgets de performance (poids, nœuds, Lighthouse), tests de recette `tests/e2e/urgence.spec.ts` et `tests/e2e/immersion.spec.ts` (téléphone et ordinateur), retrait du code mort et de `@gsap/react` (`sections.tsx`, `home-motion.tsx`, `page-motion.tsx` et anciens blocs `PageHero`, `FeatureGrid`, `Steps`, `CtaBand` supprimés), documentation |
+| Audit final | ✅ fait | six audits (direction artistique téléphone et ordinateur, urgence et accessibilité, performance, contenu, qualité du code), corrections par zone, puis derniers points : fins de page fusionnées avec l'aube, polices de repli contre les décalages, morph vers le titre des pages d'arrivée, scènes collantes montées seulement sur ordinateur, noms du plan qui s'évitent, ciel de nuit allégé, aucun GSAP en niveau allégé sur téléphone. Décisions : `docs/09`, J.14 |
 
-Reste à faire avant la mise en ligne de la refonte :
-- tenir les budgets de G.2 (HTML de l'accueil et nombre de nœuds) et les mesurer sur un build de production ;
-- garder `npm run e2e` au vert avec les deux nouveaux fichiers de test (239 tests réussis le 04/10/2026, les 13 contrôles U4 réservés au téléphone étant sautés sur ordinateur) ;
-- faire valider par l'administrateur les points listés dans [07 — Questions ouvertes](07-questions-ouvertes.md), section E (lien vers le 112, textes de sécurité, textes qui citent Bobigny ou la Seine-Saint-Denis, photos réelles).
+État final de la refonte (05/10/2026) :
+- toutes les pages publiques sont livrées avec leur mise en scène ; `npm run check` et `npm run e2e` au vert (tests de recette sur téléphone et ordinateur, y compris le niveau allégé) ;
+- critères de recette : les cases cochées dans `docs/09`, section I, sont celles vérifiées par une mesure ou par les tests ; les autres restent à contrôler à la main avant la mise en ligne ;
+- restent ouverts (détail dans `docs/09`, J.14) : temps de blocage au-dessus du budget de 150 ms sur un téléphone lent, figement de la première transition de page sur un appareil sans processeur graphique, budget de 40 Ko de HTML tenu seulement avec une compression brotli ou zstd (configuration de `docs/08`), longueur de la fin de page sur ordinateur ;
+- à faire valider par l'administrateur : les points listés dans [07 — Questions ouvertes](07-questions-ouvertes.md), section E (lien vers le 112, textes de sécurité, textes qui citent Bobigny ou la Seine-Saint-Denis, photos réelles).
 
 ## Ordre proposé
 

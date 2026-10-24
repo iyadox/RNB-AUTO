@@ -865,6 +865,7 @@ D'après `node_modules/next/dist/docs/01-app/02-guides/view-transitions.md` :
   - nommer la barre pour une transition ;
   - y mettre un champ de formulaire.
 - **Superposition :** z 60, `contain: layout paint`.
+- **Largeurs (octobre 2026) :** colonnes `auto` (chaque bouton prend la largeur de son contenu, la place restante est partagée à parts égales), texte de 15 px ; sous 380 px, pictogrammes de 18 px ; sous 360 px, texte de 14 px, pictogrammes de 16 px et flèche de « Demande » masquée. Au moins 8 px d'air de chaque côté de chaque libellé de 320 à 390 px (« WhatsApp » touchait les bords de son bouton avec trois colonnes égales).
 - **/panne-autoroute :** la barre reste identique (c'est le contrat global). La consigne « borne orange ou 112 d'abord » est en tête de page (F.4).
 
 ### D.8 Fins de page : Prochaine sortie, puis Aube, puis Retour au dépôt
@@ -2205,3 +2206,11 @@ Reste ouvert :
 - le budget de 150 ms n'est atteint sur aucune page lourde : l'analyse du HTML, l'évaluation de React et l'hydratation dominent ;
 - la bascule de `.motion-ready` coûte encore 34 ms sur l'accueil et 128 ms sur la FAQ à cause de sélecteurs sans classe en fin de chaîne (`.vehicle > *` dans faq.module.css, `g[clip-path] > g` et `rect:nth-…` dans shell.module.css, `.ticket li` dans home-lower.module.css) : les cibler par une classe ;
 - en HTTP/1.1 local, le découpage du fichier JavaScript de la coque en deux retarde parfois le premier affichage de l'accueil d'un aller-retour : à vérifier en HTTP/2 en production.
+
+### J.16 Décor animé au défilement de l'accueil (« de la commande à l'arrivée »)
+
+| # | Décision ou écart | Raison |
+|---|---|---|
+| DS-1 | **Fenêtres `w1`, `w2`, `w3`** (`StoryWindow`, `src/components/story`) : trois respirations transparentes entre les sections de la piste (`StoryTrack`), sans texte par-dessus, où se joue un acte entier : 1 · la demande (le téléphone), 2 · l'arrivée de la dépanneuse, 3 · le chargement et le départ. Hauteurs fixées dans `story-frame.module.css` (130, 80 et 100 svh). | Chaque moment fort se joue sur un dessin qu'aucun texte ne recouvre ; le téléphone de l'acte 1 reste entièrement dégagé. |
+| DS-2 | **Une frise par acte** : chaque fenêtre porte sa `view-timeline` (`--w1`, `--w2`, `--w3`), la piste porte `--story` (aube) et les rend visibles au cadre collant par `timeline-scope`. La chorégraphie est écrite une seule fois en images clés CSS (`story.module.css`) ; seule la source de la progression change (CSS `animation-timeline` sur téléphone récent, scène `story-drive` avec GSAP ScrollTrigger sur ordinateur en `full`, repli léger ailleurs). | Un acte ne dépend plus de la hauteur des sections voisines ; pas d'épinglage GSAP ni de couture entre les actes. |
+| DS-3 | **Montage différé** : le cadre collant est rendu vide par le serveur (aucun nœud de décor dans le HTML ni dans la charge RSC) ; les dessins (`StoryScene`, morceau JavaScript à part) sont montés au premier signe d'intérêt (défilement, toucher, clavier, cadre proche de l'écran), au moment calme suivant, en trois tranches (décor, véhicules, téléphone). Niveaux `lite` et `off` : image fixe (dépanneuse arrivée). Sans JavaScript : les sections, sans décor. | Une personne qui ne lit que le premier écran ne paie rien ; aucune tranche ne crée de longue tâche (temps de blocage). |

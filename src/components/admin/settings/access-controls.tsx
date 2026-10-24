@@ -11,10 +11,11 @@ import {
   setAccountActiveAction,
   type SimpleResult,
 } from "@/app/admin/(espace)/parametres/actions";
-import { AdminIcon } from "@/components/admin/admin-icons";
+import { AdminIcon, type AdminIconName } from "@/components/admin/admin-icons";
 import { Modal, Toast } from "@/components/admin/inputs";
 import { Alert, Badge, buttonClass } from "@/components/admin/ui";
 import { cn } from "@/components/ui/cn";
+import type { DeviceKind } from "@/core/auth/device";
 
 function useResult() {
   const router = useRouter();
@@ -34,7 +35,10 @@ function useResult() {
   return { pending, run, toastNode };
 }
 
-export type DeviceView = { ref: string; device: string; since: string; current: boolean };
+export type DeviceView = { ref: string; device: string; kind: DeviceKind; since: string; current: boolean };
+
+/** Pictogramme selon le type d'appareil : un ordinateur n'est pas un téléphone. */
+const DEVICE_ICON: Record<DeviceKind, AdminIconName> = { phone: "smartphone", tablet: "tablet", computer: "laptop", unknown: "devices" };
 
 const DEVICES_SHOWN = 4;
 
@@ -42,7 +46,7 @@ function DeviceItem({ device, pending, onRevoke }: { device: DeviceView; pending
   return (
     <li className="flex items-center gap-3 px-4 py-3">
       <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", device.current ? "bg-green-50 text-green-700" : "bg-asphalt-100 text-asphalt-600")}>
-        <AdminIcon name="smartphone" size={20} />
+        <AdminIcon name={DEVICE_ICON[device.kind]} size={20} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block font-bold leading-snug">{device.device}</span>

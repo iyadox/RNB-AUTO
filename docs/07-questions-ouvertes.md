@@ -14,7 +14,7 @@ Elles se saisissent dans **Paramètres** (l'accueil de l'administration rappelle
 - [ ] Position exacte du dépôt à vérifier sur la carte (*Paramètres → Adresse de départ*).
 - [ ] Logo et photos réelles de la dépanneuse (le site utilise pour l'instant un logo dessiné et des illustrations).
 - [ ] Nom de domaine.
-- [x] Hébergement : **Vercel + Neon** recommandés (voir [08 — Installation](08-installation-et-deploiement.md)) ; image Docker disponible pour un serveur à soi.
+- [x] Hébergement : **Netlify** (projet « rnb-auto », base Netlify Database) recommandé (voir [08 — Installation](08-installation-et-deploiement.md)) ; Vercel + Neon et image Docker en alternatives.
 - [x] Zone : estimation automatique jusqu'à **80 km** du dépôt pour aller chercher le véhicule et **150 km** de transport (*Paramètres → Zone*). Au-delà, le client est invité à être rappelé.
 
 ## B. Moteur tarifaire

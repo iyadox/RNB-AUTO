@@ -1,8 +1,8 @@
 # 06 — Feuille de route
 
-> Document de cadrage du 03/10/2026, mis à jour le 05/10/2026 avec l'état d'avancement.
+> Document de cadrage du 03/10/2026, mis à jour le 24/10/2026 avec l'état d'avancement.
 
-## État au 05/10/2026
+## État au 24/10/2026
 
 | Phase | État | Détail |
 |---|---|---|
@@ -12,8 +12,8 @@
 | 4 — Moteur tarifaire | ✅ fait | chaîne d'étapes, coûts internes, marge, arrondi, minimum, TVA, photographies ; estimation dans le parcours client |
 | 5 — Administration des tarifs | ✅ fait | « Mes tarifs » simple / avancé, aperçu d'impact, historique, retour en arrière |
 | 6 — Simulateur | ✅ fait | « Tester mes tarifs » (détail complet, essai sans enregistrer, trajets types) et « Nouvelle demande » pendant un appel |
-| 7 — Demandes d'intervention | 🟡 en grande partie | fait : photos, branche autoroute, fiche complète (statuts, ajustements, révisions, journal, notes), email à chaque demande. Reste : notifications instantanées sur téléphone (Web Push, SMS) |
-| 8 — Tableau de bord et historique | 🟡 en partie | fait : accueil du jour, liste filtrable, recherche. Reste : statistiques par période, export, fiches clients |
+| 7 — Demandes d'intervention | 🟡 en grande partie | fait : photos, branche autoroute, fiche complète (statuts, ajustements, révisions, journal, notes), email à chaque demande, suivi client en direct (`/suivi`), bon d'intervention, notification et son sur l'appareil quand l'espace est ouvert (voir [10 — Guide de l'administrateur](10-guide-administrateur.md)). Reste : notifications avec l'espace fermé (Web Push, SMS) |
+| 8 — Tableau de bord et historique | 🟡 en partie | fait : accueil du jour (compteurs, à traiter, en cours, chiffre d'affaires jour / semaine / mois / 7 jours), liste filtrable, recherche, accès à l'espace pour plusieurs personnes, appareils connectés. Reste : statistiques sur l'année, export, fiches clients |
 | 9 — Carburant automatique | 🟡 en grande partie | fait : source officielle, médiane autour du dépôt, contrôles de vraisemblance, replis, « Actualiser maintenant », actualisation quotidienne. Reste : choix d'une station habituelle |
 | 10 — Améliorations | à prioriser | voir la liste ci-dessous |
 | Refonte immersive « Pleins phares » | ✅ fait | socle, coque, kit d'illustrations et toutes les pages publiques construits ; recette (lot L9) et audit final terminés ; quelques points de performance restent ouverts. Détail ci-dessous |
@@ -146,7 +146,7 @@ Terminé quand : le prix se met à jour seul, et une panne de la source ne chang
 
 - règles personnalisées créées par l'admin ;
 - interrupteur de disponibilité et heure d'arrivée estimée ;
-- SMS et WhatsApp automatiques, suivi en direct pour le client ;
+- SMS et WhatsApp automatiques (le suivi en direct pour le client existe déjà : `/suivi`) ;
 - plusieurs dépanneuses et chauffeurs, application chauffeur, position GPS ;
 - paiement ; devis et facturation via une plateforme agréée ;
 - studio d'animations 9:16 pour TikTok, Instagram Reels et YouTube Shorts.

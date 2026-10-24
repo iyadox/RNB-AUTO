@@ -29,6 +29,26 @@ const PATHS = {
       <path d="M11 18h2" />
     </>
   ),
+  tablet: (
+    <>
+      <rect x="4" y="2" width="16" height="20" rx="2.5" />
+      <path d="M11 18h2" />
+    </>
+  ),
+  laptop: (
+    <>
+      <rect x="4" y="4" width="16" height="11" rx="1.5" />
+      <path d="M2 19h20" />
+    </>
+  ),
+  devices: (
+    <>
+      <path d="M17 18H4a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 4 3.5h13A1.5 1.5 0 0 1 18.5 5v1" />
+      <path d="M8 21h5" />
+      <path d="M10.5 18v3" />
+      <rect x="14.5" y="9" width="7" height="12" rx="1.5" />
+    </>
+  ),
   users: (
     <>
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

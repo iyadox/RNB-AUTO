@@ -59,7 +59,7 @@ export default async function AccountPage() {
       <SectionTitle icon="shield" description="Un téléphone perdu ou un ordinateur partagé ? Déconnectez-le ici.">
         Appareils connectés
       </SectionTitle>
-      <DevicesList devices={devices.map((d) => ({ ref: d.ref, device: d.device, since: formatDateTime(d.createdAt), current: d.current }))} />
+      <DevicesList devices={devices.map((d) => ({ ref: d.ref, device: d.device, kind: d.kind, since: formatDateTime(d.createdAt), current: d.current }))} />
 
       <Link href="/admin/parametres/acces" className="mt-6 flex items-center gap-4 rounded-3xl border border-asphalt-200 bg-white p-5 hover:border-asphalt-400">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-asphalt-900 text-signal-500">

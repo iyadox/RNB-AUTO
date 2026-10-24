@@ -4,7 +4,7 @@
  * Les fonctions ne vérifient pas la session : c'est le rôle des actions qui les appellent.
  */
 import { and, asc, count, desc, eq, gt } from "drizzle-orm";
-import { describeDevice } from "@/core/auth/device";
+import { describeDevice, deviceKind, type DeviceKind } from "@/core/auth/device";
 import { auditLog, sessions, users } from "@/server/db/schema";
 import type { DbLike } from "@/server/settings/repository";
 import { hashPassword, passwordProblem } from "./password";
@@ -85,7 +85,7 @@ export async function resetAccountPassword(db: DbLike, userId: string, password:
   await audit(db, actor, userId, "password", `Accès à l'espace — ${target.name}`, "ancien mot de passe", "nouveau mot de passe donné");
 }
 
-export type DeviceRow = { ref: string; device: string; ip: string | null; createdAt: Date; expiresAt: Date; current: boolean };
+export type DeviceRow = { ref: string; device: string; kind: DeviceKind; ip: string | null; createdAt: Date; expiresAt: Date; current: boolean };
 
 /** Référence courte d'une session : jamais le jeton, seulement le début de son empreinte. */
 export function sessionRef(sessionId: string): string {
@@ -102,6 +102,7 @@ export async function listDevices(db: DbLike, userId: string, currentSessionId: 
   return rows.map((row) => ({
     ref: sessionRef(row.id),
     device: describeDevice(row.userAgent),
+    kind: deviceKind(row.userAgent),
     ip: row.ip,
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,

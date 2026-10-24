@@ -18,7 +18,7 @@ cp .env.example .env
 npm run dev          # http://localhost:3000 — administration : /admin
 ```
 
-La base locale se crée toute seule. **Mise en ligne (Vercel + Neon, ou Docker) : [guide d'installation](docs/08-installation-et-deploiement.md).**
+La base locale se crée toute seule. **Mise en ligne (Netlify recommandé ; Vercel + Neon ou Docker en alternatives) : [guide d'installation](docs/08-installation-et-deploiement.md).** Utilisation au quotidien : [guide de l'administrateur](docs/10-guide-administrateur.md).
 
 ## Ce que contient le site
 
@@ -101,7 +101,8 @@ docs/                     documents du projet
 | 05 | [Réglages administrables](docs/05-reglages-administrables.md) | registre des réglages, mode simple / avancé, vocabulaire |
 | 06 | [Feuille de route](docs/06-feuille-de-route.md) | phases, ce qui est fait, la suite |
 | 07 | [Questions ouvertes](docs/07-questions-ouvertes.md) | informations à fournir et décisions appliquées par défaut |
-| 08 | [Installation et mise en ligne](docs/08-installation-et-deploiement.md) | essai local, Vercel + Neon, Docker, variables, dépannage |
+| 08 | [Installation et mise en ligne](docs/08-installation-et-deploiement.md) | essai local, Netlify (recommandé), Vercel + Neon, Docker, variables, dépannage |
 | 09 | [Refonte immersive](docs/09-refonte-immersive.md) | « Pleins phares » : concept, langage visuel, motion, storyboards des pages, garde-fous, recette et journal des écarts |
+| 10 | [Guide de l'administrateur](docs/10-guide-administrateur.md) | tableau de bord, demandes, suivi client, bon d'intervention, accès à l'espace, notifications et son |
 
 Les règles à respecter pour toute contribution sont dans [CLAUDE.md](CLAUDE.md).

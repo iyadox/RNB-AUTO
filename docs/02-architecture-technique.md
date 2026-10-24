@@ -31,8 +31,8 @@
 | Prix du carburant | jeu de données officiel « Prix des carburants en France — flux instantané v2 » (médiane autour du dépôt) | gratuit, officiel |
 | Photos | **stockage privé dans la base**, nettoyées (EXIF et position GPS retirés), 8 par demande au plus | aucun service supplémentaire à configurer |
 | Notifications | email (Resend) ; la demande reste toujours visible dans l'admin | gratuit au départ |
-| Hébergement | Vercel + Neon recommandés ; image Docker pour un serveur à soi | HTTPS automatique, déploiement à chaque envoi sur GitHub |
-| Tâches planifiées | tâche quotidienne Vercel (`/api/maintenance`), et à défaut lors des visites de l'admin | purges, carburant automatique |
+| Hébergement | Netlify + Netlify Database recommandés ; Vercel + Neon, ou image Docker pour un serveur à soi | HTTPS automatique, déploiement à chaque envoi sur GitHub |
+| Tâches planifiées | lors des visites de l'admin (au plus toutes les 6 h) ; tâche quotidienne Vercel ou service externe appelant `/api/maintenance` | purges, carburant automatique |
 | Tests | Vitest (moteur, réglages, photos, parcours serveur sur base en mémoire), Playwright (parcours complets sur mobile simulé, recette du site public sur téléphone et ordinateur) | — |
 | Qualité | ESLint, contrôle des types, GitHub Actions | chaque modification est vérifiée automatiquement |
 

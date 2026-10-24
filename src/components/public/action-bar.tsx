@@ -11,7 +11,8 @@ import { cn } from "@/components/ui/cn";
 import { Icon, WhatsAppIcon } from "@/components/ui/icon";
 import styles from "./shell.module.css";
 
-const BUTTON = "flex h-14 items-center justify-center gap-2 rounded-2xl font-bold";
+// Taille du texte, écart et marges intérieures : shell.module.css (.actionTap), selon la largeur.
+const BUTTON = "flex h-14 items-center justify-center rounded-2xl font-bold";
 
 export function ActionBar({ phone, whatsapp }: { phone: PhoneLink | null; whatsapp: PhoneLink | null }) {
   return (
@@ -56,11 +57,11 @@ export function ActionBar({ phone, whatsapp }: { phone: PhoneLink | null; whatsa
           className={cn(
             BUTTON,
             styles.actionTap,
-            "gap-1.5 bg-night-900/80 text-chalk shadow-[inset_0_0_0_1.5px_rgb(255_253_246_/_0.22)]",
+            "bg-night-900/80 text-chalk shadow-[inset_0_0_0_1.5px_rgb(255_253_246_/_0.22)]",
           )}
         >
           Demande
-          <Icon name="arrowRight" size={18} strokeWidth={2.4} className="text-signal-500" />
+          <Icon name="arrowRight" size={18} strokeWidth={2.4} className={cn("text-signal-500", styles.actionArrow)} />
         </Link>
       </div>
     </nav>

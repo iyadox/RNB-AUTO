@@ -103,3 +103,45 @@ export const TIMESTAMP_FIELDS: Partial<Record<InterventionStatus, string>> = {
   completed: "completedAt",
   cancelled: "cancelledAt",
 };
+
+/** Demandes à traiter (personne ne s'en occupe encore). */
+export const WAITING_STATUSES = ["new", "to_call_back"] as const satisfies readonly InterventionStatus[];
+/** Interventions acceptées et pas encore terminées. */
+export const IN_PROGRESS_STATUSES = ["accepted", "en_route", "arrived", "loaded", "in_transit"] as const satisfies readonly InterventionStatus[];
+/** Tout ce qui n'est pas clôturé. */
+export const OPEN_STATUSES = [...WAITING_STATUSES, ...IN_PROGRESS_STATUSES] as const;
+
+export type ServiceKind = "tow" | "on_site" | "unknown";
+
+/** Libellés courts de la frise d'avancement. */
+export const STEP_LABELS: Partial<Record<InterventionStatus, string>> = {
+  new: "Reçue",
+  accepted: "Acceptée",
+  en_route: "En route",
+  arrived: "Sur place",
+  loaded: "Chargé",
+  in_transit: "Transport",
+  completed: "Terminée",
+};
+
+/** Étapes affichées dans la frise, selon dépannage sur place ou remorquage. */
+export function progressSteps(serviceKind: ServiceKind): InterventionStatus[] {
+  return serviceKind === "on_site"
+    ? ["new", "accepted", "en_route", "arrived", "completed"]
+    : ["new", "accepted", "en_route", "arrived", "loaded", "in_transit", "completed"];
+}
+
+/** Position du statut dans la frise (« À rappeler » compte comme « Reçue » ; -1 si annulée). */
+export function progressIndex(status: InterventionStatus, serviceKind: ServiceKind): number {
+  if (status === "cancelled") return -1;
+  const steps = progressSteps(serviceKind);
+  if (status === "to_call_back") return 0;
+  const index = steps.indexOf(status);
+  if (index >= 0) return index;
+  // Sur place mais statut de remorquage (saisie après coup) : on se place sur « Sur place ».
+  return steps.indexOf("arrived");
+}
+
+export function serviceKindOf(dropoffKind: string): ServiceKind {
+  return dropoffKind === "on_site" ? "on_site" : dropoffKind === "address" ? "tow" : "unknown";
+}

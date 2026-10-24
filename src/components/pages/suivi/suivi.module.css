@@ -1,0 +1,503 @@
+@reference "../../../app/globals.css";
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   /suivi/<référence> « La route du suivi » : la suite de /demande, même route de nuit.
+   - En tête : la plaque « Suivi de demande », le numéro, le voyant « En direct ».
+   - Panneau à messages (P13) : l'étape en LED ambre. Titre et texte = l'étape en clair.
+   - La route du suivi (`TrackingRoad`) : la dépanneuse posée là où en est l'intervention.
+   - Les étapes avec leur heure, le ticket de prix, les détails, Appeler / WhatsApp, photos,
+     partage du lien.
+   Règles : état de base = état final ; mouvement seulement sous `html.motion-ready`, jamais en
+   `off` ni avec « moins d'animations » ; aucune action cachée ni retardée ; couleurs par jetons.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.page {
+  position: relative;
+  min-height: 100svh;
+  overflow-x: clip;
+  /* Le décor de /demande est fixe : la découpe le limite à la page (il disparaît sous le pied). */
+  clip-path: inset(0);
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: calc(var(--header-h, 4rem) + 1.25rem) 1rem 4rem;
+}
+@media (min-width: 640px) {
+  .shell {
+    padding-inline: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .shell {
+    padding: calc(var(--header-h, 5rem) + 2.5rem) 2rem 6rem;
+  }
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+/* Plaque d'immatriculation du numéro de demande (même dessin que « Demande reçue »). */
+.reference {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-night-950) 85%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-chalk) 30%, transparent);
+}
+.referenceBand {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  background: var(--color-signal-500);
+  color: var(--color-asphalt-950);
+}
+.referenceText {
+  padding: 0.375rem 0.75rem;
+}
+
+/* Voyant « En direct » : pastille verte, onde lente (désactivée sans mouvement). */
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.liveDot {
+  position: relative;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--color-whatsapp);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-whatsapp) 70%, transparent);
+}
+.liveDot[data-closed] {
+  background: var(--color-asphalt-400);
+  box-shadow: none;
+}
+.liveDot::after {
+  content: "";
+  position: absolute;
+  inset: -0.3rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-whatsapp);
+  opacity: 0;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .liveDot:not([data-closed])::after {
+  animation: live-ring 2.4s var(--ease-out-expo) infinite;
+}
+@keyframes live-ring {
+  from {
+    opacity: 0.8;
+    scale: 0.6;
+  }
+  to {
+    opacity: 0;
+    scale: 1.6;
+  }
+}
+
+.pmv {
+  margin-top: 1.5rem;
+  max-width: 34rem;
+}
+
+.title {
+  margin-top: 1.75rem;
+  font-size: clamp(2.375rem, 10vw, 4.5rem);
+  line-height: 0.96;
+  text-wrap: balance;
+}
+.lead {
+  margin-top: 1rem;
+  max-width: 40rem;
+  font-size: 1.1875rem;
+  line-height: 1.5;
+  color: var(--color-asphalt-100);
+}
+
+/* ─── La route du suivi ────────────────────────────────────────────────────── */
+
+.scene {
+  --truck-w: 6.25rem;
+  --pad: calc(var(--truck-w) / 2);
+  --band-b: 1.875rem;
+  --band-h: 2.25rem;
+  position: relative;
+  height: 10.5rem;
+  margin-top: 2rem;
+  isolation: isolate;
+}
+@media (min-width: 1024px) {
+  .scene {
+    --truck-w: 9rem;
+    --band-h: 2.75rem;
+    height: 13.5rem;
+    margin-top: 2.5rem;
+  }
+}
+.sceneCity {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--band-b) + var(--band-h) - 2px);
+  height: 4.5rem;
+  opacity: 0.5;
+  z-index: -1;
+}
+@media (min-width: 1024px) {
+  .sceneCity {
+    height: 6.5rem;
+  }
+}
+.sceneGlow {
+  position: absolute;
+  inset: auto 0 var(--band-b);
+  height: calc(var(--band-h) * 2.4);
+  background: radial-gradient(60% 100% at 50% 100%, color-mix(in srgb, var(--color-signal-500) 10%, transparent), transparent 70%);
+  z-index: -1;
+}
+/* Chaussée vue de profil : rives claires, axe en tirets, bitume. */
+.band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--band-b);
+  height: var(--band-h);
+  overflow: hidden;
+  border-radius: 2px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-chalk) 34%, transparent), color-mix(in srgb, var(--color-chalk) 34%, transparent)) 0 0 / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--color-chalk) 22%, transparent), color-mix(in srgb, var(--color-chalk) 22%, transparent)) 0 100% / 100% 1px no-repeat,
+    linear-gradient(var(--color-asphalt-800), var(--color-asphalt-900));
+}
+.dashes {
+  position: absolute;
+  left: 0;
+  top: calc(50% - 1px);
+  width: calc(100% + 2.5rem);
+  height: 2px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-chalk) 42%, transparent) 0 1.25rem, transparent 1.25rem 2.5rem);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .scene[data-moving] .dashes {
+  animation: dash-roll 0.9s linear infinite;
+}
+@keyframes dash-roll {
+  to {
+    translate: -2.5rem 0;
+  }
+}
+/* Trajet parcouru : jaune, du dépôt jusqu'à la dépanneuse (transform, jamais la largeur). */
+.fill {
+  position: absolute;
+  left: var(--pad);
+  width: calc(100% - 2 * var(--pad));
+  bottom: calc(var(--band-b) + var(--band-h) / 2 - 1px);
+  height: 2px;
+  background: var(--color-signal-500);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-signal-500) 55%, transparent);
+  transform-origin: 0 50%;
+  scale: calc(var(--at) / var(--n)) 1;
+  transition: scale 1.6s var(--ease-in-out-circ);
+}
+
+/* Arrêts : un panneau planté sur l'accotement, nom écrit sous la chaussée. */
+.stops {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stop {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--pad) + (100% - 2 * var(--pad)) * var(--k) / var(--n));
+  width: 0;
+}
+.stopSign {
+  position: absolute;
+  left: 0;
+  bottom: calc(var(--band-b) + var(--band-h) - 0.25rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  translate: -50% 0;
+  opacity: 0.55;
+  transition: opacity 0.6s ease;
+}
+.stop[data-reached] .stopSign {
+  opacity: 1;
+}
+.stopGlyph {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: visible;
+}
+@media (min-width: 1024px) {
+  .stopGlyph {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+.stopPost {
+  width: 2px;
+  height: 1.75rem;
+  background: linear-gradient(color-mix(in srgb, var(--color-chalk) 55%, transparent), color-mix(in srgb, var(--color-chalk) 10%, transparent));
+}
+@media (min-width: 1024px) {
+  .stopPost {
+    height: 2.75rem;
+  }
+}
+.stopLabel {
+  position: absolute;
+  left: 0;
+  bottom: 0.25rem;
+  translate: -50% 0;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-asphalt-300);
+}
+/* Arrêts des bords : le nom s'aligne sur le bord de la route (jamais coupé à 390 px). */
+.stop:first-child .stopLabel {
+  translate: calc(-1 * var(--pad)) 0;
+}
+.stop:last-child .stopLabel {
+  translate: calc(-100% + var(--pad)) 0;
+}
+@media (min-width: 640px) {
+  .stop:first-child .stopLabel,
+  .stop:last-child .stopLabel {
+    translate: -50% 0;
+  }
+}
+.stop[data-reached] .stopLabel {
+  color: var(--color-signal-400);
+}
+
+/* La dépanneuse : le rail couvre l'intervalle des arrêts, le chariot avance (translate). */
+.rail {
+  position: absolute;
+  left: 0;
+  bottom: calc(var(--band-b) + 0.2rem);
+  width: calc(100% - var(--truck-w));
+  height: calc(var(--truck-w) * 150 / 360);
+}
+.mover {
+  position: absolute;
+  inset: 0;
+  translate: calc(100% * var(--at) / var(--n)) 0;
+  transition: translate 1.6s var(--ease-in-out-circ);
+}
+/* À l'ouverture : la dépanneuse part du dépôt et roule jusqu'à sa position. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .mover {
+  animation: drive-in 1.8s var(--ease-in-out-circ) both;
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .fill {
+  animation: fill-in 1.8s var(--ease-in-out-circ) both;
+}
+@keyframes drive-in {
+  from {
+    translate: 0 0;
+  }
+}
+@keyframes fill-in {
+  from {
+    scale: 0 1;
+  }
+}
+.truck {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--truck-w);
+  height: 100%;
+}
+.truck > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Annulée : la route s'éteint, plus de dépanneuse. */
+.scene[data-phase="cancelled"] {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill,
+  .mover,
+  .stopSign {
+    transition: none;
+  }
+}
+:global(html[data-motion="off"]) .fill,
+:global(html[data-motion="off"]) .mover,
+:global(html[data-motion="off"]) .stopSign {
+  transition: none;
+}
+
+/* ─── Étapes, prix, détails ────────────────────────────────────────────────── */
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: 2.5rem;
+    align-items: start;
+  }
+}
+
+@layer components {
+  .panel {
+    position: relative;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--color-night-950) 82%, transparent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-reflect) 12%, transparent),
+      0 24px 48px -28px color-mix(in srgb, var(--color-night-950) 90%, transparent);
+  }
+}
+
+/* Frise des étapes : bornes reliées par la route, de haut en bas. */
+.steps {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+  min-height: 3.25rem;
+}
+.step + .step::before {
+  content: "";
+  position: absolute;
+  left: calc(1rem - 1px);
+  bottom: calc(50% + 1rem);
+  height: calc(3.25rem - 2rem);
+  width: 2px;
+  background: color-mix(in srgb, var(--color-chalk) 18%, transparent);
+}
+.step[data-state="done"]::before,
+.step[data-state="current"]::before {
+  background: var(--color-signal-500);
+}
+.stepMark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-chalk) 22%, transparent);
+  color: var(--color-asphalt-400);
+}
+.step[data-state="done"] .stepMark {
+  background: var(--color-signal-500);
+  box-shadow: none;
+  color: var(--color-asphalt-950);
+}
+.step[data-state="current"] .stepMark {
+  box-shadow:
+    inset 0 0 0 2px var(--color-signal-500),
+    0 0 0 4px color-mix(in srgb, var(--color-signal-500) 18%, transparent);
+  color: var(--color-signal-400);
+}
+.step[data-state="current"] .stepMark::after {
+  content: "";
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--color-signal-500);
+}
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .step[data-state="current"] .stepMark::after {
+  animation: step-blink 1.4s ease-in-out infinite;
+}
+@keyframes step-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+/* Annulée : borne orange barrée, reliée en pointillé (la route s'arrête là). */
+.step[data-state="cancelled"]::before {
+  background: repeating-linear-gradient(to bottom, var(--color-beacon-500) 0 4px, transparent 4px 8px);
+}
+.step[data-state="cancelled"] .stepMark {
+  box-shadow: inset 0 0 0 2px var(--color-beacon-500);
+  color: var(--color-beacon-400);
+}
+.step[data-state="cancelled"] .stepLabel {
+  color: var(--color-beacon-400);
+}
+.stepLabel {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-asphalt-300);
+}
+.step[data-state="done"] .stepLabel,
+.step[data-state="current"] .stepLabel {
+  color: var(--color-chalk);
+}
+
+/* Changement d'étape pendant que la page est ouverte : le titre s'allume une fois. */
+:global(html.motion-ready[data-motion]:not([data-motion="off"])) .flash {
+  animation: title-flash 900ms var(--ease-out-expo) both;
+}
+@keyframes title-flash {
+  from {
+    opacity: 0.2;
+    translate: 0 10px;
+  }
+}
+
+.dl {
+  display: grid;
+  gap: 0.25rem;
+}
+.dlRow {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding-block: 0.625rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-chalk) 10%, transparent);
+}
+.dlRow:first-child {
+  border-top: 0;
+}
+
+/* Coins de viseur autour de l'ajout de photos (comme « Demande reçue »). */
+.trackPanel {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--color-signal-500) 55%, transparent),
+    0 24px 48px -28px color-mix(in srgb, var(--color-night-950) 90%, transparent);
+}
+
+@media (forced-colors: active) {
+  .band,
+  .fill {
+    forced-color-adjust: none;
+  }
+}

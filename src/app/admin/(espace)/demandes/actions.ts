@@ -9,6 +9,8 @@ import { getDb } from "@/server/db/client";
 import {
   addAdjustment,
   addEvent,
+  addJournalNote,
+  logCall,
   attachQuoteRevision,
   changeStatus,
   confirmPrice,
@@ -17,6 +19,7 @@ import {
   removeAdjustment,
   setInternalNotes,
 } from "@/server/interventions/service";
+import { issueTrackingLinkByStaff } from "@/server/interventions/tracking-link";
 import { deletePhoto } from "@/server/photos/service";
 import { getQuote } from "@/server/quotes/service";
 
@@ -158,6 +161,53 @@ export async function deletePhotoAction(raw: unknown): Promise<Result> {
     }
     refresh(parsed.data.id);
     return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+const journalSchema = z.object({ id: z.uuid(), message: z.string().trim().min(2, { error: "Écrivez la note." }).max(1000, { error: "Note trop longue (1 000 caractères au plus)." }) });
+
+/** Ajoute une note datée au journal de la demande. */
+export async function addJournalNoteAction(raw: unknown): Promise<Result> {
+  try {
+    const user = await requireAdminAction();
+    const parsed = journalSchema.safeParse(raw);
+    if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Note invalide." };
+    const db = await getDb();
+    await addJournalNote(db, parsed.data.id, parsed.data.message, { userId: user.id, label: user.name });
+    refresh(parsed.data.id);
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Note le résultat d'un appel au client (« Pas de réponse » passe une nouvelle demande à rappeler). */
+export async function logCallAction(raw: unknown): Promise<Result & { movedToCallBack?: boolean }> {
+  try {
+    const user = await requireAdminAction();
+    const parsed = z.object({ id: z.uuid(), outcome: z.enum(["reached", "no_answer"]) }).safeParse(raw);
+    if (!parsed.success) return { ok: false, message: "Demande invalide." };
+    const db = await getDb();
+    const result = await db.transaction((tx) => logCall(tx, parsed.data.id, parsed.data.outcome, { userId: user.id, label: user.name }));
+    refresh(parsed.data.id);
+    return { ok: true, movedToCallBack: result.movedToCallBack };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Crée un lien de suivi à envoyer au client (WhatsApp, SMS, copie). Le jeton n'est renvoyé qu'ici, une fois. */
+export async function createTrackingLinkAction(raw: unknown): Promise<{ ok: true; path: string } | { ok: false; message: string }> {
+  try {
+    const user = await requireAdminAction();
+    const parsed = z.object({ id: z.uuid() }).safeParse(raw);
+    if (!parsed.success) return { ok: false, message: "Demande invalide." };
+    const db = await getDb();
+    const link = await issueTrackingLinkByStaff(db, parsed.data.id, { userId: user.id, label: user.name });
+    revalidatePath(`/admin/demandes/${parsed.data.id}`);
+    return { ok: true, path: link.path };
   } catch (error) {
     return failure(error);
   }

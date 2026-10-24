@@ -1,0 +1,78 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   Cadre du décor « de la commande à l'arrivée » : ce qui doit exister dès le premier affichage
+   (piste, fenêtres et leurs frises, cadre collant vide). Dessins et chorégraphie sont dans
+   story.module.css, chargé avec les dessins, au premier défilement.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* La piste porte la frise de toute l'histoire (`--story`, phase collante) et rend visibles
+   celles des fenêtres (`timeline-scope`) au cadre collant, son descendant. */
+.track {
+  position: relative;
+  isolation: isolate;
+  view-timeline: --story block;
+  timeline-scope: --w1, --w2, --w3;
+}
+
+/* Fenêtres : respirations transparentes entre deux sections, où un acte se joue en entier,
+   sans texte par-dessus. Chacune est la frise de son acte (`view-timeline`).
+   Hauteurs liées aux images clés (story.module.css) : chaque moment fort se joue quand le dessin
+   qu'il montre n'est recouvert par aucun texte. Fenêtre 1 plus haute que l'écran : le téléphone
+   (60 % de la hauteur) y reste entièrement dégagé pendant toute la demande. */
+.window {
+  height: var(--window-h);
+  pointer-events: none;
+}
+.w1 {
+  view-timeline: --w1 block;
+  --window-h: 130svh;
+}
+.w2 {
+  view-timeline: --w2 block;
+  --window-h: 80svh;
+}
+.w3 {
+  view-timeline: --w3 block;
+  --window-h: 100svh;
+}
+@media (min-width: 1024px) {
+  .w1 {
+    --window-h: 130vh;
+  }
+  .w2 {
+    --window-h: 86vh;
+  }
+  .w3 {
+    --window-h: 106vh;
+  }
+}
+/* Sans histoire animée, les fenêtres ne sont que des respirations : plus courtes. */
+:global(html[data-motion="off"]) .window,
+:global(html[data-motion="lite"]) .window {
+  --window-h: 46svh;
+}
+:global(html:not(.js)) .window {
+  --window-h: 10svh;
+}
+
+/* Cadre collant, plein écran, sous le contenu de la piste. */
+.stage {
+  position: sticky;
+  top: 0;
+  z-index: -1;
+  height: 100lvh;
+  margin-bottom: -100lvh;
+  overflow: clip;
+  pointer-events: none;
+  /* Taille fixée par l'écran : le montage des dessins ne touche pas au reste de la page. */
+  contain: strict;
+}
+@media (forced-colors: active) {
+  .stage {
+    display: none;
+  }
+}
+@media print {
+  .stage {
+    display: none;
+  }
+}

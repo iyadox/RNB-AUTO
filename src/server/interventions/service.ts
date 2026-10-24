@@ -1,9 +1,10 @@
 /** Demandes d'intervention : création, statuts, prix confirmé, ajustements, journal. */
-import { and, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import { phoneToE164 } from "@/core/format";
 import {
   canTransition,
   isTerminal,
+  STATUSES,
   TIMESTAMP_FIELDS,
   type InterventionStatus,
 } from "@/core/interventions/status";
@@ -115,18 +116,33 @@ export async function createInterventionFromQuote(
   return created;
 }
 
-export type InterventionFilters = { status?: InterventionStatus | "active" | "all"; search?: string; limit?: number };
+export type InterventionFilters = {
+  /** Statuts inclus. « active » = tout ce qui n'est pas clôturé ; null ou « all » = tous. */
+  status?: InterventionStatus | "active" | "all";
+  statuses?: readonly string[] | null;
+  /** Demandes créées à partir de cet instant. */
+  since?: Date | null;
+  /** Origine : « web », « phone », « admin ». */
+  sources?: readonly string[] | null;
+  search?: string;
+  limit?: number;
+};
 
-export async function listInterventions(db: DbLike, filters: InterventionFilters = {}) {
+/** Conditions SQL communes à la liste et à son compteur. */
+function listConditions(filters: InterventionFilters): SQL[] {
   const conditions: SQL[] = [];
-  if (!filters.status || filters.status === "active") {
+  if (filters.statuses !== undefined) {
+    if (filters.statuses !== null) conditions.push(inArray(interventions.status, [...filters.statuses]));
+  } else if (!filters.status || filters.status === "active") {
     conditions.push(sql`${interventions.status} not in ('completed', 'cancelled')`);
   } else if (filters.status !== "all") {
     conditions.push(eq(interventions.status, filters.status));
   }
+  if (filters.since) conditions.push(gte(interventions.createdAt, filters.since));
+  if (filters.sources) conditions.push(inArray(interventions.source, [...filters.sources]));
   const search = filters.search?.trim();
   if (search) {
-    const like = `%${search.replace(/[%_]/g, "")}%`;
+    const like = `%${search.replace(/[%_\\]/g, "")}%`;
     const digits = search.replace(/\D/g, "");
     const searchConditions: SQL[] = [
       ilike(interventions.reference, like),
@@ -141,12 +157,27 @@ export async function listInterventions(db: DbLike, filters: InterventionFilters
     const combined = or(...searchConditions);
     if (combined) conditions.push(combined);
   }
+  return conditions;
+}
+
+export async function listInterventions(db: DbLike, filters: InterventionFilters = {}) {
+  const conditions = listConditions(filters);
   return db
     .select()
     .from(interventions)
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(interventions.createdAt))
     .limit(filters.limit ?? 100);
+}
+
+/** Nombre total de demandes qui correspondent aux filtres (pour « Afficher plus »). */
+export async function countInterventions(db: DbLike, filters: InterventionFilters = {}): Promise<number> {
+  const conditions = listConditions(filters);
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(interventions)
+    .where(conditions.length ? and(...conditions) : undefined);
+  return row?.n ?? 0;
 }
 
 export async function countByStatus(db: DbLike): Promise<Record<string, number>> {
@@ -331,4 +362,59 @@ export async function purgeOldEstimates(db: DbLike) {
   await db
     .delete(quotes)
     .where(and(isNull(quotes.interventionId), inArray(quotes.status, ["estimated", "expired"]), sql`${quotes.createdAt} < now() - interval '30 days'`));
+}
+
+// ─── Historique des statuts (lu aussi par le suivi client) ───────────────────
+
+export type StatusHistoryEntry = { status: InterventionStatus; at: Date };
+
+/**
+ * Historique horodaté des statuts d'une demande, du plus ancien au plus récent.
+ * Ne contient AUCUNE donnée personnelle ni note interne : seulement le statut et l'heure.
+ * Fonction de lecture partagée : l'espace de gestion et le suivi client (`/suivi/...`)
+ * l'utilisent tous les deux. La première entrée est la création (« Nouvelle demande »,
+ * ou « Acceptée » pour une demande saisie au téléphone et acceptée d'emblée).
+ */
+export async function getStatusHistory(db: DbLike, interventionId: string): Promise<StatusHistoryEntry[]> {
+  const rows = await db
+    .select({ toStatus: interventionEvents.toStatus, at: interventionEvents.at })
+    .from(interventionEvents)
+    .where(and(eq(interventionEvents.interventionId, interventionId), isNotNull(interventionEvents.toStatus)))
+    .orderBy(asc(interventionEvents.at), asc(interventionEvents.id));
+  const history: StatusHistoryEntry[] = [];
+  for (const row of rows) {
+    const status = row.toStatus as InterventionStatus;
+    if (!STATUSES.includes(status)) continue;
+    if (history.at(-1)?.status === status) continue;
+    history.push({ status, at: row.at });
+  }
+  return history;
+}
+
+// ─── Journal : notes et appels ───────────────────────────────────────────────
+
+/** Ajoute une note datée au journal de la demande (visible uniquement par RNB AUTO). */
+export async function addJournalNote(db: DbLike, id: string, message: string, actor: Actor) {
+  const intervention = await getIntervention(db, id);
+  if (!intervention) throw new InterventionError("Demande introuvable.");
+  await addEvent(db, id, actor, { type: "journal", message });
+  await db.update(interventions).set({ updatedAt: new Date() }).where(eq(interventions.id, id));
+}
+
+export type CallOutcome = "reached" | "no_answer";
+
+/**
+ * Note un appel au client. « Pas de réponse » sur une nouvelle demande la passe « À rappeler »
+ * (transition normale, tracée dans le journal).
+ */
+export async function logCall(db: DbLike, id: string, outcome: CallOutcome, actor: Actor): Promise<{ movedToCallBack: boolean }> {
+  const intervention = await getIntervention(db, id);
+  if (!intervention) throw new InterventionError("Demande introuvable.");
+  await addEvent(db, id, actor, { type: "call", message: outcome === "reached" ? "Client joint par téléphone." : "Appel sans réponse.", data: { outcome } });
+  if (outcome === "no_answer" && intervention.status === "new") {
+    await changeStatus(db, id, "to_call_back", actor);
+    return { movedToCallBack: true };
+  }
+  await db.update(interventions).set({ updatedAt: new Date() }).where(eq(interventions.id, id));
+  return { movedToCallBack: false };
 }

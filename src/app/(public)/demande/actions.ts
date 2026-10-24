@@ -17,6 +17,10 @@ import { issuePhotoToken } from "@/server/photos/service";
 import { createEstimate, getQuote } from "@/server/quotes/service";
 import { rateLimitByIp } from "@/server/security/rate-limit";
 import { getPublicCatalog } from "@/server/site/catalog";
+import { clientEmailNotifier, sendTrackingEmail } from "@/server/tracking/email";
+import { issueTrackingToken } from "@/server/tracking/token";
+import { createUnpricedEstimate } from "@/server/tracking/unpriced";
+import { trackingPath } from "@/server/tracking/view";
 
 export type EstimateActionResult = { ok: true; estimate: ClientEstimate } | { ok: false; error: string };
 
@@ -30,12 +34,29 @@ export async function estimateAction(raw: unknown): Promise<EstimateActionResult
     return { ok: true, estimate: outcome.client };
   } catch (error) {
     console.error("[estimation]", error);
+  }
+  // Panne du calcul : la demande peut quand même être envoyée, sans prix (on rappelle le client).
+  try {
+    return { ok: true, estimate: await createUnpricedEstimate(await getDb(), parsed.data as QuoteRequestInput) };
+  } catch (error) {
+    console.error("[estimation sans prix]", error);
     return { ok: false, error: "L'estimation n'a pas pu être calculée. Vous pouvez quand même nous appeler ou écrire sur WhatsApp." };
   }
 }
 
 export type SubmitActionResult =
-  | { status: "created"; reference: string; phone: string; photoToken: string | null }
+  | {
+      status: "created";
+      reference: string;
+      phone: string;
+      photoToken: string | null;
+      /** Lien de suivi personnel (chemin `/suivi/<référence>?t=<jeton>`). */
+      trackingPath: string | null;
+      /** Le lien a été (ou va être) envoyé par email au client. */
+      trackingEmailed: boolean;
+      /** Prix estimé enregistré sur la demande (`null` : on rappelle le client avec un prix). */
+      priceTtcCents: number | null;
+    }
   | { status: "price_changed"; estimate: ClientEstimate }
   | { status: "error"; error: string; fieldErrors?: Record<string, string> };
 
@@ -67,17 +88,27 @@ export async function submitRequestAction(raw: unknown): Promise<SubmitActionRes
   }
 
   // Estimation expirée : recalcul. Si le prix change, le client le voit avant d'envoyer.
-  if (quote.expiresAt.getTime() < Date.now()) {
-    const fresh = await createEstimate(quote.input as QuoteRequestInput, { channel: "online", source: "web" });
-    if (fresh.client.priceTtcCents !== quote.clientPriceTtcCents) {
+  // Demande sans prix (rappel) : rien à protéger, on l'envoie telle quelle. Si le recalcul
+  // échoue, la demande part sans prix plutôt que d'être perdue.
+  if (quote.expiresAt.getTime() < Date.now() && quote.clientPriceTtcCents !== null) {
+    let fresh: Awaited<ReturnType<typeof createEstimate>> | null = null;
+    try {
+      fresh = await createEstimate(quote.input as QuoteRequestInput, { channel: "online", source: "web" });
+    } catch (error) {
+      console.error("[estimation expirée]", error);
+    }
+    if (fresh && fresh.client.priceTtcCents !== quote.clientPriceTtcCents) {
       return { status: "price_changed", estimate: fresh.client };
     }
-    quote = fresh.quoteId ? await getQuote(db, fresh.quoteId) : null;
+    // Recalcul impossible : la demande part tout de suite, sans prix (le client est rappelé avec
+    // un prix). Lui renvoyer l'écran sans rien lui dire le laisserait devant un bouton muet.
+    const nextQuoteId = fresh ? fresh.quoteId : (await createUnpricedEstimate(db, quote.input as QuoteRequestInput)).quoteId;
+    quote = nextQuoteId ? await getQuote(db, nextQuoteId) : null;
     if (!quote) return { status: "error", error: "L'estimation n'a pas pu être mise à jour. Réessayez." };
   }
 
   const phone = phoneToE164(data.contact.phone) ?? data.contact.phone;
-  const { intervention, photoToken } = await db.transaction(async (tx) => {
+  const { intervention, photoToken, trackingToken } = await db.transaction(async (tx) => {
     const created = await createInterventionFromQuote(tx, quote, {
       source: "web",
       contact: { name: data.contact.name, phone, email: data.contact.email || null },
@@ -89,9 +120,11 @@ export async function submitRequestAction(raw: unknown): Promise<SubmitActionRes
       comment: data.comment || null,
       actor: { userId: null, label: "Client (site)" },
     });
-    // Jeton temporaire pour ajouter des photos juste après (facultatif).
-    return { intervention: created, photoToken: await issuePhotoToken(tx, created.id) };
+    // Jeton temporaire pour ajouter des photos juste après (facultatif), et lien de suivi personnel.
+    return { intervention: created, photoToken: await issuePhotoToken(tx, created.id), trackingToken: await issueTrackingToken(tx, created.id) };
   });
+  const tracking = trackingPath(intervention.reference, trackingToken);
+  const trackingEmailed = Boolean(intervention.contactEmail) && clientEmailNotifier() !== null;
 
   const catalog = await getPublicCatalog();
   const input = quote.input as QuoteRequestInput;
@@ -116,7 +149,27 @@ export async function submitRequestAction(raw: unknown): Promise<SubmitActionRes
     } catch (error) {
       console.error("[notification]", error);
     }
+    // Le client reçoit son lien de suivi par email (s'il l'a donné et si l'envoi est configuré).
+    try {
+      await sendTrackingEmail(db, {
+        interventionId: intervention.id,
+        reference: intervention.reference,
+        email: intervention.contactEmail,
+        path: tracking,
+        estimatedPriceCents: intervention.estimatedPriceCents,
+      });
+    } catch (error) {
+      console.error("[email de suivi]", error);
+    }
   });
 
-  return { status: "created", reference: intervention.reference, phone: z.string().parse(intervention.contactPhone), photoToken };
+  return {
+    status: "created",
+    reference: intervention.reference,
+    phone: z.string().parse(intervention.contactPhone),
+    photoToken,
+    trackingPath: tracking,
+    trackingEmailed,
+    priceTtcCents: intervention.estimatedPriceCents,
+  };
 }

@@ -68,7 +68,8 @@ export function SectionTitle({ children, description, icon }: { children: React.
 
 type ButtonVariant = "primary" | "dark" | "secondary" | "ghost" | "danger" | "whatsapp";
 
-export function buttonClass(variant: ButtonVariant = "primary", size: "md" | "lg" | "sm" = "md") {
+/** Taille « custom » : aucune hauteur ni marge imposée (l'appelant les donne, sans conflit de classes). */
+export function buttonClass(variant: ButtonVariant = "primary", size: "md" | "lg" | "sm" | "custom" = "md") {
   return cn(
     "inline-flex items-center justify-center gap-2 rounded-2xl font-extrabold transition-[transform,background-color] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
     size === "lg" && "h-16 px-6 text-lg",
@@ -93,7 +94,7 @@ export function LinkButton({
   href: string;
   children: React.ReactNode;
   variant?: ButtonVariant;
-  size?: "md" | "lg" | "sm";
+  size?: "md" | "lg" | "sm" | "custom";
   className?: string;
 }) {
   return (

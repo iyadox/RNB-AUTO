@@ -4,9 +4,10 @@
  * Formulaire d'une section de « Paramètres », généré à partir du registre des réglages.
  * Rien n'est enregistré avant la confirmation, qui récapitule chaque changement.
  */
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SETTINGS, type SettingDef, type SettingKey } from "@/core/settings/registry";
+import { settingAnchor } from "@/core/settings/settings-pages";
 import { displaySettingValue, softLimitWarning } from "@/core/settings/validation";
 import { saveSettingsAction } from "@/app/admin/(espace)/parametres/actions";
 import { Modal, Toast, Toggle } from "@/components/admin/inputs";
@@ -24,6 +25,18 @@ export function SettingsForm({ section, keys, initial }: { section: string; keys
   const [toast, setToast] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Arrivée par un lien direct (« Pour démarrer ») : on montre le champ et on y place le curseur.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    const element = id ? document.getElementById(id) : null;
+    if (!element) return;
+    element.scrollIntoView({ block: "center" });
+    element.dataset.highlight = "true";
+    element.querySelector<HTMLElement>("input, textarea")?.focus({ preventScroll: true });
+    const timer = window.setTimeout(() => delete element.dataset.highlight, 2600);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const simple = keys.filter((key) => SETTINGS[key].level === "simple");
   const advanced = keys.filter((key) => SETTINGS[key].level === "advanced");
@@ -59,15 +72,17 @@ export function SettingsForm({ section, keys, initial }: { section: string; keys
     const def = SETTINGS[key] as SettingDef;
     const empty = typeof values[key] === "string" && (values[key] as string).trim() === "";
     const badge = "toComplete" in def && def.toComplete && empty ? <Badge tone="warn">À compléter</Badge> : null;
+    // Ancre : l'accueil mène directement au champ à compléter (mis en évidence à l'arrivée).
     return (
-      <SettingField
-        key={key}
-        settingKey={key}
-        value={values[key]}
-        onChange={(value) => setValues((current) => ({ ...current, [key]: value }))}
-        error={errors[key]}
-        badge={badge}
-      />
+      <div key={key} id={settingAnchor(key)} className="scroll-mt-24 rounded-3xl transition-shadow data-[highlight=true]:ring-4 data-[highlight=true]:ring-signal-500 data-[highlight=true]:ring-offset-2 data-[highlight=true]:ring-offset-asphalt-50">
+        <SettingField
+          settingKey={key}
+          value={values[key]}
+          onChange={(value) => setValues((current) => ({ ...current, [key]: value }))}
+          error={errors[key]}
+          badge={badge}
+        />
+      </div>
     );
   };
 

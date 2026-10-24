@@ -4,6 +4,7 @@ import { Durations, LegalSection, SignList } from "@/components/pages/legal/lega
 import { LegalShell, type TocEntry } from "@/components/pages/legal/legal-shell";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 import { PHOTO_LIMITS } from "@/core/photos";
+import { TRACKING_LIMITS } from "@/server/tracking/view";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
@@ -147,6 +148,12 @@ export default async function PrivacyPage() {
               label: "Demandes et interventions",
               text: "3 ans après le dernier contact.",
               figure: { value: 3, unit: "ans" },
+            },
+            {
+              key: "suivi",
+              label: "Lien de suivi de votre demande",
+              text: <>fermé {TRACKING_LIMITS.daysAfterClosure} jours après la fin de l&apos;intervention.</>,
+              figure: { value: TRACKING_LIMITS.daysAfterClosure, unit: "jours" },
             },
             {
               key: "comptables",

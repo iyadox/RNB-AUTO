@@ -8,6 +8,11 @@
  * page ; le portique et l'autoroute (sans titre découpé) le sont ensuite, par tranches. Les autres
  * sections gardent leur titre `[data-split]` dans le passage principal et diffèrent le reste
  * elles-mêmes.
+ *
+ * Du carrefour aux questions, les sections sont posées sur la piste du décor « de la commande à
+ * l'arrivée » (`StoryTrack`, voir src/components/story). Trois fenêtres (`StoryWindow`) laissent
+ * le décor jouer seul : la demande sur le téléphone, l'arrivée de la dépanneuse de nuit, le
+ * chargement et le départ ; l'aube se lève ensuite et passe la main à « On arrive. ».
  */
 import type { Metadata } from "next";
 import { Crossroads } from "@/components/home/crossroads";
@@ -23,6 +28,8 @@ import { PageTransition } from "@/components/motion/page-transition";
 import { JsonLd, localBusinessJsonLd } from "@/components/public/json-ld";
 import { DawnCta } from "@/components/public/page-blocks";
 import { RoadLine, type RoadMarker } from "@/components/public/road-line";
+import { StoryTrack } from "@/components/story/story-track";
+import { StoryWindow } from "@/components/story/story-window";
 import { HydrateLater } from "@/components/ui/hydrate-later";
 import { getHomePriceExamples } from "@/server/site/price-examples";
 import { getPublicSiteInfo } from "@/server/site/public-info";
@@ -53,14 +60,20 @@ export default async function HomePage() {
         <HydrateLater>
           <Gantry info={info} />
         </HydrateLater>
-        <Crossroads info={info} />
-        <Story info={info} />
-        <PriceSection info={info} examples={examples} />
-        <HydrateLater>
-          <HighwaySection />
-        </HydrateLater>
-        <ZoneSection info={info} />
-        <FaqPreview />
+        {/* Fil conducteur « de la commande à l'arrivée » : décor collant derrière ces sections. */}
+        <StoryTrack>
+          <Crossroads info={info} />
+          <StoryWindow act={1} />
+          <Story info={info} />
+          <StoryWindow act={2} />
+          <PriceSection info={info} examples={examples} />
+          <HydrateLater>
+            <HighwaySection />
+          </HydrateLater>
+          <StoryWindow act={3} />
+          <ZoneSection info={info} />
+          <FaqPreview />
+        </StoryTrack>
         <div id="on-arrive">
           <DawnCta
             info={info}

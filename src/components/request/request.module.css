@@ -1075,3 +1075,12 @@ button.sheetRow:focus-visible .sheetEdit {
     display: none;
   }
 }
+
+/* ─── Demande reçue : lien de suivi ────────────────────────────────────────── */
+
+/* Plaque du lien de suivi : liseré jaune (c'est la suite du parcours), sans animation. */
+.trackPanel {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--color-signal-500) 55%, transparent),
+    0 24px 48px -28px color-mix(in srgb, var(--color-night-950) 90%, transparent);
+}

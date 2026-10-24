@@ -32,6 +32,7 @@ import { PHOTO_LIMITS } from "@/core/photos";
 import { AddressInput, useGeolocation } from "./address-input";
 import { PhotoUploader } from "./photo-uploader";
 import { RequestBackdrop } from "./request-backdrop";
+import { ShareLink } from "./share-link";
 import { RoutePlan, RouteRecap, RouteSheetBar, RouteSheetColumn, type SheetRow } from "./route-sheet";
 import { currentMotionLevel } from "@/components/motion/level";
 import { StepRoad } from "./step-road";
@@ -59,6 +60,10 @@ type FlowState = {
   reference: string | null;
   /** Jeton temporaire pour ajouter des photos après l'envoi. */
   photoToken: string | null;
+  /** Lien de suivi personnel (`/suivi/<référence>?t=<jeton>`), remis à l'envoi. */
+  trackingPath: string | null;
+  /** Le lien a aussi été envoyé par email. */
+  trackingEmailed: boolean;
   startedAt: number;
 };
 
@@ -102,6 +107,8 @@ function initialState(startOnHighway: boolean): FlowState {
     consent: false,
     reference: null,
     photoToken: null,
+    trackingPath: null,
+    trackingEmailed: false,
     startedAt: Date.now(),
   };
 }
@@ -117,9 +124,11 @@ type Props = {
   siteDepot: PublicSiteInfo["depot"];
   /** Bloc `<noscript>` rendu par la page, en tête du parcours. */
   notice?: ReactNode;
+  /** Adresse du site (lien de suivi complet affiché avant l'hydratation). */
+  siteOrigin: string;
 };
 
-export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, startOnHighway, siteDepot, notice }: Props) {
+export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, startOnHighway, siteDepot, notice, siteOrigin }: Props) {
   const [state, setState] = useState<FlowState>(() => initialState(startOnHighway));
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -265,7 +274,15 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
         elapsedMs: Math.min(86_400_000, Date.now() - state.startedAt),
       });
       if (result.status === "created") {
-        update({ reference: result.reference, photoToken: result.photoToken, step: "done" });
+        update({
+          reference: result.reference,
+          photoToken: result.photoToken,
+          trackingPath: result.trackingPath,
+          trackingEmailed: result.trackingEmailed,
+          // Le prix affiché est celui enregistré sur la demande (sans prix si le recalcul a échoué).
+          estimate: state.estimate ? { ...state.estimate, priceTtcCents: result.priceTtcCents } : state.estimate,
+          step: "done",
+        });
         window.history.replaceState({ ...(window.history.state ?? {}), rnbStep: "done" }, "");
         topRef.current?.scrollIntoView({ behavior: scrollBehavior() });
         // « Demande reçue ! » reçoit le focus, comme le titre de chaque étape (lecteurs d'écran).
@@ -385,6 +402,17 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
                 phone={phone}
                 whatsappLink={whatsappLink}
                 onNext={() => goTo("dropoff")}
+                onCallback={() => {
+                  // Sortie pas encore connue : la demande part quand même (sans prix), RNB AUTO
+                  // rappelle pour organiser la suite. Position sur la voie gardée pour information.
+                  update({
+                    pickup: state.highwayPosition,
+                    dropoffMode: "unknown",
+                    dropoff: null,
+                    handoverNote: "Lieu de sortie pas encore connu : à définir au téléphone.",
+                  });
+                  goTo("vehicle");
+                }}
               />
             ) : null}
 
@@ -456,6 +484,9 @@ export function RequestFlow({ catalog, phone, whatsapp, regulatedRoads, depot, s
               <DoneStep
                 reference={state.reference}
                 photoToken={state.photoToken}
+                trackingPath={state.trackingPath}
+                trackingEmailed={state.trackingEmailed}
+                siteOrigin={siteOrigin}
                 phone={phone}
                 whatsappLink={whatsappLink}
                 contactPhone={state.contact.phone}
@@ -703,6 +734,7 @@ function HighwayStep({
   phone,
   whatsappLink,
   onNext,
+  onCallback,
 }: {
   state: FlowState;
   update: (patch: Partial<FlowState>) => void;
@@ -711,6 +743,8 @@ function HighwayStep({
   phone: PhoneLink | null;
   whatsappLink: string | null;
   onNext: () => void;
+  /** Envoyer la demande sans lieu de sortie : on rappelle le client. */
+  onCallback: () => void;
 }) {
   const [unknown, setUnknown] = useState(false);
   useEffect(() => {
@@ -787,6 +821,16 @@ function HighwayStep({
             Pas de souci. Mettez-vous en sécurité et contactez-nous quand le véhicule aura été sorti de l&apos;autoroute : nous
             organiserons la suite ensemble.
           </p>
+          {state.highwayPosition ? (
+            <button
+              type="button"
+              onClick={onCallback}
+              className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 text-center font-extrabold text-signal-400 shadow-[inset_0_0_0_1.5px_var(--color-signal-500)] transition-colors hover:bg-signal-500/10"
+            >
+              <Icon name="phone" size={20} className="shrink-0" />
+              Faire ma demande : on me rappelle
+            </button>
+          ) : null}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {phone ? (
               <a href={phone.href} className="flex h-14 items-center justify-center gap-2 rounded-2xl font-extrabold text-chalk shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-reflect)_30%,transparent)] hover:text-signal-400">
@@ -1391,6 +1435,9 @@ function ContactStep({
 function DoneStep({
   reference,
   photoToken,
+  trackingPath,
+  trackingEmailed,
+  siteOrigin,
   phone,
   whatsappLink,
   contactPhone,
@@ -1401,6 +1448,9 @@ function DoneStep({
 }: {
   reference: string | null;
   photoToken: string | null;
+  trackingPath: string | null;
+  trackingEmailed: boolean;
+  siteOrigin: string;
   phone: PhoneLink | null;
   whatsappLink: string | null;
   contactPhone: string;
@@ -1434,8 +1484,29 @@ function DoneStep({
           </p>
         ) : null}
         <p className="mx-auto mt-5 max-w-md text-xl text-chalk lg:mx-0">
-          Nous vous rappelons dans quelques minutes{contactPhone ? <> au {formatPhone(contactPhone)}</> : null} pour confirmer le prix.
+          Nous vous rappelons dans quelques minutes{contactPhone ? <> au {formatPhone(contactPhone)}</> : null}{" "}
+          {price !== null ? "pour confirmer le prix." : "pour vous donner le prix et organiser l'intervention."}
         </p>
+        {trackingPath ? (
+          <div className={cn(styles.panel, styles.trackPanel, "mx-auto mt-10 max-w-md p-5 text-left lg:mx-0")}>
+            <p className="flex items-center gap-2.5 font-extrabold">
+              <Icon name="route" size={20} className="text-signal-400" />
+              Suivez la dépanneuse en direct
+            </p>
+            <p className="mb-4 mt-1 text-[0.9375rem] text-asphalt-300">
+              Étape en cours, prix, ajout de photos : tout est sur votre page de suivi. Gardez ce lien
+              {trackingEmailed ? " (nous vous l'avons aussi envoyé par email)" : ""}, et partagez-le si un proche veut suivre.
+            </p>
+            <Link
+              href={trackingPath}
+              className="mb-4 flex h-16 items-center justify-center gap-3 rounded-2xl bg-signal-500 text-lg font-extrabold text-asphalt-950 shadow-[0_18px_48px_-14px_rgb(255_196_0_/_0.55)] transition-colors hover:bg-signal-400"
+            >
+              Ouvrir mon suivi
+              <Icon name="arrowRight" size={22} strokeWidth={2.6} />
+            </Link>
+            <ShareLink path={trackingPath} serverOrigin={siteOrigin} shareTitle="Suivi de ma demande de dépannage" />
+          </div>
+        ) : null}
         {photoToken ? (
           <div className={cn(styles.panel, "mx-auto mt-10 max-w-md p-5 text-left lg:mx-0")}>
             <p className="flex items-center gap-2.5 font-extrabold">

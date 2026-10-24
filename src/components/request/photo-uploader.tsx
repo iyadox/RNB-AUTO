@@ -53,6 +53,9 @@ async function compress(file: File): Promise<Blob> {
 export function PhotoUploader({
   token,
   interventionId,
+  endpoint = "/api/demandes/photos",
+  fields,
+  initialCount = 0,
   max,
   tone = "dark",
   frame,
@@ -60,6 +63,12 @@ export function PhotoUploader({
 }: {
   token?: string;
   interventionId?: string;
+  /** Adresse d'envoi : `/api/demandes/photos` (après la demande, administration) ou `/api/suivi/photos`. */
+  endpoint?: string;
+  /** Champs ajoutés à chaque envoi (référence de la demande pour la page de suivi). */
+  fields?: Record<string, string>;
+  /** Photos déjà envoyées (page de suivi rouverte) : comptent dans le maximum. */
+  initialCount?: number;
   max: number;
   tone?: "dark" | "light";
   /** `viewfinder` : le bouton d'ajout est posé dans les coins de cadrage d'un viseur (/demande). */
@@ -70,7 +79,10 @@ export function PhotoUploader({
   const [items, setItems] = useState<Item[]>([]);
   const dark = tone === "dark";
   const sent = items.filter((item) => item.status !== "error").length;
-  const remaining = Math.max(0, max - sent);
+  // Photos déjà reçues À L'OUVERTURE : figées, car la page de suivi se relit toute seule et
+  // recompterait sinon une deuxième fois les photos envoyées depuis.
+  const [baseCount] = useState(initialCount);
+  const remaining = Math.max(0, max - baseCount - sent);
 
   useEffect(
     () => () => {
@@ -89,7 +101,8 @@ export function PhotoUploader({
       const body = new FormData();
       body.append("photo", blob, "photo.jpg");
       if (interventionId) body.append("intervention", interventionId);
-      const response = await fetch("/api/demandes/photos", {
+      for (const [name, value] of Object.entries(fields ?? {})) body.append(name, value);
+      const response = await fetch(endpoint, {
         method: "POST",
         body,
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -136,7 +149,7 @@ export function PhotoUploader({
       }
     >
       <Icon name="camera" size={22} />
-      {items.length === 0 ? "Ajouter des photos" : remaining > 0 ? "Ajouter d'autres photos" : "Nombre maximum atteint"}
+      {remaining === 0 ? "Nombre maximum atteint" : items.length === 0 && baseCount === 0 ? "Ajouter des photos" : "Ajouter d'autres photos"}
     </button>
   );
 

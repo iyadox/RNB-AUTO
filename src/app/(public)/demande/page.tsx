@@ -7,6 +7,7 @@ import { getDb } from "@/server/db/client";
 import { getPublicCatalog } from "@/server/site/catalog";
 import { getPublicSiteInfo } from "@/server/site/public-info";
 import { getLatestVersion } from "@/server/settings/versions";
+import { siteUrl } from "@/core/site-url";
 
 export const metadata: Metadata = {
   title: "Demande de dépannage — prix estimé en 1 minute",
@@ -42,6 +43,7 @@ export default async function RequestPage({ searchParams }: { searchParams: Prom
         regulatedRoads={info.regulatedRoads}
         depot={depot}
         siteDepot={info.depot}
+        siteOrigin={siteUrl()}
         startOnHighway={params.autoroute === "1"}
         notice={
           <noscript>

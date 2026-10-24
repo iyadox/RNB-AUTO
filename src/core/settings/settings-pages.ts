@@ -20,3 +20,13 @@ export function settingsHref(section: SectionId): string {
   const page = SETTINGS_PAGES.find((p) => p.section === section);
   return page ? `/admin/parametres/${page.slug}` : "/admin/parametres";
 }
+
+/** Ancre d'un réglage dans sa page (`#reglage-company-phone`) pour y mener directement. */
+export function settingAnchor(key: string): string {
+  return `reglage-${key.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+}
+
+/** Adresse directe d'un réglage : sa page et son ancre. */
+export function settingHref(section: SectionId, key: string): string {
+  return `${settingsHref(section)}#${settingAnchor(key)}`;
+}

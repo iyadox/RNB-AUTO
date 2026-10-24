@@ -3,7 +3,8 @@
  * Sans service configuré, la notification est enregistrée « non envoyée » : la demande reste
  * visible dans l'administration, rien n'est perdu.
  */
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { newRequestEmailHtml } from "./email-template";
 import { formatEurosShort } from "@/core/format";
 import { siteUrl } from "@/core/site-url";
 import { getDb } from "@/server/db/client";
@@ -12,8 +13,10 @@ import { loadSettingsValues, type DbLike } from "@/server/settings/repository";
 
 export interface Notifier {
   readonly channel: string;
-  send(message: { to: string; subject: string; text: string }): Promise<void>;
+  send(message: OutgoingMessage): Promise<void>;
 }
+
+export type OutgoingMessage = { to: string; subject: string; text: string; html?: string };
 
 class ResendNotifier implements Notifier {
   readonly channel = "email";
@@ -22,11 +25,11 @@ class ResendNotifier implements Notifier {
     private readonly from: string,
   ) {}
 
-  async send(message: { to: string; subject: string; text: string }) {
+  async send(message: OutgoingMessage) {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: this.from, to: [message.to], subject: message.subject, text: message.text }),
+      body: JSON.stringify({ from: this.from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}) }),
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) throw new Error(`Resend : réponse ${response.status}`);
@@ -94,7 +97,19 @@ export async function notifyNewRequest(intervention: {
     return;
   }
   try {
-    await notifier.send({ to: recipient, subject, text });
+    const html = newRequestEmailHtml({
+      companyName: values["company.name"] || "RNB AUTO",
+      reference: intervention.reference,
+      contactName: intervention.contactName,
+      contactPhone: intervention.contactPhone,
+      pickup: `${intervention.pickupAddress}${intervention.afterRegulatedRoad ? " (relais après autoroute)" : ""}`,
+      destination: intervention.dropoffKind === "on_site" ? "Dépannage sur place" : (intervention.dropoffAddress ?? "À préciser"),
+      vehicle: intervention.vehicleLabel,
+      problem: intervention.problemLabel,
+      estimate: intervention.estimatedPriceCents !== null ? formatEurosShort(intervention.estimatedPriceCents) : null,
+      url: `${siteUrl()}/admin/demandes/${intervention.id}`,
+    });
+    await notifier.send({ to: recipient, subject, text, html });
     await db.update(notifications).set({ status: "sent", attempts: 1, sentAt: new Date() }).where(eq(notifications.id, row.id));
   } catch (error) {
     await db
@@ -131,4 +146,25 @@ export async function sendTestEmail(db: DbLike): Promise<{ ok: boolean; message:
   } catch (error) {
     return { ok: false, message: `Envoi refusé par le service d'email (${error instanceof Error ? error.message : "erreur"}).` };
   }
+}
+
+export type EmailOverview = {
+  /** Service d'envoi branché (RESEND_API_KEY et EMAIL_FROM présentes). */
+  serviceConfigured: boolean;
+  recipient: string;
+  /** Dernières notifications, la plus récente d'abord. */
+  recent: { id: string; subject: string; status: string; createdAt: Date; lastError: string | null }[];
+};
+
+/** État des emails de nouvelles demandes, pour l'accueil et la page « Notifications ». */
+export async function emailOverview(db: DbLike, limit = 5): Promise<EmailOverview> {
+  const [values, recent] = await Promise.all([
+    loadSettingsValues(db),
+    db
+      .select({ id: notifications.id, subject: notifications.subject, status: notifications.status, createdAt: notifications.createdAt, lastError: notifications.lastError })
+      .from(notifications)
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit),
+  ]);
+  return { serviceConfigured: emailConfigured(), recipient: values["notifications.email"] || values["company.email"], recent };
 }

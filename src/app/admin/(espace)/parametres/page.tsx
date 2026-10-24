@@ -67,7 +67,8 @@ export default async function SettingsHome() {
       <div className="grid gap-3 md:grid-cols-2">{tiles("trips")}</div>
       <SectionTitle icon="settings">Compte et services</SectionTitle>
       <div className="grid gap-3 md:grid-cols-2">
-        <Tile href="/admin/parametres/compte" icon="lock" title="Mon compte" description="Nom, email et mot de passe." />
+        <Tile href="/admin/parametres/compte" icon="lock" title="Mon compte" description="Nom, email, mot de passe et appareils connectés." />
+        <Tile href="/admin/parametres/acces" icon="user" title="Accès à l'espace" description="Donner ou retirer l'accès à une autre personne." />
         <Tile href="/admin/parametres/services" icon="sliders" title="Services externes" description="Itinéraires, prix du carburant, emails : état et essais." />
       </div>
 

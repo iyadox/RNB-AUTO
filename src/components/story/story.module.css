@@ -1,0 +1,907 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   Décor « de la commande à l'arrivée » : dessins et chorégraphie (story-scene.tsx). Chargé avec
+   les dessins, au premier défilement ; le cadre est dans story-frame.module.css.
+
+   Une seule chorégraphie, en images clés : chaque élément animé porte la classe `.a` et un nom
+   d'animation ; la progression vient
+   - du défilement, par le navigateur (`animation-timeline: --story`, vue de la piste) : sur
+     téléphone et partout où c'est pris en charge, sans JavaScript de défilement ;
+   - ou du module de scène `story-drive` (`[data-drive="js"]`) : GSAP ScrollTrigger lissé sur
+     ordinateur, repli léger ailleurs ; il règle `currentTime` (0 à 1 000 ms) de ces animations.
+   Seulement en niveau `full`, après `.motion-ready`. Ailleurs, l'état de base est l'image fixe :
+   la dépanneuse arrivée devant la voiture, de nuit, téléphone caché.
+   Propriétés animées : `transform`, `opacity`, `stroke-dashoffset` (C.1-7). Aucun flou.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Repères (sur `.dim` : tous les dessins qui s'en servent sont dedans) ──── */
+
+.dim {
+  /* Repères verticaux (pourcentage de la hauteur de l'écran). */
+  --horizon: 71%;
+  --ground: 79%;
+  /* Dépanneuse : largeur, place à l'arrêt, entrée et sortie (hors écran). */
+  --truck-w: min(58vw, 300px);
+  --stop-x: calc(98vw - var(--truck-w));
+  --truck-in: calc(-1 * var(--stop-x) - var(--truck-w) - 8vw);
+  --truck-out: calc(108vw - var(--stop-x));
+  /* Panoramique de la caméra qui suit la dépanneuse (couches lointaines → proches). */
+  --pan: -10vw;
+  /* Opacité du décor : entre deux fenêtres (sous le texte) et en image fixe. */
+  --dim: 0.34;
+  --dim-static: 0.5;
+}
+@media (min-width: 1024px) {
+  .dim {
+    --horizon: 75%;
+    --ground: 84%;
+    --truck-w: clamp(320px, 29vw, 460px);
+    --stop-x: 56vw;
+    --pan: -14vw;
+    --dim: 0.42;
+    --dim-static: 0.6;
+  }
+}
+
+/* ─── Monde : ciel bas, ville, lampadaires, route, véhicules ───────────────── */
+
+.dim {
+  position: absolute;
+  inset: 0;
+  opacity: var(--dim-static);
+}
+:global(html.motion-ready[data-motion="full"]) .dim {
+  opacity: var(--dim);
+}
+
+.world {
+  position: absolute;
+  inset: 0;
+  transform-origin: 62% var(--ground);
+}
+
+/* Aube : lueur chaude sur l'horizon (opacité 0 au repos, la nuit). */
+.dawn {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(110% 42% at 50% var(--horizon), rgb(242 176 108 / 0.8), rgb(185 103 90 / 0.36) 40%, transparent 72%),
+    linear-gradient(to top, transparent calc(100% - var(--horizon)), rgb(58 51 88 / 0.35) calc(100% - var(--horizon) + 1%), transparent 40%);
+  opacity: 0;
+}
+
+.sunClip {
+  position: absolute;
+  inset: 0 0 calc(100% - var(--horizon));
+  overflow: hidden;
+}
+.sun {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: clamp(150px, 28vmin, 300px);
+  aspect-ratio: 1;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe9b8 0 38%, rgb(255 205 130 / 0.6) 47%, rgb(255 170 90 / 0.18) 60%, transparent 71%);
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.skyFar,
+.skyNear {
+  position: absolute;
+  left: 0;
+  width: 220vw;
+  bottom: calc(100% - var(--horizon));
+  background-repeat: repeat-x;
+  background-position: left bottom;
+  background-size: auto 100%;
+}
+.skyFar {
+  height: clamp(90px, 15vh, 190px);
+  background-image: url("/scenes/skyline-far.svg");
+  opacity: 0.9;
+}
+.skyNear {
+  height: clamp(70px, 11vh, 150px);
+  background-image: url("/scenes/skyline-near.svg");
+}
+
+/* Lampadaires (sodium) : mâts et cônes de lumière en tuiles SVG, aucun nœud. */
+.lamps,
+.cones {
+  position: absolute;
+  left: 0;
+  width: 240vw;
+  bottom: calc(100% - var(--horizon) - 1px);
+  height: clamp(170px, 30vh, 330px);
+  background-repeat: repeat-x;
+  background-position: 6vw bottom;
+  background-size: auto 100%;
+}
+.lamps {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='220' viewBox='0 0 260 220'%3E%3Cpath d='M38 220V46q0-14 14-14h24' fill='none' stroke='%230a0e16' stroke-width='4'/%3E%3Crect x='70' y='27' width='28' height='7' rx='3' fill='%23171c25'/%3E%3Crect x='73' y='33' width='22' height='3' rx='1.5' fill='%23ffd27a'/%3E%3C/svg%3E");
+}
+.cones {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='220' viewBox='0 0 260 220'%3E%3Cdefs%3E%3ClinearGradient id='c' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffd27a' stop-opacity='.34'/%3E%3Cstop offset='1' stop-color='%23ffd27a' stop-opacity='.02'/%3E%3C/linearGradient%3E%3CradialGradient id='h'%3E%3Cstop offset='0' stop-color='%23ffd27a' stop-opacity='.75'/%3E%3Cstop offset='1' stop-color='%23ffd27a' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M74 35h20l62 185H12z' fill='url(%23c)'/%3E%3Ccircle cx='84' cy='35' r='18' fill='url(%23h)'/%3E%3C/svg%3E");
+}
+
+/* Route : chaussée sombre et mouillée, ligne de rive, tirets du milieu. Fond fondu vers le bas
+   (le bas du cadre ne fait jamais de bord net quand la piste se termine). */
+.road {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent var(--horizon),
+    rgb(255 210 122 / 0.2) var(--horizon),
+    #121722 calc(var(--horizon) + 3px),
+    #0b0f17 calc(var(--horizon) + 14%),
+    rgb(8 10 15 / 0.55) 94%,
+    transparent 100%
+  );
+}
+/* Ligne de rive, sous les roues. */
+.road::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--ground) + 14px);
+  height: 2px;
+  background: rgb(245 243 238 / 0.2);
+}
+.lane {
+  position: absolute;
+  left: 0;
+  width: 260vw;
+  top: calc(var(--horizon) + (var(--ground) - var(--horizon)) * 0.42);
+  height: 3px;
+  background: repeating-linear-gradient(90deg, rgb(245 243 238 / 0.42) 0 44px, transparent 44px 104px);
+}
+
+/* Véhicules : deux boîtes de même taille, au repère de la dépanneuse (360 × 150, sol à 131). */
+.car,
+.truck {
+  position: absolute;
+  left: var(--stop-x);
+  top: var(--ground);
+  width: var(--truck-w);
+  aspect-ratio: 360 / 150;
+  translate: 0 -87.333%;
+}
+.car {
+  /* Pose au bord de la route, derrière la dépanneuse (voir les poses dans `story-car`). */
+  transform: translateX(0) translate(-50.56%, 0%) rotate(0deg);
+  transform-origin: 0 0;
+}
+.carSvg {
+  position: absolute;
+  left: 0;
+  top: 40.413%;
+  width: 51%;
+  overflow: visible;
+}
+.truckSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* Plateau : pivote autour de sa tête (236, 94). Câble du treuil caché au repos. */
+.truck [data-part="bed"] {
+  transform-origin: 236px 94px;
+}
+.truck [data-part="cable"] {
+  opacity: 0;
+}
+.truck [data-part="cable"] > path:not(:global(.draw)) {
+  display: none;
+}
+
+/* Flaque de xénon devant la dépanneuse et halo orangé du gyrophare (au sol et sur la voiture). */
+.pool {
+  position: absolute;
+  left: 86%;
+  top: 72%;
+  width: 120%;
+  height: 34%;
+  background: radial-gradient(closest-side, rgb(227 236 255 / 0.32), rgb(227 236 255 / 0.08) 60%, transparent);
+}
+.beaconWash {
+  position: absolute;
+  left: 74%;
+  top: 22%;
+  width: 190%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: radial-gradient(closest-side, rgb(255 122 26 / 0.26), rgb(255 122 26 / 0.08) 45%, transparent);
+  animation: wash 1.2s ease-in-out infinite;
+}
+@keyframes wash {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+:global(html:not(.motion-ready)) .beaconWash,
+:global(html[data-motion="off"]) .beaconWash {
+  animation: none;
+}
+
+/* ─── Téléphone ───────────────────────────────────────────────────────────── */
+
+.phoneSlot {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: min(60vw, 36svh, 250px);
+  translate: -50% -50%;
+}
+@media (min-width: 1024px) {
+  .phoneSlot {
+    top: 50%;
+    width: min(20vw, 32vh, 300px);
+  }
+}
+
+.phone {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 9 / 19;
+  padding: 3.2%;
+  border-radius: 14% / 6.6%;
+  background: linear-gradient(150deg, #39414c, #0f1318 38%, #0b0e12 70%, #2a3038);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 40px 90px -30px rgb(0 0 0 / 0.9),
+    0 0 70px -10px rgb(120 160 255 / 0.22);
+  /* Plongée dans l'épingle « Vous » (sa tête, sur le plan) : on traverse l'écran par elle. */
+  transform-origin: 39% 51%;
+  /* Image fixe : pas de téléphone (il n'existe que pendant l'histoire). */
+  opacity: 0;
+}
+
+/* Lumière de l'écran sur la nuit autour, et touches sur la tranche. */
+.phone::before {
+  content: "";
+  position: absolute;
+  inset: -30% -60%;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgb(140 175 255 / 0.2), rgb(140 175 255 / 0.06) 55%, transparent);
+}
+.phone::after {
+  content: "";
+  position: absolute;
+  right: -1.6%;
+  top: 24%;
+  width: 1.8%;
+  height: 11%;
+  border-radius: 0 3px 3px 0;
+  background: #2a3038;
+}
+.glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, rgb(255 255 255 / 0.1) 0%, rgb(255 255 255 / 0.03) 32%, transparent 33%);
+  pointer-events: none;
+}
+.screen {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 11cqw;
+  background: linear-gradient(to bottom, #0d1628, #0a1120);
+  color: var(--color-chalk);
+  font-size: 5.6cqw;
+  line-height: 1.2;
+}
+.notch {
+  position: absolute;
+  left: 50%;
+  top: 3cqw;
+  width: 28cqw;
+  height: 7cqw;
+  translate: -50% 0;
+  border-radius: 99px;
+  background: #05070d;
+  z-index: 3;
+}
+.appBar {
+  position: absolute;
+  left: 7cqw;
+  right: 7cqw;
+  top: 14cqw;
+  display: flex;
+  align-items: center;
+  gap: 3cqw;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 5cqw;
+}
+.appTitle {
+  position: absolute;
+  left: 7cqw;
+  top: 26cqw;
+  margin: 0;
+  font-size: 7.4cqw;
+  font-weight: 800;
+  z-index: 1;
+}
+.appLogo {
+  width: 9cqw;
+  height: 9cqw;
+}
+.map {
+  position: absolute;
+  left: 0;
+  top: 36cqw;
+  width: 100%;
+  height: 112cqw;
+}
+.route {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+}
+.ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+.pin {
+  transform-box: view-box;
+}
+
+.cta {
+  position: absolute;
+  left: 7cqw;
+  right: 7cqw;
+  bottom: 9cqw;
+  height: 15cqw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5cqw;
+  border-radius: 4cqw;
+  background: var(--color-signal-500);
+  color: var(--color-asphalt-950);
+  font-weight: 800;
+  font-size: 5.4cqw;
+  overflow: hidden;
+  box-shadow: 0 0 9cqw rgb(255 196 0 / 0.35);
+}
+.tap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22cqw;
+  aspect-ratio: 1;
+  margin: -11cqw 0 0 -11cqw;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.55);
+  opacity: 0;
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 7cqw 7cqw 10cqw;
+  display: grid;
+  gap: 5cqw;
+  border-radius: 9cqw 9cqw 0 0;
+  background: #131c30;
+  box-shadow: 0 -1px 0 rgb(255 255 255 / 0.08);
+}
+.sent {
+  display: flex;
+  align-items: center;
+  gap: 3cqw;
+  font-weight: 800;
+  font-size: 6.4cqw;
+}
+.check {
+  width: 11cqw;
+  height: 11cqw;
+  flex: none;
+}
+.checkMark {
+  stroke-dasharray: 1 1;
+}
+.ticket {
+  display: grid;
+  gap: 2.6cqw;
+  padding: 5cqw;
+  border-radius: 3cqw;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+.ticketLabel {
+  font-size: 4cqw;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.bar {
+  display: block;
+  height: 3cqw;
+  border-radius: 99px;
+  background: rgb(22 24 27 / 0.22);
+  transform-origin: left center;
+}
+.barBig {
+  width: 58%;
+  height: 9cqw;
+  border-radius: 2cqw;
+  background: rgb(22 24 27 / 0.85);
+}
+.barShort {
+  width: 64%;
+}
+.depart {
+  display: grid;
+  gap: 2.6cqw;
+  font-size: 4.6cqw;
+  font-weight: 700;
+  color: var(--color-asphalt-200);
+}
+.meter {
+  display: block;
+  height: 2.4cqw;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.1);
+  overflow: hidden;
+}
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--color-signal-500);
+  transform-origin: left center;
+}
+.warp {
+  position: absolute;
+  inset: -10%;
+  background: repeating-conic-gradient(from 3deg at 50% 47%, transparent 0deg 5deg, rgb(227 236 255 / 0.22) 5.4deg 5.9deg, transparent 6.3deg 11deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 47%, transparent 10%, #000 46%);
+  mask-image: radial-gradient(circle at 50% 47%, transparent 10%, #000 46%);
+  opacity: 0;
+}
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #0b1222;
+  opacity: 0;
+}
+
+/* ─── Chorégraphie ────────────────────────────────────────────────────────────
+   Trois actes, chacun lié à sa fenêtre (`--w1`, `--w2`, `--w3`, vue « cover » : de l'entrée de la
+   fenêtre par le bas à sa sortie par le haut), plus l'aube liée à toute la piste (`--story`,
+   phase collante). `--acts` répète, dans l'ordre des noms, l'acte de chaque animation (0 = la
+   piste) : le pilote JavaScript s'en sert pour régler chacune sur la bonne progression.
+   Un élément animé par deux actes : le premier remplit avant et après (`both`), le second
+   seulement après (`forwards`), pour ne jamais masquer le premier avant son tour.
+   Courbes : valeurs écrites en clair (celles de globals.css : `--ease-brake`, `--ease-accel`,
+   `--ease-beam`, `--ease-out-expo`, `--ease-out-back`). Dans une image clé, une variable dans
+   `animation-timing-function` n'est pas résolue et retombe sur `ease` : ne pas y en remettre.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .a,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-wheel],
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-part="bed"],
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-part="cable"],
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-part="cable"] :global(.draw) {
+  animation-duration: auto;
+  animation-timing-function: linear;
+}
+
+/* Le pilote JavaScript (GSAP lissé, ou repli) : horloge du document, en pause, `currentTime`
+   réglé de 0 à 1 000 ms. */
+:global(html.motion-ready[data-motion="full"]) [data-story-stage][data-drive="js"] .a,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage][data-drive="js"] .truck [data-wheel],
+:global(html.motion-ready[data-motion="full"]) [data-story-stage][data-drive="js"] .truck [data-part="bed"],
+:global(html.motion-ready[data-motion="full"]) [data-story-stage][data-drive="js"] .truck [data-part="cable"],
+:global(html.motion-ready[data-motion="full"]) [data-story-stage][data-drive="js"] .truck [data-part="cable"] :global(.draw) {
+  animation-duration: 1s;
+  animation-timeline: auto;
+  animation-play-state: paused;
+}
+
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .dim {
+  /* L'aube (toute la piste) d'abord : les fenêtres, plus loin dans la liste, l'emportent. */
+  animation-name: t-dim, w1-dim, w2-dim, w3-dim;
+  animation-fill-mode: none;
+  animation-timeline: --story, --w1, --w2, --w3;
+  animation-range: contain 0% contain 100%, normal, normal, normal;
+  --acts: 0 1 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .world {
+  animation-name: w1-world;
+  animation-fill-mode: both;
+  animation-timeline: --w1;
+  --acts: 1;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .dawn {
+  animation-name: t-dawn;
+  animation-fill-mode: both;
+  animation-timeline: --story;
+  animation-range: contain 0% contain 100%;
+  --acts: 0;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .road {
+  animation-name: t-road;
+  animation-fill-mode: both;
+  animation-timeline: --story;
+  animation-range: contain 0% contain 100%;
+  --acts: 0;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .sun {
+  animation-name: t-sun;
+  animation-fill-mode: both;
+  animation-timeline: --story;
+  animation-range: contain 0% contain 100%;
+  --acts: 0;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .skyFar {
+  animation-name: w2-far, w3-far;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w2, --w3;
+  --acts: 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .skyNear {
+  animation-name: w2-near, w3-near;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w2, --w3;
+  --acts: 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .lamps {
+  animation-name: w2-lamps, w3-lamps;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w2, --w3;
+  --acts: 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .cones {
+  animation-name: w2-lamps, w3-cones;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w2, --w3;
+  --acts: 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .lane {
+  animation-name: w2-lane, w3-lane;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w2, --w3;
+  --acts: 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .car {
+  animation-name: w1-car, w3-car;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w1, --w3;
+  --acts: 1 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .carShadow {
+  animation-name: w3-shadow;
+  animation-fill-mode: forwards;
+  animation-timeline: --w3;
+  --acts: 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck {
+  animation-name: w2-truck, w3-truck;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w2, --w3;
+  --acts: 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-wheel] {
+  animation-name: w2-wheel, w3-wheel;
+  animation-fill-mode: both, forwards;
+  animation-timeline: --w2, --w3;
+  --acts: 2 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-part="bed"] {
+  animation-name: w3-bed;
+  animation-fill-mode: both;
+  animation-timeline: --w3;
+  --acts: 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-part="cable"] {
+  animation-name: w3-cable;
+  animation-fill-mode: both;
+  animation-timeline: --w3;
+  --acts: 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .truck [data-part="cable"] :global(.draw) {
+  animation-name: w3-cable-draw;
+  animation-fill-mode: both;
+  animation-timeline: --w3;
+  --acts: 3;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .phone,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .pin,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .ring,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .cta,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .tap,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .sheet,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .checkMark,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .ticket,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .bar,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .route,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .fill,
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .flash {
+  animation-fill-mode: both;
+  animation-timeline: --w1;
+  --acts: 1;
+}
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .phone { animation-name: w1-phone; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .pin { animation-name: w1-pin; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .ring { animation-name: w1-ring; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .cta { animation-name: w1-cta; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .tap { animation-name: w1-tap; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .sheet { animation-name: w1-sheet; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .checkMark { animation-name: w1-check; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .ticket { animation-name: w1-ticket; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .bar { animation-name: w1-bars; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .route { animation-name: w1-route; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .fill { animation-name: w1-meter; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .flash { animation-name: w1-flash; }
+:global(html.motion-ready[data-motion="full"]) [data-story-stage] .warp {
+  animation-name: w1-warp;
+  animation-fill-mode: both;
+  animation-timeline: --w1;
+  --acts: 1;
+}
+
+/* ─── Acte 1 · La demande (fenêtre 1, 130 % de l'écran) ───────────────────────
+   Le téléphone sort de l'écran, son écran raconte la demande, puis on le traverse en plongeant
+   dans l'épingle : la nuit, la route, la voiture en panne. Toute la demande (36 → 58 %) se joue
+   quand la fenêtre recouvre le téléphone en entier : aucun texte ne passe dessus. La plongée
+   commence avant que la section suivante n'apparaisse en bas de l'écran. */
+@keyframes w1-dim {
+  0% { opacity: var(--dim); }
+  16%, 84% { opacity: 1; }
+  100% { opacity: var(--dim); }
+}
+@keyframes w1-world {
+  0%, 6% { opacity: 1; transform: scale(1); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  26% { opacity: 0.2; transform: scale(1.22); }
+  63% { opacity: 0.2; transform: scale(1.22); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  76% { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes w1-car {
+  0%, 67% { opacity: 0; }
+  76% { opacity: 1; }
+  100% { opacity: 1; }
+}
+@keyframes w1-phone {
+  0%, 15% { opacity: 0; transform: perspective(900px) translateY(34%) rotateX(38deg) rotateZ(-8deg) scale(0.34); animation-timing-function: cubic-bezier(0.25, 0.8, 0.3, 1); }
+  37% { opacity: 1; transform: perspective(900px) translateY(0%) rotateX(0deg) rotateZ(0deg) scale(1); }
+  58.5% { opacity: 1; transform: perspective(900px) translateY(0%) rotateX(0deg) rotateZ(0deg) scale(1); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  66% { opacity: 1; transform: perspective(900px) translateY(0%) rotateX(0deg) rotateZ(0deg) scale(8); }
+  69% { opacity: 0; transform: perspective(900px) translateY(0%) rotateX(0deg) rotateZ(0deg) scale(11); }
+  100% { opacity: 0; transform: perspective(900px) translateY(0%) rotateX(0deg) rotateZ(0deg) scale(11); }
+}
+@keyframes w1-pin {
+  0%, 38% { opacity: 0; transform: translateY(-46px); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  41.5% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes w1-ring {
+  0%, 41% { opacity: 0; transform: scale(0.3); }
+  41.5% { opacity: 0.9; transform: scale(0.3); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  46% { opacity: 0; transform: scale(2.2); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+@keyframes w1-cta {
+  0%, 43% { opacity: 1; transform: translateY(0%) scale(1); }
+  44% { opacity: 1; transform: translateY(0%) scale(0.93); }
+  45% { opacity: 1; transform: translateY(0%) scale(1); }
+  46% { opacity: 1; transform: translateY(0%) scale(1); }
+  48% { opacity: 0; transform: translateY(60%) scale(1); }
+  100% { opacity: 0; transform: translateY(60%) scale(1); }
+}
+@keyframes w1-tap {
+  0%, 43% { opacity: 0; transform: scale(0.2); }
+  43.5% { opacity: 0.8; transform: scale(0.4); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  46.5% { opacity: 0; transform: scale(3.2); }
+  100% { opacity: 0; transform: scale(3.2); }
+}
+@keyframes w1-sheet {
+  0%, 46% { transform: translateY(105%); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  49.5% { transform: translateY(0%); }
+  100% { transform: translateY(0%); }
+}
+@keyframes w1-check {
+  0%, 48% { stroke-dashoffset: 1; }
+  50.5% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes w1-ticket {
+  0%, 49.5% { opacity: 0; transform: translateY(14%); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  52.5% { opacity: 1; transform: translateY(0%); }
+  100% { opacity: 1; transform: translateY(0%); }
+}
+@keyframes w1-bars {
+  0%, 50.5% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  54% { transform: scaleX(1); }
+  100% { transform: scaleX(1); }
+}
+@keyframes w1-route {
+  0%, 52% { stroke-dashoffset: 1; }
+  57% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes w1-meter {
+  0%, 52% { transform: scaleX(0); }
+  57% { transform: scaleX(1); }
+  100% { transform: scaleX(1); }
+}
+@keyframes w1-warp {
+  0%, 60% { opacity: 0; transform: scale(0.5); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  66% { opacity: 1; transform: scale(1); }
+  75% { opacity: 0; transform: scale(1.9); }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+@keyframes w1-flash {
+  0%, 60% { opacity: 0; }
+  65.5% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* ─── Acte 2 · L'arrivée (fenêtre 2) ──────────────────────────────────────────
+   La dépanneuse arrive par la gauche, double la voiture, freine et se range devant elle ; la
+   caméra la suit (les couches proches glissent plus que les lointaines). */
+@keyframes w2-dim {
+  0% { opacity: var(--dim); }
+  16%, 80% { opacity: 1; }
+  100% { opacity: var(--dim); }
+}
+@keyframes w2-truck {
+  0%, 14% { transform: translate(var(--truck-in), 6%); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  50% { transform: translate(0px, 0%); }
+  100% { transform: translate(0px, 0%); }
+}
+@keyframes w2-wheel {
+  0%, 14% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  50% { transform: rotate(1440deg); }
+  100% { transform: rotate(1440deg); }
+}
+@keyframes w2-far {
+  0%, 14% { transform: translateX(0); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  50% { transform: translateX(calc(var(--pan) * 0.2)); }
+  100% { transform: translateX(calc(var(--pan) * 0.2)); }
+}
+@keyframes w2-near {
+  0%, 14% { transform: translateX(0); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  50% { transform: translateX(calc(var(--pan) * 0.4)); }
+  100% { transform: translateX(calc(var(--pan) * 0.4)); }
+}
+@keyframes w2-lamps {
+  0%, 14% { transform: translateX(0); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  50% { transform: translateX(calc(var(--pan) * 0.7)); }
+  100% { transform: translateX(calc(var(--pan) * 0.7)); }
+}
+@keyframes w2-lane {
+  0%, 14% { transform: translateX(0); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  50% { transform: translateX(var(--pan)); }
+  100% { transform: translateX(var(--pan)); }
+}
+
+/* ─── Acte 3 · Le chargement et le départ (fenêtre 3) ─────────────────────────
+   Plateau incliné, treuil, la voiture monte, plateau à plat ; puis la dépanneuse repart.
+   Poses de la voiture dans le repère de la dépanneuse (unités du dessin ; 1 % de largeur =
+   3,6 unités, 1 % de hauteur = 1,5 unité ; origine en haut à gauche de la boîte) : attente
+   (-182, 0) · roue avant au pied du plateau (-138,8, 0) · roue avant sur le bord, -8,67°
+   (-133,2, 7,4) · roues sur le plateau incliné à -11° (-40, -5,4) · chargée, plateau incliné
+   (5,2, -14,2) · chargée, plateau à plat (30,05, -56,2). */
+@keyframes w3-dim {
+  0% { opacity: var(--dim); }
+  15%, 85% { opacity: 1; }
+  100% { opacity: var(--dim); }
+}
+@keyframes w3-bed {
+  0%, 19.4% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  23.8% { transform: rotate(-11deg); }
+  40.5% { transform: rotate(-11deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  44.9% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes w3-cable {
+  0%, 23.5% { opacity: 0; }
+  23.8% { opacity: 1; }
+  44.5% { opacity: 1; }
+  44.9% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes w3-cable-draw {
+  0%, 23.8% { stroke-dashoffset: 1; }
+  26.3% { stroke-dashoffset: 0; }
+  29.4% { stroke-dashoffset: 0; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  35.6% { stroke-dashoffset: 0.67; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  40.5% { stroke-dashoffset: 0.88; }
+  100% { stroke-dashoffset: 0.88; }
+}
+@keyframes w3-car {
+  0%, 26.3% { transform: translateX(0px) translate(-50.56%, 0%) rotate(0deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  29.4% { transform: translateX(0px) translate(-38.54%, 0%) rotate(0deg); }
+  31.2% { transform: translateX(0px) translate(-36.99%, 4.913%) rotate(-8.67deg); }
+  35.6% { transform: translateX(0px) translate(-11.106%, -3.587%) rotate(-11deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  40.5% { transform: translateX(0px) translate(1.436%, -9.44%) rotate(-11deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  44.9% { transform: translateX(0px) translate(8.347%, -37.48%) rotate(0deg); }
+  48% { transform: translateX(0px) translate(8.347%, -37.48%) rotate(0deg); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  65.3% { transform: translateX(var(--truck-out)) translate(8.347%, -37.48%) rotate(0deg); }
+  100% { transform: translateX(var(--truck-out)) translate(8.347%, -37.48%) rotate(0deg); }
+}
+@keyframes w3-shadow {
+  0%, 29.4% { opacity: 0.6; }
+  31.2% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes w3-truck {
+  0%, 48% { transform: translate(0px, 0%); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  65.3% { transform: translate(var(--truck-out), 0%); }
+  100% { transform: translate(var(--truck-out), 0%); }
+}
+@keyframes w3-wheel {
+  0%, 48% { transform: rotate(1440deg); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  65.3% { transform: rotate(3600deg); }
+  100% { transform: rotate(3600deg); }
+}
+@keyframes w3-far {
+  0%, 48% { transform: translateX(calc(var(--pan) * 0.2)); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  67.8% { transform: translateX(calc(var(--pan) * 0.45)); }
+  100% { transform: translateX(calc(var(--pan) * 0.45)); }
+}
+@keyframes w3-near {
+  0%, 48% { transform: translateX(calc(var(--pan) * 0.4)); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  67.8% { transform: translateX(calc(var(--pan) * 0.9)); }
+  100% { transform: translateX(calc(var(--pan) * 0.9)); }
+}
+@keyframes w3-lamps {
+  0%, 48% { transform: translateX(calc(var(--pan) * 0.7)); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  67.8% { transform: translateX(calc(var(--pan) * 1.6)); }
+  100% { transform: translateX(calc(var(--pan) * 1.6)); }
+}
+@keyframes w3-cones {
+  0%, 48% { opacity: 1; transform: translateX(calc(var(--pan) * 0.7)); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  60.4% { opacity: 1; transform: translateX(calc(var(--pan) * 1.2)); }
+  70.3% { opacity: 0; transform: translateX(calc(var(--pan) * 1.6)); }
+  100% { opacity: 0; transform: translateX(calc(var(--pan) * 1.6)); }
+}
+@keyframes w3-lane {
+  0%, 48% { transform: translateX(var(--pan)); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2); }
+  67.8% { transform: translateX(calc(var(--pan) * 2.4)); }
+  100% { transform: translateX(calc(var(--pan) * 2.4)); }
+}
+
+/* ─── L'aube (toute la piste) : elle se lève sur la route vide, puis « On arrive. » ── */
+/* La route du décor s'efface avant celle des questions et de « On arrive. » (une seule route). */
+@keyframes t-road {
+  0%, 86% { opacity: 1; }
+  97% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes t-dawn {
+  0%, 72% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes t-sun {
+  0%, 76% { opacity: 0; transform: translateY(100%); }
+  82% { opacity: 1; transform: translateY(80%); }
+  100% { opacity: 1; transform: translateY(26%); }
+}
+@keyframes t-dim {
+  0%, 74% { opacity: var(--dim); }
+  100% { opacity: 0.8; }
+}
+
+/* ─── Préférences et impression ───────────────────────────────────────────── */
+
+@media (prefers-contrast: more) {
+  .dim {
+    opacity: 0.45;
+  }
+  .phoneSlot {
+    opacity: 0.6;
+  }
+}
